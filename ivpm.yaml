@@ -1,0 +1,24 @@
+
+package:
+  name: libarl-be-sw
+
+  setup-deps:
+  - ninja
+  - cython
+
+  dep-sets:
+  - name: default
+    deps:
+    - name: libarl
+      url: https://github.com/fvutils/libarl.git
+
+  - name: default-dev
+    deps:
+    - name: libarl
+      url: https://github.com/fvutils/libarl.git
+    - name: ninja
+      src: pypi
+    - name: cython
+      src: pypi
+
+

@@ -42,6 +42,10 @@ set_target_properties(libgmock PROPERTIES
 include_directories(
 	"${source_dir}/googletest/include"
 	"${source_dir}/googlemock/include"
+	"${PACKAGES_DIR}/libarl/src"
+	"${PACKAGES_DIR}/libarl/src/include"
+	"${PACKAGES_DIR}/libvsc/src"
+	"${PACKAGES_DIR}/libvsc/src/include"
 	)
 
 file(GLOB test_libarl_be_sw_SRC
@@ -57,6 +61,9 @@ target_include_directories(test_libarl_be_sw PUBLIC
 target_link_directories(test_libarl_be_sw PRIVATE
     ${CMAKE_BINARY_DIR}/lib
     ${CMAKE_BINARY_DIR}/lib64
+    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/src
+    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/lib
+    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/lib64
     )
   
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -66,6 +73,8 @@ else()
 endif()
 
 target_link_libraries(test_libarl_be_sw 
+  arl
+  vsc
 	libgtest 
 	libgmock
 	)

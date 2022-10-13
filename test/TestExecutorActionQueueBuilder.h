@@ -1,5 +1,5 @@
 /**
- * TestBase.h
+ * TestExecutorActionQueueBuilder.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,28 +19,17 @@
  *     Author: 
  */
 #pragma once
-#include "gtest/gtest.h"
-#include "arl/IContext.h"
-#include "vsc/IContext.h"
+#include "TestBase.h"
 
 namespace arl {
 namespace be {
 namespace sw {
 
-
-class TestBase : public ::testing::Test {
+class TestExecutorActionQueueBuilder : public TestBase {
 public:
-    TestBase();
+    TestExecutorActionQueueBuilder();
 
-    virtual ~TestBase();
-
-    virtual void SetUp() override;
-
-    virtual void TearDown() override;
-
-protected:
-    vsc::IContext               *m_vsc_ctxt;
-    arl::IContextUP             m_arl_ctxt;
+    virtual ~TestExecutorActionQueueBuilder();
 
 };
 

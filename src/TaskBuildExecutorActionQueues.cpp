@@ -1,5 +1,5 @@
-/**
- * TestBase.h
+/*
+ * TaskBuildExecutorActionQueues.cpp
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,36 +16,35 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "gtest/gtest.h"
-#include "arl/IContext.h"
-#include "vsc/IContext.h"
+#include "TaskBuildExecutorActionQueues.h"
+
 
 namespace arl {
 namespace be {
 namespace sw {
 
 
-class TestBase : public ::testing::Test {
-public:
-    TestBase();
+TaskBuildExecutorActionQueues::TaskBuildExecutorActionQueues(
+    const std::vector<IModelFieldExecutor *>    &executors,
+    int32_t                                     dflt_executor) :
+    m_executors(executors.begin(), executors.end()), m_dflt_executor(dflt_executor) {
 
-    virtual ~TestBase();
+}
 
-    virtual void SetUp() override;
+TaskBuildExecutorActionQueues::~TaskBuildExecutorActionQueues() {
 
-    virtual void TearDown() override;
+}
 
-protected:
-    vsc::IContext               *m_vsc_ctxt;
-    arl::IContextUP             m_arl_ctxt;
+void TaskBuildExecutorActionQueues::build(
+        std::vector<ExecutorActionQueue>    &executor_queues,
+        const std::vector<IModelActivity *> &actvities) {
+    m_executor_queues = &executor_queues;
 
-};
+
+}
 
 }
 }
 }
-
-

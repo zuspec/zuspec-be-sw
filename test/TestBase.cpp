@@ -19,7 +19,8 @@
  *     Author:
  */
 #include "TestBase.h"
-
+#include "ArlImpl.h"
+#include "VscImpl.h"
 
 namespace arl {
 namespace be {
@@ -36,6 +37,18 @@ TestBase::~TestBase() {
 
 void TestBase::SetUp() {
     fprintf(stdout, "SetUp %s\n", ::testing::internal::GetArgvs()[0].c_str());
+
+    m_vsc_ctxt = vsc::VscImpl::inst()->mkContext();
+    m_arl_ctxt = arl::IContextUP(arl::ArlImpl::inst()->mkContext(m_vsc_ctxt));
+
+}
+
+void TestBase::TearDown() {
+    fprintf(stdout, "TearDown\n");
+    fflush(stdout);
+
+    m_arl_ctxt.reset();
+//    m_vsc_ctxt.reset();
 }
 
 }

@@ -23,6 +23,7 @@
 #include "arl/IModelActivity.h"
 #include "arl/IModelFieldAction.h"
 #include "arl/IModelFieldExecutor.h"
+#include "arl/impl/VisitorBase.h"
 
 namespace arl {
 namespace be {
@@ -70,7 +71,7 @@ struct ExecutorActionQueueParallelEntry {
 using ExecutorActionQueue=std::vector<ExecutorActionQueueEntry>;
 
 
-class TaskBuildExecutorActionQueues {
+class TaskBuildExecutorActionQueues : public VisitorBase {
 public:
     TaskBuildExecutorActionQueues(
         const std::vector<IModelFieldExecutor *>        &executors,
@@ -84,10 +85,19 @@ public:
         const std::vector<IModelActivity *> &actvities
     );
 
+	virtual void visitModelActivityParallel(IModelActivityParallel *a) override;
+
+	virtual void visitModelActivityTraverse(IModelActivityTraverse *a) override;
+
+private:
+    using LastExecutorFrame=std::vector<int32_t>;
+
+
 private:
     std::vector<IModelFieldExecutor *>          m_executors;
     std::vector<ExecutorActionQueue>            *m_executor_queues;
     int32_t                                     m_dflt_executor;
+    std::vector<LastExecutorFrame>              m_last_executor;
 
 };
 

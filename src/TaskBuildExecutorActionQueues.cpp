@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "arl/impl/TaskFindExecutor.h"
+#include "vsc/impl/DebugMacros.h"
 #include "TaskBuildExecutorActionQueues.h"
 
 
@@ -28,9 +29,11 @@ namespace sw {
 
 
 TaskBuildExecutorActionQueues::TaskBuildExecutorActionQueues(
+    IContext                                    *ctxt,
     const std::vector<IModelFieldExecutor *>    &executors,
     int32_t                                     dflt_executor) :
     m_executors(executors.begin(), executors.end()), m_dflt_executor(dflt_executor) {
+    DEBUG_INIT("TaskBuildExecutorActionQueues", ctxt->getDebugMgr());
 
     m_last_executor.push_back({0});
 
@@ -43,6 +46,7 @@ TaskBuildExecutorActionQueues::~TaskBuildExecutorActionQueues() {
 void TaskBuildExecutorActionQueues::build(
         std::vector<ExecutorActionQueue>    &executor_queues,
         const std::vector<IModelActivity *> &actvities) {
+    DEBUG_ENTER("build");
     m_executor_queues = &executor_queues;
 
     if (m_executors.size() > 0) {
@@ -61,9 +65,11 @@ void TaskBuildExecutorActionQueues::build(
         it!=actvities.end(); it++) {
         (*it)->accept(m_this);
     }
+    DEBUG_LEAVE("build");
 }
 
 void TaskBuildExecutorActionQueues::visitModelActivityParallel(IModelActivityParallel *a) {
+    DEBUG_ENTER("visitModelActivityParallel");
     std::vector<int32_t> last_executor;
 
     for (std::vector<IModelActivity *>::const_iterator
@@ -101,9 +107,12 @@ void TaskBuildExecutorActionQueues::visitModelActivityParallel(IModelActivityPar
         m_last_executor.back().begin(), 
         last_executor.begin(), 
         last_executor.end());
+
+    DEBUG_LEAVE("visitModelActivityParallel");
 }
 
 void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTraverse *a) {
+    DEBUG_ENTER("visitModelActivityTraverse");
     int32_t executor = 0; // TODO:
 
     IModelFieldExecutor *executor_p = TaskFindExecutor().find(a->getTarget());
@@ -118,6 +127,29 @@ void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTra
         }
     } else {
         executor = m_dflt_executor; 
+    }
+
+    DEBUG("executor: %d", executor);
+
+    if (m_last_executor.back().size() > 1) {
+        // TODO:
+    } else {
+        // Need to add a synchronization request
+        if (m_last_executor.back().at(0) != executor) {
+            int32_t dep_executor=m_last_executor.back().at(0);
+            DEBUG("Action execution depends on %d\n", dep_executor);
+
+            // The action ID is in the last entry on that queue
+            int32_t dep_action_id=m_executor_queues->at(dep_executor).back().action_id;
+
+            m_executor_queues->at(executor).push_back(
+                {
+                    .kind=ExecutorActionQueueEntryKind::Depend,
+                    .action_id=dep_action_id,
+                    .executor_id=m_last_executor.back().at(0)
+                }
+            );
+        }
     }
 
     // TODO: must consider 'last executor' to be both
@@ -145,7 +177,10 @@ void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTra
     } else {
         m_last_executor.back().at(0) = executor;
     }
+    DEBUG_LEAVE("visitModelActivityTraverse");
 }
+
+vsc::IDebug *TaskBuildExecutorActionQueues::m_dbg = 0;
 
 }
 }

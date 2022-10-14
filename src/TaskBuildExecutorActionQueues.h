@@ -20,6 +20,7 @@
  */
 #pragma once
 #include <vector>
+#include "arl/IContext.h"
 #include "arl/IModelActivity.h"
 #include "arl/IModelFieldAction.h"
 #include "arl/IModelFieldExecutor.h"
@@ -74,6 +75,7 @@ using ExecutorActionQueue=std::vector<ExecutorActionQueueEntry>;
 class TaskBuildExecutorActionQueues : public VisitorBase {
 public:
     TaskBuildExecutorActionQueues(
+        IContext                                        *ctxt,
         const std::vector<IModelFieldExecutor *>        &executors,
         int32_t                                         dflt_executor
     );
@@ -94,6 +96,7 @@ private:
 
 
 private:
+    static vsc::IDebug                          *m_dbg;
     std::vector<IModelFieldExecutor *>          m_executors;
     std::vector<ExecutorActionQueue>            *m_executor_queues;
     int32_t                                     m_dflt_executor;

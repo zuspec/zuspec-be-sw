@@ -55,16 +55,79 @@ void TaskBuildExecutorActionQueues::build(
             it!=m_executors.end(); it++) {
             m_executor_queues->push_back(ExecutorActionQueue());
         }
+
+        if (m_executors.size() > 1) {
+            // Cause the primary executor to emit its 'alive' signal
+            m_executor_queues->at(m_dflt_executor).push_back(
+                {
+                    .kind=ExecutorActionQueueEntryKind::Action,
+                    .action_id=1,
+                    .executor_id=-1,
+                    .action=0
+                }
+            );
+
+            // Cause all non-primary cores to wait for the primary 
+            // core to begin execution
+            for (uint32_t i=0; i<m_executors.size(); i++) {
+                m_executor_exec_ids.push_back((i==m_dflt_executor)?1:0);
+                if (i != m_dflt_executor) {
+                    m_executor_queues->at(i).push_back(
+                        {
+                            .kind=ExecutorActionQueueEntryKind::Depend,
+                            .action_id=1,
+                            .executor_id=m_dflt_executor,
+                            .action=0
+                        }
+                    );
+                }
+            }
+        }
     } else {
         m_executor_queues->push_back(ExecutorActionQueue());
         m_dflt_executor = 0;
     }
+
 
     for (std::vector<IModelActivity *>::const_iterator
         it=actvities.begin();
         it!=actvities.end(); it++) {
         (*it)->accept(m_this);
     }
+
+    // TODO: could possibly identify blocking synchronizations as a post-step
+    if (m_executors.size() > 1) {
+        // Have each non-primary executor notify its completion
+        for (uint32_t i=0; i<m_executors.size(); i++) {
+            if (i != m_dflt_executor) {
+                m_executor_exec_ids[i] += 1;
+                m_executor_queues->at(i).push_back(
+                    {
+                        .kind=ExecutorActionQueueEntryKind::Action,
+                        .action_id=m_executor_exec_ids[i],
+                        .executor_id=-1,
+                        .action=0
+                    }
+                );
+            }
+        }
+
+        // Have the primary executor wait for all non-primary executors
+        for (uint32_t i=0; i<m_executors.size(); i++) {
+            if (i != m_dflt_executor) {
+                m_executor_queues->at(m_dflt_executor).push_back(
+                    {
+                        .kind=ExecutorActionQueueEntryKind::Depend,
+                        .action_id=m_executor_exec_ids[i],
+                        .executor_id=static_cast<int32_t>(i),
+                        .action=0
+                    }
+                );
+            }
+        }
+    }
+
+    // Cause all non-primary 
     DEBUG_LEAVE("build");
 }
 

@@ -18,13 +18,20 @@
  * Created on:
  *     Author:
  */
+
+#include <stdarg.h>
+#include <stdio.h>
 #include "Output.h"
+
 
 namespace arl {
 namespace be {
 namespace sw {
 
-Output::Output() {
+
+Output::Output(
+    std::ostream            *out,
+    const std::string       &ind) : m_out(out), m_ind(ind) {
 
 }
 
@@ -33,7 +40,86 @@ Output::~Output() {
 }
 
 
-}
-}
+/**
+ * @brief Writes indent, content, then a newline
+ * 
+ * @param fmt 
+ * @param ... 
+ */
+void Output::println(const char *fmt, ...) {
+    char tmp[1024];
+    va_list ap;
+    va_start(ap, fmt);
+
+    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
+    if (m_ind.size() > 0) {
+        m_out->write(m_ind.c_str(), m_ind.size());
+    }
+    m_out->write(tmp, len);
+    m_out->write("\n", 1);
+
+    va_end(ap);
 }
 
+/**
+ * @brief Writes indent and content without a newline
+ * 
+ * @param fmt 
+ * @param ... 
+ */
+void Output::print(const char *fmt, ...) {
+    char tmp[1024];
+    va_list ap;
+    va_start(ap, fmt);
+
+    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
+    if (m_ind.size() > 0) {
+        m_out->write(m_ind.c_str(), m_ind.size());
+    }
+    m_out->write(tmp, len);
+
+    va_end(ap);
+}
+
+/**
+ * @brief Writes content only
+ * 
+ * @param fmt 
+ * @param ... 
+ */
+void Output::write(const char *fmt, ...) {
+    char tmp[1024];
+    va_list ap;
+    va_start(ap, fmt);
+
+    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
+    m_out->write(tmp, len);
+
+    va_end(ap);
+}
+
+/**
+ * @brief Writes the current indent
+ * 
+ */
+void Output::indent() {
+    if (m_ind.size() > 0) {
+        m_out->write(m_ind.c_str(), m_ind.size());
+    }
+}
+
+void Output::inc_ind() {
+    m_ind += "    ";
+}
+
+void Output::dec_ind() {
+    if (m_ind.size() > 4) {
+        m_ind = m_ind.substr(4);
+    } else {
+        m_ind = "";
+    }
+}
+
+}
+}
+}

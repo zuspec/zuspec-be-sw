@@ -1,5 +1,5 @@
-/*
- * TestBase.cpp
+/**
+ * TestGenerateEmbeddedC.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,43 +16,26 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
+#pragma once
 #include "TestBase.h"
-#include "ArlImpl.h"
-#include "VscImpl.h"
 
 namespace arl {
 namespace be {
 namespace sw {
 
 
-TestBase::TestBase() {
+class TestGenerateEmbeddedC : public TestBase {
+public:
+    TestGenerateEmbeddedC();
 
-}
+    virtual ~TestGenerateEmbeddedC();
 
-TestBase::~TestBase() {
-
-}
-
-void TestBase::SetUp() {
-    fprintf(stdout, "SetUp %s\n", ::testing::internal::GetArgvs()[0].c_str());
-
-    ::testing::UnitTest::GetInstance()->current_test_info()->name();
-
-    m_vsc_ctxt = vsc::VscImpl::inst()->mkContext();
-    m_arl_ctxt = arl::IContextUP(arl::ArlImpl::inst()->mkContext(m_vsc_ctxt));
-
-}
-
-void TestBase::TearDown() {
-    fprintf(stdout, "TearDown\n");
-    fflush(stdout);
-
-    m_arl_ctxt.reset();
-//    m_vsc_ctxt.reset();
-}
+};
 
 }
 }
 }
+
+

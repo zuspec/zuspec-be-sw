@@ -99,6 +99,7 @@ private:
     static vsc::IDebug                          *m_dbg;
     std::vector<IModelFieldExecutor *>          m_executors;
     std::vector<ExecutorActionQueue>            *m_executor_queues;
+    std::vector<int32_t>                        m_executor_exec_ids;
     int32_t                                     m_dflt_executor;
     std::vector<LastExecutorFrame>              m_last_executor;
 

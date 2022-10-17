@@ -1,5 +1,5 @@
 /**
- * Output.h
+ * IOutput.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,23 +19,17 @@
  *     Author: 
  */
 #pragma once
-#include <iostream>
-#include <string>
-#include "arl/be/sw/IOutput.h"
 
 namespace arl {
 namespace be {
 namespace sw {
 
 
-class Output : public virtual IOutput {
-public:
-    Output(
-        std::ostream            *out,
-        const std::string       &ind
-    );
 
-    virtual ~Output();
+class IOutput {
+public:
+
+    virtual ~IOutput() { }
 
     /**
      * @brief Writes indent, content, then a newline
@@ -43,7 +37,7 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void println(const char *fmt, ...) override;
+    virtual void println(const char *fmt, ...) = 0;
 
     /**
      * @brief Writes indent and content without a newline
@@ -51,7 +45,7 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void print(const char *fmt, ...) override;
+    virtual void print(const char *fmt, ...) = 0;
 
     /**
      * @brief Writes content only
@@ -59,30 +53,24 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void write(const char *fmt, ...) override;
+    virtual void write(const char *fmt, ...) = 0;
 
     /**
      * @brief Writes the current indent
      * 
      */
-    virtual void indent() override;
+    virtual void indent() = 0;
 
-    virtual void inc_ind() override;
+    virtual void inc_ind() = 0;
 
-    virtual void dec_ind() override;
+    virtual void dec_ind() = 0;
 
-    virtual const char *ind() const override {
-        return m_ind.c_str();
-    }
-
-private:
-    std::ostream                *m_out;
-    std::string                 m_ind;
+    virtual const char *ind() const = 0;
 
 };
 
-}
-}
-}
+} /* namespace sw */
+} /* namespace be */
+} /* namespace arl */
 
 

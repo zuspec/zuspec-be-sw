@@ -1,5 +1,5 @@
-/*
- * TestBase.cpp
+/**
+ * OutputStr.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,43 +16,37 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "TestBase.h"
-#include "ArlImpl.h"
-#include "VscImpl.h"
+#pragma once
+#include <sstream>
+#include "arl/be/sw/IOutputStr.h"
+#include "Output.h"
 
 namespace arl {
 namespace be {
 namespace sw {
 
 
-TestBase::TestBase() {
+class OutputStr : public virtual IOutputStr, public virtual Output {
+public:
+    OutputStr(
+        const std::string       &ind
+    );
 
-}
+    virtual ~OutputStr();
 
-TestBase::~TestBase() {
+    virtual std::string getValue() const override {
+        return m_sstr.str();
+    }
 
-}
+private:
+    std::stringstream           m_sstr;
 
-void TestBase::SetUp() {
-    fprintf(stdout, "SetUp %s\n", ::testing::internal::GetArgvs()[0].c_str());
-
-    ::testing::UnitTest::GetInstance()->current_test_info()->name();
-
-    m_vsc_ctxt = vsc::VscImpl::inst()->mkContext();
-    m_arl_ctxt = arl::IContextUP(arl::ArlImpl::inst()->mkContext(m_vsc_ctxt));
-
-}
-
-void TestBase::TearDown() {
-    fprintf(stdout, "TearDown\n");
-    fflush(stdout);
-
-    m_arl_ctxt.reset();
-//    m_vsc_ctxt.reset();
-}
+};
 
 }
 }
 }
+
+

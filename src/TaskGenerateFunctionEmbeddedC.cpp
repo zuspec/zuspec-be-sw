@@ -18,6 +18,8 @@
  * Created on:
  *     Author:
  */
+#include <map>
+#include "TaskGenerateEmbCExpr.h"
 #include "TaskGenerateEmbCVarDecl.h"
 #include "TaskGenerateFunctionEmbeddedC.h"
 
@@ -36,6 +38,7 @@ TaskGenerateFunctionEmbeddedC::TaskGenerateFunctionEmbeddedC(NameMap *name_m) :
 }
 
 TaskGenerateFunctionEmbeddedC::~TaskGenerateFunctionEmbeddedC() {
+
 
 }
 
@@ -61,6 +64,8 @@ void TaskGenerateFunctionEmbeddedC::generate(
 void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(IDataTypeFunction *t) {
     m_scope_depth = 0;
     m_out->indent();
+
+    m_scope_s.push_back(t->getBody());
 
     if (t->getReturnType()) {
         t->getReturnType()->accept(m_this);
@@ -102,6 +107,27 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(IDataTypeFunction *t) 
 
         m_out->println("}");
     }
+
+    m_scope_s.pop_back();
+}
+
+void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtAssign(ITypeProcStmtAssign *s) {
+    std::map<TypeProcStmtAssignOp,std::string> op_m = {
+        {TypeProcStmtAssignOp::Eq, "="},
+        {TypeProcStmtAssignOp::PlusEq, "+="},
+        {TypeProcStmtAssignOp::MinusEq, "-="},
+        {TypeProcStmtAssignOp::ShlEq, "<<="},
+        {TypeProcStmtAssignOp::ShrEq, ">>="},
+        {TypeProcStmtAssignOp::OrEq, "|="},
+        {TypeProcStmtAssignOp::AndEq, "&="}
+    };
+    TaskGenerateEmbCExpr expr_gen(m_name_m);
+
+    m_out->indent();
+    expr_gen.generate(m_out, 0, m_scope_s.back(), s->getLhs());
+    m_out->write(" %s ", op_m.find(s->op())->second.c_str());
+    expr_gen.generate(m_out, 0, m_scope_s.back(), s->getRhs());
+    m_out->write(";\n");
 }
 
 void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtBreak(ITypeProcStmtBreak *s) {
@@ -172,7 +198,7 @@ void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtScope(ITypeProcStmtScope *s
         return;
     }
 
-    if (m_scope_depth) {
+    if (m_scope_s.size() > 1) {
         m_out->println("{");
         m_out->inc_ind();
     }
@@ -186,15 +212,15 @@ void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtScope(ITypeProcStmtScope *s
         decl_gen.generate(it->get());
     }
 
-    m_scope_depth++;
+    m_scope_s.push_back(s);
     for (std::vector<ITypeProcStmtUP>::const_iterator
         it=s->getStatements().begin();
         it!=s->getStatements().end(); it++) {
         (*it)->accept(m_this);
     }
-    m_scope_depth--;
+    m_scope_s.pop_back();
 
-    if (m_scope_depth) {
+    if (m_scope_s.size() > 1) {
         m_out->dec_ind();
         m_out->println("}");
     }

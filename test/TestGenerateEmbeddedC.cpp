@@ -49,9 +49,30 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
 
     my_func->getBody()->addStatement(
         m_arl_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
+    vsc::ITypeExprFieldRef *ref = m_arl_ctxt->mkTypeExprFieldRef();
+    vsc::IModelVal *val = m_arl_ctxt->mkModelVal();
+    val->setBits(32);
+    val->set_val_u(25);
+    ref->addActiveScopeRef(0);
+    my_func->getBody()->addStatement(
+        m_arl_ctxt->mkTypeProcStmtAssign(
+            ref,
+            TypeProcStmtAssignOp::Eq,
+            m_arl_ctxt->mkTypeExprVal(val)
+        ));
     my_func->getBody()->addStatement(
         m_arl_ctxt->mkTypeProcStmtVarDecl("v2", uint32.get(), false, 0));
 
+/*
+    my_func->getBody()->addStatement(
+        m_arl_ctxt->mkTypeProcStmtIfElse(
+            m_arl_ctxt->mkTypeExprBin(
+                m_
+            )
+
+        )
+    )
+ */
 
     TaskGenerateFunctionEmbeddedC(&name_m).generate(
         &out_decl,

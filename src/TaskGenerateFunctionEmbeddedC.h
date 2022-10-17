@@ -42,6 +42,8 @@ public:
 
 	virtual void visitDataTypeFunction(IDataTypeFunction *t) override;
 
+	virtual void visitTypeProcStmtAssign(ITypeProcStmtAssign *s) override;
+
 	virtual void visitTypeProcStmtBreak(ITypeProcStmtBreak *s) override;
 
 	virtual void visitTypeProcStmtContinue(ITypeProcStmtContinue *s) override;
@@ -65,11 +67,12 @@ public:
 	virtual void visitTypeProcStmtWhile(ITypeProcStmtWhile *s) override;
 
 private:
-    NameMap                     *m_name_m;
-    IOutput                     *m_out;
-    bool                        m_is_proto;
-    bool                        m_gen_decl;
-    uint32_t                    m_scope_depth;
+    NameMap                     			*m_name_m;
+    IOutput                     			*m_out;
+    bool                        			m_is_proto;
+    bool                        			m_gen_decl;
+    uint32_t                    			m_scope_depth;
+	std::vector<ITypeProcStmtScope *>		m_scope_s;
 };
 
 }

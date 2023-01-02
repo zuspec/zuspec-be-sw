@@ -130,3 +130,7 @@ dmypy.json
 
 packages/
 build/
+
+python/core.cpp
+python/core.h
+

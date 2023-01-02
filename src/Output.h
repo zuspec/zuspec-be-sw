@@ -21,9 +21,9 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include "arl/be/sw/IOutput.h"
+#include "zsp/be/sw/IOutput.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 

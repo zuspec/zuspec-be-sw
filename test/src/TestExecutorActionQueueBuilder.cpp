@@ -19,14 +19,14 @@
  *     Author:
  */
 #include <vector>
-#include "ArlImpl.h"
-#include "arl/IContext.h"
-#include "vsc/impl/ModelBuildContext.h"
+#include "zsp/arl/dm/impl/ModelBuildContext.h"
 #include "TaskBuildExecutorActionQueues.h"
 #include "TestExecutorActionQueueBuilder.h"
 
+using namespace zsp::arl::dm;
+using namespace vsc::dm;
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -40,22 +40,25 @@ TestExecutorActionQueueBuilder::~TestExecutorActionQueueBuilder() {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, smoke) {
-    std::vector<arl::IModelActivityUP>      activities_u;
-    std::vector<arl::IModelActivity *>      activities;
-    std::vector<arl::IModelFieldActionUP>   actions;
+    std::vector<arl::dm::IModelActivityUP>      activities_u;
+    std::vector<arl::dm::IModelActivity *>      activities;
+    std::vector<arl::dm::IModelFieldActionUP>   actions;
 
     for (uint32_t i=0; i<16; i++) {
-        IModelFieldAction *action = m_arl_ctxt->mkModelFieldActionRoot("a", 0);
+        arl::dm::IModelFieldAction *action = m_ctxt->mkModelFieldActionRoot("a", 0);
         actions.push_back(IModelFieldActionUP(action));
-        IModelActivityTraverse *t = m_arl_ctxt->mkModelActivityTraverse(
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
-            0);
+            0,
+            false,
+            0,
+            false);
         activities_u.push_back(IModelActivityUP(t));
         activities.push_back(t);
     }
 
     std::vector<ExecutorActionQueue> queues;
-    TaskBuildExecutorActionQueues(m_arl_ctxt.get(), {}, -1).build(
+    TaskBuildExecutorActionQueues(m_ctxt.get(), {}, -1).build(
         queues,
         activities
     );
@@ -65,30 +68,30 @@ TEST_F(TestExecutorActionQueueBuilder, smoke) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
-    std::vector<arl::IModelActivityUP>      activities_u;
-    std::vector<arl::IModelActivity *>      activities;
-    std::vector<arl::IModelFieldActionUP>   actions;
+    std::vector<IModelActivityUP>      activities_u;
+    std::vector<IModelActivity *>      activities;
+    std::vector<IModelFieldActionUP>   actions;
 
-    m_arl_ctxt->getDebugMgr()->enable(true);
+    m_ctxt->getDebugMgr()->enable(true);
 
-    vsc::IDataTypeStruct *claim_t = m_arl_ctxt->mkDataTypeStruct("claim_t");
-    m_arl_ctxt->addDataTypeStruct(claim_t);
+    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    m_ctxt->addDataTypeStruct(claim_t);
 
-    arl::IDataTypeComponent *comp_t = m_arl_ctxt->mkDataTypeComponent("comp_t");
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
-    m_arl_ctxt->addDataTypeComponent(comp_t);
+    IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
+    m_ctxt->addDataTypeComponent(comp_t);
 
 
     // Use a data type in order to get a claim
-    IDataTypeAction *action_t = m_arl_ctxt->mkDataTypeAction("action_t");
-    action_t->addField(m_arl_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    IDataTypeAction *action_t = m_ctxt->mkDataTypeAction("action_t");
+    action_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
     action_t->setComponentType(comp_t);
-    m_arl_ctxt->addDataTypeAction(action_t);
+    m_ctxt->addDataTypeAction(action_t);
 
-    vsc::ModelBuildContext build_ctxt(m_arl_ctxt.get());
+    arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
     IModelFieldComponent *comp = comp_t->mkRootFieldT<IModelFieldComponent>(
         &build_ctxt,
         "pss_top",
@@ -104,9 +107,13 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
         IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
         claim->setRef((i%2)?exec2:exec1);
         actions.push_back(IModelFieldActionUP(action));
-        IModelActivityTraverse *t = m_arl_ctxt->mkModelActivityTraverse(
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
-            0);
+            0, // with_c
+            false, // own_with_c
+            0, // activity
+            false // own_activiy
+            );
         activities_u.push_back(IModelActivityUP(t));
         activities.push_back(t);
     }
@@ -114,7 +121,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
-    TaskBuildExecutorActionQueues(m_arl_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
         activities
     );
@@ -138,30 +145,30 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
-    std::vector<arl::IModelActivityUP>      activities_u;
-    std::vector<arl::IModelActivity *>      activities;
-    std::vector<arl::IModelFieldActionUP>   actions;
+    std::vector<IModelActivityUP>      activities_u;
+    std::vector<IModelActivity *>      activities;
+    std::vector<IModelFieldActionUP>   actions;
 
-    m_arl_ctxt->getDebugMgr()->enable(true);
+    m_ctxt->getDebugMgr()->enable(true);
 
-    vsc::IDataTypeStruct *claim_t = m_arl_ctxt->mkDataTypeStruct("claim_t");
-    m_arl_ctxt->addDataTypeStruct(claim_t);
+    IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    m_ctxt->addDataTypeStruct(claim_t);
 
-    arl::IDataTypeComponent *comp_t = m_arl_ctxt->mkDataTypeComponent("comp_t");
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
-    m_arl_ctxt->addDataTypeComponent(comp_t);
+    IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
+    m_ctxt->addDataTypeComponent(comp_t);
 
 
     // Use a data type in order to get a claim
-    IDataTypeAction *action_t = m_arl_ctxt->mkDataTypeAction("action_t");
-    action_t->addField(m_arl_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    IDataTypeAction *action_t = m_ctxt->mkDataTypeAction("action_t");
+    action_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
     action_t->setComponentType(comp_t);
-    m_arl_ctxt->addDataTypeAction(action_t);
+    m_ctxt->addDataTypeAction(action_t);
 
-    vsc::ModelBuildContext build_ctxt(m_arl_ctxt.get());
+    arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
     IModelFieldComponent *comp = comp_t->mkRootFieldT<IModelFieldComponent>(
         &build_ctxt,
         "pss_top",
@@ -177,9 +184,12 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
         IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
         claim->setRef((i<8)?exec1:exec2);
         actions.push_back(IModelFieldActionUP(action));
-        IModelActivityTraverse *t = m_arl_ctxt->mkModelActivityTraverse(
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
-            0);
+            0, // with_c
+            false,
+            0,
+            false);
         activities_u.push_back(IModelActivityUP(t));
         activities.push_back(t);
     }
@@ -187,7 +197,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
-    TaskBuildExecutorActionQueues(m_arl_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
         activities
     );
@@ -208,30 +218,30 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
-    std::vector<arl::IModelActivityUP>      activities_u;
-    std::vector<arl::IModelActivity *>      activities;
-    std::vector<arl::IModelFieldActionUP>   actions;
+    std::vector<IModelActivityUP>      activities_u;
+    std::vector<IModelActivity *>      activities;
+    std::vector<IModelFieldActionUP>   actions;
 
-    m_arl_ctxt->getDebugMgr()->enable(true);
+    m_ctxt->getDebugMgr()->enable(true);
 
-    vsc::IDataTypeStruct *claim_t = m_arl_ctxt->mkDataTypeStruct("claim_t");
-    m_arl_ctxt->addDataTypeStruct(claim_t);
+    IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    m_ctxt->addDataTypeStruct(claim_t);
 
-    arl::IDataTypeComponent *comp_t = m_arl_ctxt->mkDataTypeComponent("comp_t");
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
-    comp_t->addField(m_arl_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
-    m_arl_ctxt->addDataTypeComponent(comp_t);
+    IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
+    m_ctxt->addDataTypeComponent(comp_t);
 
 
     // Use a data type in order to get a claim
-    IDataTypeAction *action_t = m_arl_ctxt->mkDataTypeAction("action_t");
-    action_t->addField(m_arl_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    IDataTypeAction *action_t = m_ctxt->mkDataTypeAction("action_t");
+    action_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
     action_t->setComponentType(comp_t);
-    m_arl_ctxt->addDataTypeAction(action_t);
+    m_ctxt->addDataTypeAction(action_t);
 
-    vsc::ModelBuildContext build_ctxt(m_arl_ctxt.get());
+    arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
     IModelFieldComponent *comp = comp_t->mkRootFieldT<IModelFieldComponent>(
         &build_ctxt,
         "pss_top",
@@ -247,9 +257,12 @@ TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
         IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
         claim->setRef((i<8)?exec1:exec2);
         actions.push_back(IModelFieldActionUP(action));
-        IModelActivityTraverse *t = m_arl_ctxt->mkModelActivityTraverse(
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
-            0);
+            0,
+            false,
+            0,
+            false);
         activities_u.push_back(IModelActivityUP(t));
         activities.push_back(t);
     }
@@ -257,7 +270,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
-    TaskBuildExecutorActionQueues(m_arl_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
         activities
     );

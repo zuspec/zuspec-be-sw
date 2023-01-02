@@ -42,30 +42,29 @@ set_target_properties(libgmock PROPERTIES
 include_directories(
 	"${source_dir}/googletest/include"
 	"${source_dir}/googlemock/include"
-  "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/src/include"
-	"${PACKAGES_DIR}/libarl/src"
-	"${PACKAGES_DIR}/libarl/src/include"
-	"${PACKAGES_DIR}/libvsc/src"
-	"${PACKAGES_DIR}/libvsc/src/include"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/src/include"
+	"${PACKAGES_DIR}/zuspec-arl-dm/src/include"
+	"${PACKAGES_DIR}/libvsc-dm/src/include"
+	"${PACKAGES_DIR}/debug-mgr/src/include"
 	)
 
-file(GLOB test_libarl_be_sw_SRC
-  "*.h"
-  "*.cpp"
+file(GLOB test_zuspec_be_sw_SRC
+  "src/*.h"
+  "src/*.cpp"
   )
 
-add_executable(test_libarl_be_sw ${test_libarl_be_sw_SRC})
-target_include_directories(test_libarl_be_sw PUBLIC
+add_executable(test_zuspec_be_sw ${test_zuspec_be_sw_SRC})
+target_include_directories(test_zuspec_be_sw PUBLIC
     "${source_dir}/googletest/include"
     )
    
-target_link_directories(test_libarl_be_sw PRIVATE
+target_link_directories(test_zuspec_be_sw PRIVATE
     ${CMAKE_BINARY_DIR}/lib
     ${CMAKE_BINARY_DIR}/lib64
-    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/src
-    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/lib
-    ${CMAKE_BINARY_DIR}/libarl/src/LibARL-build/lib64
+    ${CMAKE_BINARY_DIR}/zuspec-arl-dm/src/ZuspecArl-DM-build/lib
+    ${CMAKE_BINARY_DIR}/zuspec-arl-dm/src/ZuspecArl-DM-build/lib64
+    ${CMAKE_BINARY_DIR}/zuspec-arl-dm/src/ZuspecArl-DM-build/src
     )
   
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -74,17 +73,19 @@ else()
 	set(libglog glog)
 endif()
 
-target_link_libraries(test_libarl_be_sw 
-  arl-be-sw
-  arl
-  vsc
+target_link_libraries(test_zuspec_be_sw 
+  zuspec-be-sw
+  zuspec-arl-dm
+  vsc-dm
+  debug-mgr
 	libgtest 
 	libgmock
 	)
-add_dependencies(test_libarl_be_sw 
-  arl-be-sw
-  LibARL 
+add_dependencies(test_zuspec_be_sw 
+  zuspec-be-sw
+  ZuspecArl-DM
   GTEST
   )
 
-gtest_discover_tests(test_libarl_be_sw)
+gtest_discover_tests(test_zuspec_be_sw)
+

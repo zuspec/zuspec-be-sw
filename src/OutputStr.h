@@ -20,10 +20,10 @@
  */
 #pragma once
 #include <sstream>
-#include "arl/be/sw/IOutputStr.h"
+#include "zsp/be/sw/IOutputStr.h"
 #include "Output.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 

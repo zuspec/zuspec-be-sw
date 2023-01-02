@@ -23,8 +23,10 @@
 #include "TestGenerateEmbeddedC.h"
 #include "TaskGenerateFunctionEmbeddedC.h"
 
+using namespace zsp::arl::dm;
+using namespace vsc::dm;
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -38,35 +40,35 @@ TestGenerateEmbeddedC::~TestGenerateEmbeddedC() {
 }
 
 TEST_F(TestGenerateEmbeddedC, smoke) {
-    IDataTypeFunctionUP my_func(m_arl_ctxt->mkDataTypeFunction("my_func", 0, false));
+    IDataTypeFunctionUP my_func(m_ctxt->mkDataTypeFunction("my_func", 0, false));
     NameMap name_m;
     OutputStr out_decl("");
     OutputStr out_def("");
 
-    vsc::IDataTypeIntUP uint32(m_arl_ctxt->mkDataTypeInt(false, 32));
-    my_func->addParameter(m_arl_ctxt->mkDataTypeFunctionParamDecl("a", uint32.get(), false, 0));
-    my_func->addParameter(m_arl_ctxt->mkDataTypeFunctionParamDecl("b", uint32.get(), false, 0));
+    IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl("a", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl("b", uint32.get(), false, 0));
 
     my_func->getBody()->addStatement(
-        m_arl_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
-    vsc::ITypeExprFieldRef *ref = m_arl_ctxt->mkTypeExprFieldRef();
-    vsc::IModelVal *val = m_arl_ctxt->mkModelVal();
+        m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
+    ITypeExprFieldRef *ref = m_ctxt->mkTypeExprFieldRef();
+    IModelVal *val = m_ctxt->mkModelVal();
     val->setBits(32);
     val->set_val_u(25);
     ref->addActiveScopeRef(0);
     my_func->getBody()->addStatement(
-        m_arl_ctxt->mkTypeProcStmtAssign(
+        m_ctxt->mkTypeProcStmtAssign(
             ref,
             TypeProcStmtAssignOp::Eq,
-            m_arl_ctxt->mkTypeExprVal(val)
+            m_ctxt->mkTypeExprVal(val)
         ));
     my_func->getBody()->addStatement(
-        m_arl_ctxt->mkTypeProcStmtVarDecl("v2", uint32.get(), false, 0));
+        m_ctxt->mkTypeProcStmtVarDecl("v2", uint32.get(), false, 0));
 
 /*
     my_func->getBody()->addStatement(
-        m_arl_ctxt->mkTypeProcStmtIfElse(
-            m_arl_ctxt->mkTypeExprBin(
+        m_ctxt->mkTypeProcStmtIfElse(
+            m_ctxt->mkTypeExprBin(
                 m_
             )
 

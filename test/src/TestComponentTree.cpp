@@ -21,7 +21,7 @@
 #include "TestComponentTree.h"
 
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 

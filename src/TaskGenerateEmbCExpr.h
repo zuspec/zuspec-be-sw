@@ -19,43 +19,43 @@
  *     Author: 
  */
 #pragma once
-#include "arl/be/sw/IOutput.h"
-#include "arl/impl/VisitorBase.h"
-#include "vsc/ITypeExpr.h"
+#include "zsp/be/sw/IOutput.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "vsc/dm/ITypeExpr.h"
 #include "NameMap.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
 
-class TaskGenerateEmbCExpr : public VisitorBase {
+class TaskGenerateEmbCExpr : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCExpr(NameMap *name_m);
 
     virtual ~TaskGenerateEmbCExpr();
 
     void generate(
-        IOutput             *out,
-        vsc::ITypeField     *type_scope,
-        ITypeProcStmtScope  *proc_scope,
-        vsc::ITypeExpr      *expr);
+        IOutput                         *out,
+        vsc::dm::ITypeField             *type_scope,
+        arl::dm::ITypeProcStmtScope     *proc_scope,
+        vsc::dm::ITypeExpr              *expr);
 
-	virtual void visitTypeExprBin(vsc::ITypeExprBin *e) override;
+	virtual void visitTypeExprBin(vsc::dm::ITypeExprBin *e) override;
 
-	virtual void visitTypeExprFieldRef(vsc::ITypeExprFieldRef *e) override;
+	virtual void visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) override;
 
-	virtual void visitTypeExprRange(vsc::ITypeExprRange *e) override;
+	virtual void visitTypeExprRange(vsc::dm::ITypeExprRange *e) override;
 
-	virtual void visitTypeExprRangelist(vsc::ITypeExprRangelist *e) override;
+	virtual void visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e) override;
 
-	virtual void visitTypeExprVal(vsc::ITypeExprVal *e) override;
+	virtual void visitTypeExprVal(vsc::dm::ITypeExprVal *e) override;
 
 private:
-    NameMap             *m_name_m;
-    IOutput             *m_out;
-    vsc::ITypeField     *m_type_scope;
-    ITypeProcStmtScope  *m_proc_scope;
+    NameMap                         *m_name_m;
+    IOutput                         *m_out;
+    vsc::dm::ITypeField             *m_type_scope;
+    arl::dm::ITypeProcStmtScope     *m_proc_scope;
 
 
 };

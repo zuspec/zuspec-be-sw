@@ -19,18 +19,18 @@
  *     Author: 
  */
 #pragma once
-#include "arl/impl/VisitorBase.h"
-#include "arl/be/sw/IOutput.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IOutput.h"
 #include "NameMap.h"
 #include "TaskGenerateEmbCDataType.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
 
 
-class TaskGenerateEmbCVarDecl : public VisitorBase {
+class TaskGenerateEmbCVarDecl : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCVarDecl(
         IOutput                 *out,
@@ -39,11 +39,11 @@ public:
     virtual ~TaskGenerateEmbCVarDecl();
 
     void generate(
-        ITypeProcStmt           *stmt);
+        arl::dm::ITypeProcStmt  *stmt);
 
-	virtual void visitTypeProcStmtScope(ITypeProcStmtScope *s) override;
+	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
 
-	virtual void visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s) override;
+	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 
 private:
     IOutput                     *m_out;

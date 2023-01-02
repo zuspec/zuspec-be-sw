@@ -21,7 +21,7 @@
 #include "NameMap.h"
 
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -34,16 +34,16 @@ NameMap::~NameMap() {
 
 }
 
-void NameMap::setName(vsc::IDataType *type, const std::string &name) {
+void NameMap::setName(vsc::dm::IDataType *type, const std::string &name) {
     m_type_m.insert({type, name});
 }
 
-void NameMap::setName(arl::IDataTypeFunction *func, const std::string &name) {
+void NameMap::setName(arl::dm::IDataTypeFunction *func, const std::string &name) {
     m_func_m.insert({func, name});
 }
 
-const std::string &NameMap::getName(vsc::IDataType *type) {
-    std::unordered_map<vsc::IDataType *,std::string>::const_iterator it;
+const std::string &NameMap::getName(vsc::dm::IDataType *type) {
+    std::unordered_map<vsc::dm::IDataType *,std::string>::const_iterator it;
     
     if ((it=m_type_m.find(type)) != m_type_m.end()) {
         return it->second;
@@ -54,8 +54,8 @@ const std::string &NameMap::getName(vsc::IDataType *type) {
     }
 }
 
-const std::string &NameMap::getName(arl::IDataTypeFunction *func) {
-    std::unordered_map<arl::IDataTypeFunction*,std::string>::const_iterator it;
+const std::string &NameMap::getName(arl::dm::IDataTypeFunction *func) {
+    std::unordered_map<arl::dm::IDataTypeFunction*,std::string>::const_iterator it;
 
     if ((it=m_func_m.find(func)) != m_func_m.end()) {
         return it->second;
@@ -66,7 +66,7 @@ const std::string &NameMap::getName(arl::IDataTypeFunction *func) {
     }
 }
 
-void NameMap::visitDataTypeFunction(IDataTypeFunction *t) {
+void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     m_name = t->name();
 }
 

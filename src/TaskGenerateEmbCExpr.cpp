@@ -19,11 +19,11 @@
  *     Author:
  */
 #include <map>
-#include "vsc/ITypeExprVal.h"
+#include "vsc/dm/ITypeExprVal.h"
 #include "TaskGenerateEmbCExpr.h"
 
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -40,36 +40,36 @@ TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
 
 void TaskGenerateEmbCExpr::generate(
         IOutput             *out,
-        vsc::ITypeField     *type_scope,
-        ITypeProcStmtScope  *proc_scope,
-        vsc::ITypeExpr      *expr) {
+        vsc::dm::ITypeField          *type_scope,
+        arl::dm::ITypeProcStmtScope  *proc_scope,
+        vsc::dm::ITypeExpr           *expr) {
     m_out = out;
     m_type_scope = type_scope;
     m_proc_scope = proc_scope;
     expr->accept(m_this);
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::ITypeExprBin *e) {
-    std::map<vsc::BinOp, std::string> op_m = {
-    	{vsc::BinOp::Eq, "=="},
-	    {vsc::BinOp::Ne, "!="},
-    	{vsc::BinOp::Gt, ">"},
-	    {vsc::BinOp::Ge, ">="},
-	    {vsc::BinOp::Lt, "<"},
-	    {vsc::BinOp::Le, "<="},
-	    {vsc::BinOp::Add, "+"},
-    	{vsc::BinOp::Sub, "-"},
-    	{vsc::BinOp::Div, "/"},
-	    {vsc::BinOp::Mul, "*"},
-	    {vsc::BinOp::Mod, "%"},
-	    {vsc::BinOp::BinAnd, "&"},
-	    {vsc::BinOp::BinOr, "|" },
-    	{vsc::BinOp::LogAnd, "&&"},
-	    {vsc::BinOp::LogOr, "|"},
-	    {vsc::BinOp::Sll, "<<"},
-	    {vsc::BinOp::Srl, ">>"},
-	    {vsc::BinOp::Xor, "^"},
-	    {vsc::BinOp::Not, "!"}
+void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
+    std::map<vsc::dm::BinOp, std::string> op_m = {
+    	{vsc::dm::BinOp::Eq, "=="},
+	    {vsc::dm::BinOp::Ne, "!="},
+    	{vsc::dm::BinOp::Gt, ">"},
+	    {vsc::dm::BinOp::Ge, ">="},
+	    {vsc::dm::BinOp::Lt, "<"},
+	    {vsc::dm::BinOp::Le, "<="},
+	    {vsc::dm::BinOp::Add, "+"},
+    	{vsc::dm::BinOp::Sub, "-"},
+    	{vsc::dm::BinOp::Div, "/"},
+	    {vsc::dm::BinOp::Mul, "*"},
+	    {vsc::dm::BinOp::Mod, "%"},
+	    {vsc::dm::BinOp::BinAnd, "&"},
+	    {vsc::dm::BinOp::BinOr, "|" },
+    	{vsc::dm::BinOp::LogAnd, "&&"},
+	    {vsc::dm::BinOp::LogOr, "|"},
+	    {vsc::dm::BinOp::Sll, "<<"},
+	    {vsc::dm::BinOp::Srl, ">>"},
+	    {vsc::dm::BinOp::Xor, "^"},
+	    {vsc::dm::BinOp::Not, "!"}
     };
 
     e->lhs()->accept(m_this);
@@ -77,10 +77,10 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::ITypeExprBin *e) {
     e->rhs()->accept(m_this);
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::ITypeExprFieldRef *e) {
+void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
     // Walk through the elements of the expression
 
-    ITypeProcStmtScope *s = m_proc_scope;
+    arl::dm::ITypeProcStmtScope *s = m_proc_scope;
     uint32_t start = 0;
 
     // Really want to be able to:
@@ -89,21 +89,21 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::ITypeExprFieldRef *e) {
     // - Reference a type variable as an absolute type name (a::b::c)
 
     // TODO: just the simple case for now
-    ITypeProcStmtVarDecl *var_decl = dynamic_cast<ITypeProcStmtVarDecl *>(
+    arl::dm::ITypeProcStmtVarDecl *var_decl = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(
         m_proc_scope->getStatements().at(e->getPath().at(0).idx).get());
     m_out->write("%s", var_decl->name().c_str());
 
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::ITypeExprRange *e) {
+void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::dm::ITypeExprRange *e) {
 
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprRangelist(vsc::ITypeExprRangelist *e) {
+void TaskGenerateEmbCExpr::visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e) {
 
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::ITypeExprVal *e) {
+void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {
     // TODO: Should know whether we want a signed or unsigned value
     m_out->write("%lld", e->val()->val_i());
 }

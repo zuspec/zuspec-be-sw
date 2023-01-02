@@ -19,60 +19,60 @@
  *     Author: 
  */
 #pragma once
-#include "arl/be/sw/IOutput.h"
-#include "arl/impl/VisitorBase.h"
+#include "zsp/be/sw/IOutput.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "NameMap.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
 
 
-class TaskGenerateFunctionEmbeddedC : public VisitorBase {
+class TaskGenerateFunctionEmbeddedC : public arl::dm::VisitorBase {
 public:
     TaskGenerateFunctionEmbeddedC(NameMap *name_m);
 
     virtual ~TaskGenerateFunctionEmbeddedC();
 
     void generate(
-        IOutput             *out_decl,
-        IOutput             *out_def,
-        IDataTypeFunction   *func);
+        IOutput                         *out_decl,
+        IOutput                         *out_def,
+        arl::dm::IDataTypeFunction      *func);
 
-	virtual void visitDataTypeFunction(IDataTypeFunction *t) override;
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
-	virtual void visitTypeProcStmtAssign(ITypeProcStmtAssign *s) override;
+	virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
-	virtual void visitTypeProcStmtBreak(ITypeProcStmtBreak *s) override;
+	virtual void visitTypeProcStmtBreak(arl::dm::ITypeProcStmtBreak *s) override;
 
-	virtual void visitTypeProcStmtContinue(ITypeProcStmtContinue *s) override;
+	virtual void visitTypeProcStmtContinue(arl::dm::ITypeProcStmtContinue *s) override;
 
-	virtual void visitTypeProcStmtForeach(ITypeProcStmtForeach *s) override;
+	virtual void visitTypeProcStmtForeach(arl::dm::ITypeProcStmtForeach *s) override;
 
-	virtual void visitTypeProcStmtIfElse(ITypeProcStmtIfElse *s) override;
+	virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
 
-	virtual void visitTypeProcStmtMatch(ITypeProcStmtMatch *s) override;
+	virtual void visitTypeProcStmtMatch(arl::dm::ITypeProcStmtMatch *s) override;
 
-	virtual void visitTypeProcStmtRepeat(ITypeProcStmtRepeat *s) override;
+	virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
 
-	virtual void visitTypeProcStmtRepeatWhile(ITypeProcStmtRepeatWhile *s) override;
+	virtual void visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcStmtRepeatWhile *s) override;
 
-	virtual void visitTypeProcStmtReturn(ITypeProcStmtReturn *s) override;
+	virtual void visitTypeProcStmtReturn(arl::dm::ITypeProcStmtReturn *s) override;
 
-	virtual void visitTypeProcStmtScope(ITypeProcStmtScope *s) override;
+	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
 
-	virtual void visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s) override;
+	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 
-	virtual void visitTypeProcStmtWhile(ITypeProcStmtWhile *s) override;
+	virtual void visitTypeProcStmtWhile(arl::dm::ITypeProcStmtWhile *s) override;
 
 private:
-    NameMap                     			*m_name_m;
-    IOutput                     			*m_out;
-    bool                        			m_is_proto;
-    bool                        			m_gen_decl;
-    uint32_t                    			m_scope_depth;
-	std::vector<ITypeProcStmtScope *>		m_scope_s;
+    NameMap                     			        *m_name_m;
+    IOutput                     			        *m_out;
+    bool                        			        m_is_proto;
+    bool                        			        m_gen_decl;
+    uint32_t                    			        m_scope_depth;
+	std::vector<arl::dm::ITypeProcStmtScope *>		m_scope_s;
 };
 
 }

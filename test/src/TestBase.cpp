@@ -19,10 +19,11 @@
  *     Author:
  */
 #include "TestBase.h"
-#include "ArlImpl.h"
-#include "VscImpl.h"
+#include "dmgr/FactoryExt.h"
+#include "vsc/dm/FactoryExt.h"
+#include "zsp/arl/dm/FactoryExt.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -39,17 +40,22 @@ void TestBase::SetUp() {
     fprintf(stdout, "SetUp %s\n", ::testing::internal::GetArgvs()[0].c_str());
 
     ::testing::UnitTest::GetInstance()->current_test_info()->name();
+    dmgr::IDebugMgr *dmgr = dmgr_getFactory()->getDebugMgr();
+    vsc::dm::IFactory *vsc_dm_f = vsc_dm_getFactory();
+    vsc_dm_f->init(dmgr);
+    arl::dm::IFactory *arl_dm_f = zsp_arl_dm_getFactory();
+    arl_dm_f->init(dmgr);
 
-    m_vsc_ctxt = vsc::VscImpl::inst()->mkContext();
-    m_arl_ctxt = arl::IContextUP(arl::ArlImpl::inst()->mkContext(m_vsc_ctxt));
-
+    m_ctxt = arl::dm::IContextUP(
+        arl_dm_f->mkContext(vsc_dm_f->mkContext())
+    );
 }
 
 void TestBase::TearDown() {
     fprintf(stdout, "TearDown\n");
     fflush(stdout);
 
-    m_arl_ctxt.reset();
+    m_ctxt.reset();
 //    m_vsc_ctxt.reset();
 }
 

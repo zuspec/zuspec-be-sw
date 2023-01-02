@@ -21,11 +21,11 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-#include "arl/IDataTypeFunction.h"
-#include "arl/impl/VisitorBase.h"
-#include "vsc/IDataType.h"
+#include "zsp/arl/dm/IDataTypeFunction.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "vsc/dm/IDataType.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -33,26 +33,26 @@ namespace sw {
  * @brief Supports name mangling function and type names
  * 
  */
-class NameMap : public VisitorBase {
+class NameMap : public arl::dm::VisitorBase {
 public:
     NameMap();
 
     virtual ~NameMap();
 
-    void setName(vsc::IDataType *type, const std::string &name);
+    void setName(vsc::dm::IDataType *type, const std::string &name);
 
-    void setName(arl::IDataTypeFunction *func, const std::string &name);
+    void setName(arl::dm::IDataTypeFunction *func, const std::string &name);
 
-    const std::string &getName(vsc::IDataType *type);
+    const std::string &getName(vsc::dm::IDataType *type);
 
-    const std::string &getName(arl::IDataTypeFunction *func);
+    const std::string &getName(arl::dm::IDataTypeFunction *func);
 
-	virtual void visitDataTypeFunction(IDataTypeFunction *t) override;
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 private:
-    std::string                                                 m_name;
-    std::unordered_map<vsc::IDataType *,std::string>            m_type_m;
-    std::unordered_map<arl::IDataTypeFunction *,std::string>    m_func_m;
+    std::string                                                     m_name;
+    std::unordered_map<vsc::dm::IDataType *,std::string>            m_type_m;
+    std::unordered_map<arl::dm::IDataTypeFunction *,std::string>    m_func_m;
 
 };
 

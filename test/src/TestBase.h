@@ -20,10 +20,10 @@
  */
 #pragma once
 #include "gtest/gtest.h"
-#include "arl/IContext.h"
-#include "vsc/IContext.h"
+#include "zsp/arl/dm/IContext.h"
+#include "vsc/dm/IContext.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -39,8 +39,7 @@ public:
     virtual void TearDown() override;
 
 protected:
-    vsc::IContext               *m_vsc_ctxt;
-    arl::IContextUP             m_arl_ctxt;
+    arl::dm::IContextUP             m_ctxt;
 
 };
 

@@ -21,7 +21,7 @@
 #include "TaskGenerateEmbCVarDecl.h"
 
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -37,15 +37,15 @@ TaskGenerateEmbCVarDecl::~TaskGenerateEmbCVarDecl() {
 
 }
 
-void TaskGenerateEmbCVarDecl::generate(ITypeProcStmt *stmt) {
+void TaskGenerateEmbCVarDecl::generate(arl::dm::ITypeProcStmt *stmt) {
     stmt->accept(m_this);
 }
 
-void TaskGenerateEmbCVarDecl::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
+void TaskGenerateEmbCVarDecl::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
     // Don't recurse
 }
 
-void TaskGenerateEmbCVarDecl::visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s) {
+void TaskGenerateEmbCVarDecl::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {
     m_out->indent();
     m_dt_gen.generate(s->getDataType());
     m_out->write(" %s", s->name().c_str());

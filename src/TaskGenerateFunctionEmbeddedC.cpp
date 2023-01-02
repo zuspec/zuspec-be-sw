@@ -23,8 +23,9 @@
 #include "TaskGenerateEmbCVarDecl.h"
 #include "TaskGenerateFunctionEmbeddedC.h"
 
+using namespace zsp::arl::dm;
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -43,9 +44,9 @@ TaskGenerateFunctionEmbeddedC::~TaskGenerateFunctionEmbeddedC() {
 }
 
 void TaskGenerateFunctionEmbeddedC::generate(
-    IOutput                 *out_decl,
-    IOutput                 *out_def,
-    IDataTypeFunction       *func) {
+    IOutput                         *out_decl,
+    IOutput                         *out_def,
+    arl::dm::IDataTypeFunction      *func) {
     m_gen_decl = false;
 
     if (out_decl) {
@@ -61,7 +62,7 @@ void TaskGenerateFunctionEmbeddedC::generate(
     }
 }
 
-void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(IDataTypeFunction *t) {
+void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     m_scope_depth = 0;
     m_out->indent();
 

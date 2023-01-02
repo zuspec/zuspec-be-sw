@@ -18,12 +18,12 @@
  * Created on:
  *     Author:
  */
-#include "arl/impl/TaskFindExecutor.h"
-#include "vsc/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/TaskFindExecutor.h"
+#include "dmgr/impl/DebugMacros.h"
 #include "TaskBuildExecutorActionQueues.h"
 
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -243,7 +243,7 @@ void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTra
     DEBUG_LEAVE("visitModelActivityTraverse");
 }
 
-vsc::IDebug *TaskBuildExecutorActionQueues::m_dbg = 0;
+dmgr::IDebug *TaskBuildExecutorActionQueues::m_dbg = 0;
 
 }
 }

@@ -20,8 +20,9 @@
  */
 #include "TaskGenerateEmbCDataType.h"
 
+using namespace zsp::arl::dm;
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -36,15 +37,15 @@ TaskGenerateEmbCDataType::~TaskGenerateEmbCDataType() {
 
 }
 
-void TaskGenerateEmbCDataType::generate(vsc::IDataType *type) {
+void TaskGenerateEmbCDataType::generate(vsc::dm::IDataType *type) {
     type->accept(m_this);
 }
 
-void TaskGenerateEmbCDataType::visitDataTypeEnum(vsc::IDataTypeEnum *t) {
+void TaskGenerateEmbCDataType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
     m_out->write("%s", m_name_m->getName(t));
 }
 
-void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::IDataTypeInt *t) {
+void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (t->getWidth() <= 8) {
         m_out->write("%schar", (t->is_signed())?"unsigned ":"");
     } else if (t->getWidth() <= 16) {
@@ -58,7 +59,7 @@ void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::IDataTypeInt *t) {
     }
 }
 
-void TaskGenerateEmbCDataType::visitDataTypeStruct(vsc::IDataTypeStruct *t) {
+void TaskGenerateEmbCDataType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     m_out->write("%s", m_name_m->getName(t));
 }
 

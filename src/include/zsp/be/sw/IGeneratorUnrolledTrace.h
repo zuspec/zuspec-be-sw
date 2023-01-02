@@ -22,12 +22,12 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include "arl/IAccept.h"
-#include "arl/IMarker.h"
-#include "arl/IModelActivity.h"
-#include "arl/IModelFieldComponent.h"
+#include "zsp/IAccept.h"
+#include "zsp/IMarker.h"
+#include "zsp/IModelActivity.h"
+#include "zsp/IModelFieldComponent.h"
 
-namespace arl {
+namespace zsp {
 namespace be {
 namespace sw {
 

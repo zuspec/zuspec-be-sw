@@ -20,13 +20,16 @@
  */
 #pragma once
 #include <vector>
-#include "arl/IContext.h"
-#include "arl/IModelActivity.h"
-#include "arl/IModelFieldAction.h"
-#include "arl/IModelFieldExecutor.h"
-#include "arl/impl/VisitorBase.h"
+#include "dmgr/IDebug.h"
+#include "zsp/arl/dm/IContext.h"
+#include "zsp/arl/dm/IModelActivity.h"
+#include "zsp/arl/dm/IModelFieldAction.h"
+#include "zsp/arl/dm/IModelFieldExecutor.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 
-namespace arl {
+using namespace zsp::arl::dm;
+
+namespace zsp {
 namespace be {
 namespace sw {
 
@@ -96,7 +99,7 @@ private:
 
 
 private:
-    static vsc::IDebug                          *m_dbg;
+    static dmgr::IDebug                         *m_dbg;
     std::vector<IModelFieldExecutor *>          m_executors;
     std::vector<ExecutorActionQueue>            *m_executor_queues;
     std::vector<int32_t>                        m_executor_exec_ids;

@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include "zsp/arl/dm/IDataTypeFunction.h"
@@ -29,6 +30,8 @@ namespace zsp {
 namespace be {
 namespace sw {
 
+class NameMap;
+using NameMapUP=std::unique_ptr<NameMap>;
 /**
  * @brief Supports name mangling function and type names
  * 

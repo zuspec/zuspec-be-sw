@@ -1,5 +1,5 @@
-/**
- * IFactory.h
+/*
+ * FunctionInfo.cpp
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,33 +16,27 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include "FunctionInfo.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+FunctionInfo::FunctionInfo(
+    arl::dm::IDataTypeFunction      *decl,
+    const std::string               &impl_name) :
+        m_decl(decl), m_impl_name(impl_name) {
 
-class IFactory {
-public:
+}
 
-    virtual ~IFactory() { }
+FunctionInfo::~FunctionInfo() {
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
+}
 
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
-
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
-
-};
-
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
-
-
+}
+}
+}

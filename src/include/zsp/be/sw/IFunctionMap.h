@@ -1,5 +1,5 @@
 /**
- * IFactory.h
+ * IFunctionMap.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,25 +19,25 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include "zsp/be/sw/IFunctionInfo.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-
-
-class IFactory {
+class IFunctionMap;
+using IFunctionMapUP=std::unique_ptr<IFunctionMap>;
+class IFunctionMap {
 public:
 
-    virtual ~IFactory() { }
+    virtual ~IFunctionMap() { }
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
+    virtual bool addFunction(
+        arl::dm::IDataTypeFunction      *func,
+        FunctionFlags                   flags
+    ) = 0;
 
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
-
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+    virtual const std::vector<IFunctionInfoUP> &getFunctions() const = 0;
 
 };
 

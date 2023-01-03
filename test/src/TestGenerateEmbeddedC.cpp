@@ -22,6 +22,7 @@
 #include "OutputStr.h"
 #include "TestGenerateEmbeddedC.h"
 #include "TaskGenerateFunctionEmbeddedC.h"
+#include "TaskGenerateFuncProtoEmbeddedC.h"
 
 using namespace zsp::arl::dm;
 using namespace vsc::dm;
@@ -76,8 +77,12 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
     )
  */
 
-    TaskGenerateFunctionEmbeddedC(&name_m).generate(
+    TaskGenerateFuncProtoEmbeddedC(&name_m).generate(
         &out_decl,
+        my_func.get()
+    );
+
+    TaskGenerateFunctionEmbeddedC(&name_m).generate(
         &out_def,
         my_func.get()
     );

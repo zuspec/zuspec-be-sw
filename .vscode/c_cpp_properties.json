@@ -4,13 +4,11 @@
             "name": "Default",
             "includePath": [
                 "${default}",
-                "src/include",
                 "src",
-                "test",
-                "packages/libarl/src",
-                "packages/libarl/src/include",
-                "packages/libvsc/src",
-                "packages/libvsc/src/include",
+                "src/include",
+                "test/src",
+                "packages/libvsc-dm/src/include",
+                "packages/zuspec-arl-dm/src/include",
                 "packages/gtest/googletest/include"
             ],
             "defines": [

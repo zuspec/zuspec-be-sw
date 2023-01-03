@@ -41,6 +41,8 @@ public:
         return m_dmgr;
     }
 
+    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() override;
+
     static IFactory *inst();
 
 private:

@@ -36,7 +36,6 @@ public:
     virtual ~TaskGenerateFunctionEmbeddedC();
 
     void generate(
-        IOutput                         *out_decl,
         IOutput                         *out_def,
         arl::dm::IDataTypeFunction      *func);
 
@@ -69,7 +68,6 @@ public:
 private:
     NameMap                     			        *m_name_m;
     IOutput                     			        *m_out;
-    bool                        			        m_is_proto;
     bool                        			        m_gen_decl;
     uint32_t                    			        m_scope_depth;
 	std::vector<arl::dm::ITypeProcStmtScope *>		m_scope_s;

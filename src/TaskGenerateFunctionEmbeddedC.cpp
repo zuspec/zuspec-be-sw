@@ -32,7 +32,6 @@ namespace sw {
 
 TaskGenerateFunctionEmbeddedC::TaskGenerateFunctionEmbeddedC(NameMap *name_m) : 
     m_name_m(name_m), m_out(0) {
-    m_is_proto = false;
     m_gen_decl = false;
     m_scope_depth = 0;
 
@@ -44,22 +43,12 @@ TaskGenerateFunctionEmbeddedC::~TaskGenerateFunctionEmbeddedC() {
 }
 
 void TaskGenerateFunctionEmbeddedC::generate(
-    IOutput                         *out_decl,
     IOutput                         *out_def,
     arl::dm::IDataTypeFunction      *func) {
     m_gen_decl = false;
 
-    if (out_decl) {
-        m_out = out_decl;
-        m_is_proto = true;
-        func->accept(m_this);
-    }
-
-    if (out_def) {
-        m_out = out_def;
-        m_is_proto = false;
-        func->accept(m_this);
-    }
+    m_out = out_def;
+    func->accept(m_this);
 }
 
 void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
@@ -97,17 +86,13 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
         m_out->write("void");
     }
 
-    if (m_is_proto) {
-        m_out->write(");\n");
-    } else {
-        m_out->write(") {\n");
+    m_out->write(") {\n");
 
-        m_out->inc_ind();
-        t->getBody()->accept(m_this);
-        m_out->dec_ind();
+    m_out->inc_ind();
+    t->getBody()->accept(m_this);
+    m_out->dec_ind();
 
-        m_out->println("}");
-    }
+    m_out->println("}");
 
     m_scope_s.pop_back();
 }

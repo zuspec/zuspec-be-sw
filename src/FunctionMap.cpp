@@ -1,5 +1,5 @@
-/**
- * IFactory.h
+/*
+ * FunctionMap.cpp
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,33 +16,41 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include "FunctionMap.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+FunctionMap::FunctionMap() {
 
-class IFactory {
-public:
+}
 
-    virtual ~IFactory() { }
+FunctionMap::~FunctionMap() {
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
+}
 
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
+bool FunctionMap::addFunction(
+    arl::dm::IDataTypeFunction      *func,
+    FunctionFlags                   flags) {
 
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+    if (m_func_m.find(func) == m_func_m.end()) {
+        IFunctionInfo *info = new FunctionInfo(func, func->name());
+        info->setFlags(flags);
 
-};
+        m_func_m.insert({func, info});
+        m_func_l.push_back(IFunctionInfoUP(info));
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+        return true;
+    } else {
+        return false;
+    }
+}
 
-
+}
+}
+}

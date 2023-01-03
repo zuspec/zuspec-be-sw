@@ -1,5 +1,5 @@
 /**
- * IFactory.h
+ * IGeneratorFunctions.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,25 +19,32 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include <memory>
+#include <vector>
+#include "zsp/arl/dm/IContext.h"
+#include "zsp/arl/dm/IDataTypeFunction.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-
-class IFactory {
+class IGeneratorFunctions;
+using IGeneratorFunctionsUP=std::unique_ptr<IGeneratorFunctions>;
+class IGeneratorFunctions {
 public:
 
-    virtual ~IFactory() { }
+    virtual ~IGeneratorFunctions() { }
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
-
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
-
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+    virtual void generate(
+        arl::dm::IContext                                   *ctxt,
+        const std::vector<arl::dm::IDataTypeFunction *>     &funcs,
+        const std::vector<std::string>                      &inc_c,
+        const std::vector<std::string>                      &inc_h,
+        IOutput                                             *out_c,
+        IOutput                                             *out_h
+    ) = 0;
 
 };
 

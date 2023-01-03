@@ -1,5 +1,5 @@
 /**
- * IFactory.h
+ * TaskCollectReferencedFunctions.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,8 +19,8 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IFunctionMap.h"
 
 namespace zsp {
 namespace be {
@@ -28,21 +28,21 @@ namespace sw {
 
 
 
-class IFactory {
+class TaskCollectReferencedFunctions : public virtual arl::dm::VisitorBase {
 public:
+    TaskCollectReferencedFunctions(IFunctionMap *func_m);
 
-    virtual ~IFactory() { }
+    virtual ~TaskCollectReferencedFunctions();
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
+    void collect(arl::dm::IDataTypeFunction *f);
 
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
-
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+private:
+    IFunctionMap                            *m_func_m;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

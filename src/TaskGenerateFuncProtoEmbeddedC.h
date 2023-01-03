@@ -1,5 +1,5 @@
 /**
- * IFactory.h
+ * TaskGenerateFuncProtoEmbeddedC.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,8 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IGeneratorFunctions.h"
+#include "zsp/be/sw/IOutput.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "NameMap.h"
 
 namespace zsp {
 namespace be {
@@ -28,21 +29,25 @@ namespace sw {
 
 
 
-class IFactory {
+class TaskGenerateFuncProtoEmbeddedC : public virtual arl::dm::VisitorBase {
 public:
+    TaskGenerateFuncProtoEmbeddedC(NameMap *name_m);
 
-    virtual ~IFactory() { }
+    virtual ~TaskGenerateFuncProtoEmbeddedC();
 
-    virtual void init(dmgr::IDebugMgr *dmgr) = 0;
+    void generate(
+        IOutput                         *out_decl,
+        arl::dm::IDataTypeFunction      *func);
 
-    virtual dmgr::IDebugMgr *getDebugMgr() = 0;
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
-
+private:
+    NameMap                                 *m_name_m;
+    IOutput                                 *m_out;
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "Factory.h"
+#include "GeneratorFunctionsThreaded.h"
 
 
 namespace zsp {
@@ -36,6 +37,10 @@ Factory::~Factory() {
 
 void Factory::init(dmgr::IDebugMgr *dmgr) {
     m_dmgr = dmgr;
+}
+
+IGeneratorFunctions *Factory::mkGeneratorFunctionsThreaded() {
+    return new GeneratorFunctionsThreaded();
 }
 
 IFactory *Factory::inst() {

@@ -18,8 +18,10 @@
  * Created on:
  *     Author:
  */
+#include <fstream>
 #include "Factory.h"
 #include "GeneratorFunctionsThreaded.h"
+#include "Output.h"
 
 
 namespace zsp {
@@ -41,6 +43,18 @@ void Factory::init(dmgr::IDebugMgr *dmgr) {
 
 IGeneratorFunctions *Factory::mkGeneratorFunctionsThreaded() {
     return new GeneratorFunctionsThreaded();
+}
+
+IOutput *Factory::mkFileOutput(const std::string &path) {
+    std::ofstream *out = new std::ofstream();
+    out->open(path);
+
+    if (out->is_open()) {
+        IOutput *ret = new Output(out, true, "");
+        return ret;
+    } else {
+        return 0; 
+    }
 }
 
 IFactory *Factory::inst() {

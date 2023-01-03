@@ -32,6 +32,7 @@ class Output : public virtual IOutput {
 public:
     Output(
         std::ostream            *out,
+        bool                    owned,
         const std::string       &ind
     );
 
@@ -61,6 +62,8 @@ public:
      */
     virtual void write(const char *fmt, ...) override;
 
+    virtual void close() override;
+
     /**
      * @brief Writes the current indent
      * 
@@ -77,6 +80,7 @@ public:
 
 private:
     std::ostream                *m_out;
+    bool                        m_owned;
     std::string                 m_ind;
 
 };

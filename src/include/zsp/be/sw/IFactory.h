@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/be/sw/IGeneratorFunctions.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -38,6 +39,8 @@ public:
     virtual dmgr::IDebugMgr *getDebugMgr() = 0;
 
     virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+
+    virtual IOutput *mkFileOutput(const std::string &path) = 0;
 
 };
 

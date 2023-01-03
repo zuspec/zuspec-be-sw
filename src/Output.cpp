@@ -18,7 +18,7 @@
  * Created on:
  *     Author:
  */
-
+#include <fstream>
 #include <stdarg.h>
 #include <stdio.h>
 #include "Output.h"
@@ -31,12 +31,15 @@ namespace sw {
 
 Output::Output(
     std::ostream            *out,
-    const std::string       &ind) : m_out(out), m_ind(ind) {
+    bool                    owned,
+    const std::string       &ind) : m_out(out), m_owned(owned), m_ind(ind) {
 
 }
 
 Output::~Output() {
-
+    if (m_owned) {
+        delete m_out;
+    }
 }
 
 
@@ -96,6 +99,12 @@ void Output::write(const char *fmt, ...) {
     m_out->write(tmp, len);
 
     va_end(ap);
+}
+
+void Output::close() {
+    if (dynamic_cast<std::fstream *>(m_out)) {
+        dynamic_cast<std::fstream *>(m_out)->close();
+    }
 }
 
 /**

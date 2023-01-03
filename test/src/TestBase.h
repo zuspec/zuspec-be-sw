@@ -19,8 +19,10 @@
  *     Author: 
  */
 #pragma once
+#include <string>
 #include "gtest/gtest.h"
 #include "zsp/arl/dm/IContext.h"
+#include "zsp/be/sw/IFactory.h"
 #include "vsc/dm/IContext.h"
 
 namespace zsp {
@@ -39,7 +41,26 @@ public:
     virtual void TearDown() override;
 
 protected:
+    bool isdir(const std::string &path);
+
+    bool isfile(const std::string &path);
+
+    bool makedirs(const std::string &path);
+
+    // Compute a test-directory relative path
+    std::string getTestDirPath(const std::string &path);
+
+    void createFile(
+        const std::string          &path,
+        const std::string          &content);
+
+    IOutput *openOutput(const std::string &path);
+
+protected:
     arl::dm::IContextUP             m_ctxt;
+    IFactory                        *m_factory;
+    std::string                     m_rundir;
+    std::string                     m_testdir;
 
 };
 

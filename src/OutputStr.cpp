@@ -27,7 +27,7 @@ namespace sw {
 
 
 OutputStr::OutputStr(
-    const std::string       &ind) : Output(&m_sstr, ind) {
+    const std::string       &ind) : Output(&m_sstr, false, ind) {
 
 }
 

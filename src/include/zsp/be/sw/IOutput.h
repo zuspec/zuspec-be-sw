@@ -55,6 +55,8 @@ public:
      */
     virtual void write(const char *fmt, ...) = 0;
 
+    virtual void close() = 0;
+
     /**
      * @brief Writes the current indent
      * 

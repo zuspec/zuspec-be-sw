@@ -1,5 +1,5 @@
-/**
- * Factory.h
+/*
+ * TestGenerateFunctionsThreaded.cpp
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -16,45 +16,35 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include <memory>
-#include "zsp/be/sw/FactoryExt.h"
+#include "TestGenerateFunctionsThreaded.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class Factory;
-using FactoryUP=std::unique_ptr<Factory>;
-class Factory : public virtual IFactory {
-public:
-    Factory();
+TestGenerateFunctionsThreaded::TestGenerateFunctionsThreaded() {
 
-    virtual ~Factory();
+}
 
-    virtual void init(dmgr::IDebugMgr *dmgr) override;
+TestGenerateFunctionsThreaded::~TestGenerateFunctionsThreaded() {
 
-    virtual dmgr::IDebugMgr *getDebugMgr() override {
-        return m_dmgr;
-    }
+}
 
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() override;
+TEST_F(TestGenerateFunctionsThreaded, smoke) {
+    IOutput *out_c;
+    IOutput *out_h;
 
-    virtual IOutput *mkFileOutput(const std::string &path) override;
+    ASSERT_TRUE((out_c = openOutput("test.c")));
+    ASSERT_TRUE((out_h = openOutput("test.h")));
 
-    static IFactory *inst();
-
-private:
-    static FactoryUP                m_inst;
-    dmgr::IDebugMgr                 *m_dmgr;
-};
+    out_c->close();
+    out_h->close();
+}
 
 }
 }
 }
-
-
-

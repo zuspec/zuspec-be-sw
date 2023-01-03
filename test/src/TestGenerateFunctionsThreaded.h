@@ -1,5 +1,5 @@
 /**
- * Factory.h
+ * TestGenerateFunctionsThreaded.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -19,42 +19,24 @@
  *     Author: 
  */
 #pragma once
-#include <memory>
-#include "zsp/be/sw/FactoryExt.h"
+#include "TestBase.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class Factory;
-using FactoryUP=std::unique_ptr<Factory>;
-class Factory : public virtual IFactory {
+
+class TestGenerateFunctionsThreaded : public TestBase {
 public:
-    Factory();
+    TestGenerateFunctionsThreaded();
 
-    virtual ~Factory();
+    virtual ~TestGenerateFunctionsThreaded();
 
-    virtual void init(dmgr::IDebugMgr *dmgr) override;
-
-    virtual dmgr::IDebugMgr *getDebugMgr() override {
-        return m_dmgr;
-    }
-
-    virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() override;
-
-    virtual IOutput *mkFileOutput(const std::string &path) override;
-
-    static IFactory *inst();
-
-private:
-    static FactoryUP                m_inst;
-    dmgr::IDebugMgr                 *m_dmgr;
 };
 
 }
 }
 }
-
 
 

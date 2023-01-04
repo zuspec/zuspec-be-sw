@@ -20,7 +20,9 @@
  */
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <spawn.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "TestBase.h"
 #include "dmgr/FactoryExt.h"
 #include "vsc/dm/FactoryExt.h"
@@ -155,6 +157,102 @@ IOutput *TestBase::openOutput(const std::string &path) {
 
     return ret;
 };
+
+void TestBase::compileAndRun(const std::vector<std::string> &args) {
+    std::vector<std::string> output;
+    compile(args);
+    run(output);
+
+    uint32_t n_pass = 0;
+    uint32_t n_fail = 0;
+    for (std::vector<std::string>::const_iterator
+        it=output.begin();
+        it!=output.end(); it++) {
+        if (it->find("PASSED") != -1) {
+            n_pass++;
+        } else if (it->find("FAILED") != -1) {
+            n_fail++;
+        }
+    }
+
+    ASSERT_GT(n_pass, 0);
+    ASSERT_EQ(n_fail, 0);
+}
+
+void TestBase::compile(const std::vector<std::string> &args) {
+    char cwd[1024];
+
+    getcwd(cwd, sizeof(cwd));
+
+    const char **argv = new const char *[args.size()+4+1];
+    argv[0] = "gcc";
+    argv[1] = "-o";
+    argv[2] = "test.exe";
+    argv[3] = "-I.";
+
+    for (uint32_t i=0; i<args.size(); i++) {
+        argv[4+i] = strdup(args.at(i).c_str());
+    }
+
+    argv[args.size()+4] = 0;
+
+    posix_spawn_file_actions_t action;
+    std::string outfile = m_testdir + "/compile.out";
+
+    posix_spawn_file_actions_init(&action);
+    posix_spawn_file_actions_addopen(&action, STDOUT_FILENO, outfile.c_str(),
+            O_WRONLY|O_CREAT|O_TRUNC, 0644);
+    posix_spawn_file_actions_adddup2(&action, STDOUT_FILENO, STDERR_FILENO);
+
+    pid_t pid;
+    chdir(m_testdir.c_str());
+    int status = posix_spawnp(&pid, argv[0], &action, 0, (char *const *)argv, environ);
+
+    ASSERT_EQ(status, 0);
+    ASSERT_NE(waitpid(pid, &status, 0), -1);
+    chdir(cwd);
+    ASSERT_EQ(status, 0);
+
+    for (uint32_t i=0; i<args.size(); i++) {
+        free((void *)argv[4+i]);
+    }
+}
+
+void TestBase::run(std::vector<std::string> &output) {
+    char cwd[1024];
+
+    getcwd(cwd, sizeof(cwd));
+
+    const char *argv[] = {
+        "./test.exe",
+        0
+    };
+
+    posix_spawn_file_actions_t action;
+    std::string outfile = m_testdir + "/test.out";
+
+    posix_spawn_file_actions_init(&action);
+    posix_spawn_file_actions_addopen(&action, STDOUT_FILENO, outfile.c_str(),
+            O_WRONLY|O_CREAT|O_TRUNC, 0644);
+    posix_spawn_file_actions_adddup2(&action, STDOUT_FILENO, STDERR_FILENO);
+
+    pid_t pid;
+    chdir(m_testdir.c_str());
+    int status = posix_spawnp(&pid, argv[0], &action, 0, (char *const *)argv, environ);
+
+    ASSERT_EQ(status, 0);
+    ASSERT_NE(waitpid(pid, &status, 0), -1);
+    chdir(cwd);
+    ASSERT_EQ(status, 0);
+
+    FILE *fp = fopen(outfile.c_str(), "r");
+    ASSERT_TRUE(fp);
+    while (!feof(fp)) {
+        fgets(cwd, sizeof(cwd), fp);
+        output.push_back(cwd);
+    }
+    fclose(fp);
+}
 
 }
 }

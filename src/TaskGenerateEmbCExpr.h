@@ -36,10 +36,10 @@ public:
     virtual ~TaskGenerateEmbCExpr();
 
     void generate(
-        IOutput                         *out,
-        vsc::dm::ITypeField             *type_scope,
-        arl::dm::ITypeProcStmtScope     *proc_scope,
-        vsc::dm::ITypeExpr              *expr);
+        IOutput                                             *out,
+        vsc::dm::ITypeField                                 *type_scope,
+        std::vector<arl::dm::ITypeProcStmtDeclScope *>      *proc_scopes,
+        vsc::dm::ITypeExpr                                  *expr);
 
 	virtual void visitTypeExprBin(vsc::dm::ITypeExprBin *e) override;
 
@@ -52,10 +52,10 @@ public:
 	virtual void visitTypeExprVal(vsc::dm::ITypeExprVal *e) override;
 
 private:
-    NameMap                         *m_name_m;
-    IOutput                         *m_out;
-    vsc::dm::ITypeField             *m_type_scope;
-    arl::dm::ITypeProcStmtScope     *m_proc_scope;
+    NameMap                                             *m_name_m;
+    IOutput                                             *m_out;
+    vsc::dm::ITypeField                                 *m_type_scope;
+    std::vector<arl::dm::ITypeProcStmtDeclScope *>      *m_proc_scopes;
 
 
 };

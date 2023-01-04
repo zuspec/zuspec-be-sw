@@ -44,8 +44,10 @@ void TaskGenerateFuncProtoEmbeddedC::generate(
 }
 
 void TaskGenerateFuncProtoEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
+    TaskGenerateEmbCDataType dt_gen(m_out, m_name_m);
+
     if (t->getReturnType()) {
-        t->getReturnType()->accept(m_this);
+        dt_gen.generate(t->getReturnType());
         m_out->write(" ");
     } else {
         m_out->write("void ");
@@ -53,7 +55,6 @@ void TaskGenerateFuncProtoEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFun
 
     m_out->write("%s(", m_name_m->getName(t).c_str());
 
-    TaskGenerateEmbCDataType dt_gen(m_out, m_name_m);
     if (t->getParameters().size() > 0) {
         m_out->write("\n");
         m_out->inc_ind();

@@ -18,8 +18,12 @@
  * Created on:
  *     Author:
  */
+#include "NameMap.h"
+#include "vsc/dm/IDataTypeInt.h"
 #include "TestGenerateFunctionsThreaded.h"
 
+using namespace vsc::dm;
+using namespace zsp::arl::dm;
 
 namespace zsp {
 namespace be {
@@ -35,14 +39,92 @@ TestGenerateFunctionsThreaded::~TestGenerateFunctionsThreaded() {
 }
 
 TEST_F(TestGenerateFunctionsThreaded, smoke) {
-    IOutput *out_c;
-    IOutput *out_h;
+    NameMap name_m;
 
-    ASSERT_TRUE((out_c = openOutput("test.c")));
-    ASSERT_TRUE((out_h = openOutput("test.h")));
+    IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
+    IDataTypeFunctionUP my_func(m_ctxt->mkDataTypeFunction("my_func", uint32.get(), false));
+    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 0));
+
+    my_func->getBody()->addVariable(
+        m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
+    IModelVal *val = m_ctxt->mkModelVal();
+    val->setBits(32);
+    val->set_val_u(25);
+    my_func->getBody()->addStatement(
+        m_ctxt->mkTypeProcStmtAssign(
+            m_ctxt->mkTypeExprFieldRef({
+                {TypeExprFieldRefElemKind::BottomUpScope, 0},
+                {TypeExprFieldRefElemKind::IdxOffset, 0} // v1
+            }),
+            TypeProcStmtAssignOp::Eq,
+            m_ctxt->mkTypeExprBin(
+                m_ctxt->mkTypeExprFieldRef({
+                    {TypeExprFieldRefElemKind::BottomUpScope, 1}, // Function parameter-list scope
+                    {TypeExprFieldRefElemKind::IdxOffset, 0} // 'a'
+                }),
+                vsc::dm::BinOp::Add,
+                m_ctxt->mkTypeExprFieldRef({
+                    {TypeExprFieldRefElemKind::BottomUpScope, 1}, // Function parameter-list scope
+                    {TypeExprFieldRefElemKind::IdxOffset, 1} // 'b'
+                })
+            )
+        )
+    );
+    my_func->getBody()->addVariable(
+        m_ctxt->mkTypeProcStmtVarDecl("v2", uint32.get(), false, 0));
+
+    my_func->getBody()->addStatement(
+        m_ctxt->mkTypeProcStmtReturn(
+            m_ctxt->mkTypeExprFieldRef({
+                {TypeExprFieldRefElemKind::BottomUpScope, 0},
+                {TypeExprFieldRefElemKind::IdxOffset, 0} // v1
+            })
+        )
+    );
+
+    IOutputUP out_c;
+    IOutputUP out_h;
+
+    ASSERT_TRUE((out_c = IOutputUP(openOutput("test.c"))));
+    ASSERT_TRUE((out_h = IOutputUP(openOutput("test.h"))));
+
+    out_c->println("#include <stdio.h>");
+    out_c->println("#include \"test.h\"");
+
+    IGeneratorFunctionsUP funcs_gen(m_factory->mkGeneratorFunctionsThreaded());
+    std::vector<arl::dm::IDataTypeFunction *> funcs;
+    std::vector<std::string> inc_h, inc_c;
+
+    funcs.push_back(my_func.get());
+
+    funcs_gen->generate(
+        m_ctxt.get(),
+        funcs,
+        inc_c,
+        inc_h,
+        out_c.get(),
+        out_h.get()
+    );
+
+    out_c->println("int main() {");
+    out_c->inc_ind();
+    out_c->println("unsigned int r;");
+    for (uint32_t i=0; i<10; i++) {
+        for (uint32_t j=0; j<10; j++) {
+            out_c->println("r = my_func(%d, %d);", i, j);
+            out_c->println("fprintf(stdout, \"%%s\\n\"\, (r == %d)?\"PASSED\":\"FAILED\");", (i+j));
+        }
+    }
+    out_c->dec_ind();
+    out_c->println("}");
 
     out_c->close();
     out_h->close();
+
+    compileAndRun({
+        "test.c",
+    });
 }
 
 }

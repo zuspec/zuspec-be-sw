@@ -19,13 +19,14 @@
  *     Author: 
  */
 #pragma once
+#include <memory>
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-
-
+class IOutput;
+using IOutputUP=std::unique_ptr<IOutput>;
 class IOutput {
 public:
 

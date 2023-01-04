@@ -47,7 +47,7 @@ IGeneratorFunctions *Factory::mkGeneratorFunctionsThreaded() {
 
 IOutput *Factory::mkFileOutput(const std::string &path) {
     std::ofstream *out = new std::ofstream();
-    out->open(path);
+    out->open(path, std::fstream::out);
 
     if (out->is_open()) {
         IOutput *ret = new Output(out, true, "");

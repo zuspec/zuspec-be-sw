@@ -47,13 +47,13 @@ void TaskGenerateEmbCDataType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
 
 void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (t->getWidth() <= 8) {
-        m_out->write("%schar", (t->is_signed())?"unsigned ":"");
+        m_out->write("%schar", (!t->is_signed())?"unsigned ":"");
     } else if (t->getWidth() <= 16) {
-        m_out->write("%sshort", (t->is_signed())?"unsigned ":"");
+        m_out->write("%sshort", (!t->is_signed())?"unsigned ":"");
     } else if (t->getWidth() <= 32) {
-        m_out->write("%sint", (t->is_signed())?"unsigned ":"");
+        m_out->write("%sint", (!t->is_signed())?"unsigned ":"");
     } else if (t->getWidth() <= 64) {
-        m_out->write("%slong long", (t->is_signed())?"unsigned ":"");
+        m_out->write("%slong long", (!t->is_signed())?"unsigned ":"");
     } else {
         // TODO: Fatal
     }

@@ -55,10 +55,13 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
     m_scope_depth = 0;
     m_out->indent();
 
-    m_scope_s.push_back(t->getBody());
+    m_scope_s.push_back(t);
+//    m_scope_s.push_back(t->getBody());
+
+    TaskGenerateEmbCDataType dt_gen(m_out, m_name_m);
 
     if (t->getReturnType()) {
-        t->getReturnType()->accept(m_this);
+        dt_gen.generate(t->getReturnType());
         m_out->write(" ");
     } else {
         m_out->write("void ");
@@ -66,7 +69,6 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
 
     m_out->write("%s(", m_name_m->getName(t).c_str());
 
-    TaskGenerateEmbCDataType dt_gen(m_out, m_name_m);
     if (t->getParameters().size() > 0) {
         m_out->write("\n");
         m_out->inc_ind();
@@ -94,6 +96,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
 
     m_out->println("}");
 
+//    m_scope_s.pop_back();
     m_scope_s.pop_back();
 }
 
@@ -110,9 +113,9 @@ void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtAssign(ITypeProcStmtAssign 
     TaskGenerateEmbCExpr expr_gen(m_name_m);
 
     m_out->indent();
-    expr_gen.generate(m_out, 0, m_scope_s.back(), s->getLhs());
+    expr_gen.generate(m_out, 0, &m_scope_s, s->getLhs());
     m_out->write(" %s ", op_m.find(s->op())->second.c_str());
-    expr_gen.generate(m_out, 0, m_scope_s.back(), s->getRhs());
+    expr_gen.generate(m_out, 0, &m_scope_s, s->getRhs());
     m_out->write(";\n");
 }
 
@@ -166,12 +169,11 @@ void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtRepeatWhile(ITypeProcStmtRe
 }
 
 void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) {
-    if (m_gen_decl) {
-        return;
-    }
-
     if (s->getExpr()) {
+        TaskGenerateEmbCExpr expr_gen(m_name_m);
+
         m_out->print("return ");
+        expr_gen.generate(m_out, 0, &m_scope_s, s->getExpr());
         m_out->write(";\n");
     } else {
         m_out->println("return;");

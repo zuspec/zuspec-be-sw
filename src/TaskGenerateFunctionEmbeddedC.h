@@ -70,7 +70,7 @@ private:
     IOutput                     			        *m_out;
     bool                        			        m_gen_decl;
     uint32_t                    			        m_scope_depth;
-	std::vector<arl::dm::ITypeProcStmtScope *>		m_scope_s;
+	std::vector<arl::dm::ITypeProcStmtDeclScope *>	m_scope_s;
 };
 
 }

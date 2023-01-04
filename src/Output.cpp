@@ -102,6 +102,7 @@ void Output::write(const char *fmt, ...) {
 }
 
 void Output::close() {
+    m_out->flush();
     if (dynamic_cast<std::fstream *>(m_out)) {
         dynamic_cast<std::fstream *>(m_out)->close();
     }

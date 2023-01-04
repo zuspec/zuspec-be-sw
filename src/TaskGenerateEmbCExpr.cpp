@@ -31,7 +31,7 @@ namespace sw {
 TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(NameMap *name_m) : 
     m_name_m(name_m), m_out(0) {
     m_type_scope = 0;
-    m_proc_scope = 0;
+    m_proc_scopes = 0;
 }
 
 TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
@@ -39,13 +39,13 @@ TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
 }
 
 void TaskGenerateEmbCExpr::generate(
-        IOutput             *out,
-        vsc::dm::ITypeField          *type_scope,
-        arl::dm::ITypeProcStmtScope  *proc_scope,
-        vsc::dm::ITypeExpr           *expr) {
+        IOutput                                         *out,
+        vsc::dm::ITypeField                             *type_scope,
+        std::vector<arl::dm::ITypeProcStmtDeclScope *>  *proc_scopes,
+        vsc::dm::ITypeExpr                              *expr) {
     m_out = out;
     m_type_scope = type_scope;
-    m_proc_scope = proc_scope;
+    m_proc_scopes = proc_scopes;
     expr->accept(m_this);
 }
 
@@ -79,20 +79,27 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
 
 void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
     // Walk through the elements of the expression
+    if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::BottomUpScope) {
+        // We start by identifying the proc scope
+        arl::dm::ITypeProcStmtDeclScope *s = m_proc_scopes->at(
+            m_proc_scopes->size() - e->getPath().at(0).idx - 1
+        );
 
-    arl::dm::ITypeProcStmtScope *s = m_proc_scope;
-    uint32_t start = 0;
+        // Next element must be an offset
+        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(
+            e->getPath().at(1).idx
+        );
 
-    // Really want to be able to:
-    // - Reference a parameter
-    // - Reference a variable upward-relative to our current procedural scope
-    // - Reference a type variable as an absolute type name (a::b::c)
+        m_out->write("%s", v->name().c_str());
+        vsc::dm::IDataTypeStruct *dt = dynamic_cast<vsc::dm::IDataTypeStruct *>(v->getDataType());
 
-    // TODO: just the simple case for now
-    arl::dm::ITypeProcStmtVarDecl *var_decl = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(
-        m_proc_scope->getStatements().at(e->getPath().at(0).idx).get());
-    m_out->write("%s", var_decl->name().c_str());
-
+        for (uint32_t i=2; i<e->getPath().size(); i++) {
+            vsc::dm::ITypeField *field = dt->getField(e->getPath().at(i).idx);
+            m_out->write(".%s", field->name().c_str());
+        }
+    } else if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::ActiveScope) {
+        // We start with the type scope
+    }
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::dm::ITypeExprRange *e) {

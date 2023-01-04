@@ -56,6 +56,12 @@ protected:
 
     IOutput *openOutput(const std::string &path);
 
+    void compileAndRun(const std::vector<std::string> &args);
+
+    void compile(const std::vector<std::string> &args);
+
+    void run(std::vector<std::string> &output);
+
 protected:
     arl::dm::IContextUP             m_ctxt;
     IFactory                        *m_factory;

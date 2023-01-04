@@ -47,8 +47,8 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
     OutputStr out_def("");
 
     IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
-    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl("a", uint32.get(), false, 0));
-    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl("b", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 0));
 
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));

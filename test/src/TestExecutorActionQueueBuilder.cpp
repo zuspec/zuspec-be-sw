@@ -40,8 +40,7 @@ TestExecutorActionQueueBuilder::~TestExecutorActionQueueBuilder() {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, smoke) {
-    std::vector<arl::dm::IModelActivityUP>      activities_u;
-    std::vector<arl::dm::IModelActivity *>      activities;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
     std::vector<arl::dm::IModelFieldActionUP>   actions;
 
     for (uint32_t i=0; i<16; i++) {
@@ -53,14 +52,14 @@ TEST_F(TestExecutorActionQueueBuilder, smoke) {
             false,
             0,
             false);
-        activities_u.push_back(IModelActivityUP(t));
-        activities.push_back(t);
+        activities->addActivity(t, true);
     }
 
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
     std::vector<ExecutorActionQueue> queues;
     TaskBuildExecutorActionQueues(m_ctxt.get(), {}, -1).build(
         queues,
-        activities
+        activity_it
     );
 
     ASSERT_EQ(queues.size(), 1);
@@ -68,8 +67,7 @@ TEST_F(TestExecutorActionQueueBuilder, smoke) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
-    std::vector<IModelActivityUP>      activities_u;
-    std::vector<IModelActivity *>      activities;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
     std::vector<IModelFieldActionUP>   actions;
 
     m_ctxt->getDebugMgr()->enable(true);
@@ -114,16 +112,16 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
             0, // activity
             false // own_activiy
             );
-        activities_u.push_back(IModelActivityUP(t));
-        activities.push_back(t);
+        activities->addActivity(t, true);
     }
 
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
     TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
-        activities
+        activity_it
     );
 
     ASSERT_EQ(queues.size(), 4);
@@ -145,9 +143,8 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
-    std::vector<IModelActivityUP>      activities_u;
-    std::vector<IModelActivity *>      activities;
     std::vector<IModelFieldActionUP>   actions;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
 
     m_ctxt->getDebugMgr()->enable(true);
 
@@ -173,14 +170,20 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
         &build_ctxt,
         "pss_top",
         false);
-    IModelFieldExecutor *exec1 = comp->getFieldT<IModelFieldExecutor>(0);
-    IModelFieldExecutor *exec2 = comp->getFieldT<IModelFieldExecutor>(1);
-    IModelFieldExecutor *exec3 = comp->getFieldT<IModelFieldExecutor>(2);
-    IModelFieldExecutor *exec4 = comp->getFieldT<IModelFieldExecutor>(3);
+    IModelFieldExecutor *exec1 = comp->getFieldT<IModelFieldExecutor>(1);
+    IModelFieldExecutor *exec2 = comp->getFieldT<IModelFieldExecutor>(2);
+    IModelFieldExecutor *exec3 = comp->getFieldT<IModelFieldExecutor>(3);
+    IModelFieldExecutor *exec4 = comp->getFieldT<IModelFieldExecutor>(4);
+    ASSERT_TRUE(exec1);
+    ASSERT_TRUE(exec2);
+    ASSERT_TRUE(exec3);
+    ASSERT_TRUE(exec4);
 
     for (uint32_t i=0; i<16; i++) {
+        char name[64];
+        sprintf(name, "a%d", i);
         IModelFieldAction *action = action_t->mkRootFieldT<IModelFieldAction>(
-            &build_ctxt, "a", false);
+            &build_ctxt, name, false);
         IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
         claim->setRef((i<8)?exec1:exec2);
         actions.push_back(IModelFieldActionUP(action));
@@ -190,16 +193,16 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
             false,
             0,
             false);
-        activities_u.push_back(IModelActivityUP(t));
-        activities.push_back(t);
+        activities->addActivity(t, true);
     }
 
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
     TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
-        activities
+        activity_it
     );
 
     ASSERT_EQ(queues.size(), 4);
@@ -207,6 +210,26 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
     // - 1 initial notification
     // - 8 synchronizations and executions
     // - 3 final depends
+    for (uint32_t i=0; i<queues[0].size(); i++) {
+        switch (queues[0].at(i).kind) {
+            case ExecutorActionQueueEntryKind::Action: {
+                fprintf(stdout, "[%d] Action: action %s\n", i, queues[0].at(i).action->name().c_str());
+            } break;
+            case ExecutorActionQueueEntryKind::Depend: {
+                fprintf(stdout, "[%d] Depend: %d %d \n", 
+                    i, 
+                    queues[0].at(i).executor_id,
+                    queues[0].at(i).action_id);
+            } break;
+            case ExecutorActionQueueEntryKind::Notify: {
+                fprintf(stdout, "[%d] Notify: %d\n", i, queues[0].at(i).action_id);
+            } break;
+
+            default:
+                fprintf(stdout, "Entry %d: %d\n", i, queues[0].at(i).kind);
+                break;
+        }
+    }
     ASSERT_EQ(queues[0].size(), 12);
     // The non-primary executor has
     // - 1 initial depend
@@ -218,8 +241,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
 }
 
 TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
-    std::vector<IModelActivityUP>      activities_u;
-    std::vector<IModelActivity *>      activities;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
     std::vector<IModelFieldActionUP>   actions;
 
     m_ctxt->getDebugMgr()->enable(true);
@@ -263,16 +285,16 @@ TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
             false,
             0,
             false);
-        activities_u.push_back(IModelActivityUP(t));
-        activities.push_back(t);
+        activities->addActivity(t, true);
     }
 
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
 
     std::vector<ExecutorActionQueue> queues;
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
     TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
         queues,
-        activities
+        activity_it
     );
 
     ASSERT_EQ(queues.size(), 4);

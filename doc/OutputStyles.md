@@ -34,3 +34,20 @@ There are two key output styles:
 
 # Blocking Functions
 
+# Dynamic Output Style
+Dynamic output is generated from the action traversals provided by an evaluation 
+iterator. 
+- Actions are diverted to appropriate executor action queues for code generation.
+- Each action is processed to identify data types that must be generated
+- Each action's execution is repesented by
+  - A per-action-type function containing the behavior for the action
+  - A data object containing the values of fields within the action and
+    references to objects
+
+
+- Key question is whether we can reliably detect on-the-fly when sync operations
+  are required...
+  - But, this is independent of 
+
+
+

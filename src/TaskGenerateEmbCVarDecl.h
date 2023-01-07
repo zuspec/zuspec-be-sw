@@ -41,6 +41,10 @@ public:
     void generate(
         arl::dm::ITypeProcStmt  *stmt);
 
+    void generate(
+        vsc::dm::IDataType          *type,
+        vsc::dm::ITypeField         *field);
+
 	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
 
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;

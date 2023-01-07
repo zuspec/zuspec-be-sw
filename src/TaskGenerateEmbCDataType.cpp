@@ -42,7 +42,7 @@ void TaskGenerateEmbCDataType::generate(vsc::dm::IDataType *type) {
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
-    m_out->write("%s", m_name_m->getName(t));
+    m_out->write("%s", m_name_m->getName(t).c_str());
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
@@ -60,7 +60,7 @@ void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
-    m_out->write("%s", m_name_m->getName(t));
+    m_out->write("%s", m_name_m->getName(t).c_str());
 }
 
 }

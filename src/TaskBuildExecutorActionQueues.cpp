@@ -45,7 +45,7 @@ TaskBuildExecutorActionQueues::~TaskBuildExecutorActionQueues() {
 
 void TaskBuildExecutorActionQueues::build(
         std::vector<ExecutorActionQueue>    &executor_queues,
-        const std::vector<IModelActivity *> &actvities) {
+        arl::dm::IModelEvalIterator         *activity_it) {
     DEBUG_ENTER("build");
     m_executor_queues = &executor_queues;
 
@@ -60,7 +60,7 @@ void TaskBuildExecutorActionQueues::build(
             // Cause the primary executor to emit its 'alive' signal
             m_executor_queues->at(m_dflt_executor).push_back(
                 {
-                    .kind=ExecutorActionQueueEntryKind::Action,
+                    .kind=ExecutorActionQueueEntryKind::Notify,
                     .action_id=1,
                     .executor_id=-1,
                     .action=0
@@ -88,12 +88,7 @@ void TaskBuildExecutorActionQueues::build(
         m_dflt_executor = 0;
     }
 
-
-    for (std::vector<IModelActivity *>::const_iterator
-        it=actvities.begin();
-        it!=actvities.end(); it++) {
-        (*it)->accept(m_this);
-    }
+    process_scope(activity_it);
 
     // TODO: could possibly identify blocking synchronizations as a post-step
     if (m_executors.size() > 1) {
@@ -103,7 +98,7 @@ void TaskBuildExecutorActionQueues::build(
                 m_executor_exec_ids[i] += 1;
                 m_executor_queues->at(i).push_back(
                     {
-                        .kind=ExecutorActionQueueEntryKind::Action,
+                        .kind=ExecutorActionQueueEntryKind::Notify,
                         .action_id=m_executor_exec_ids[i],
                         .executor_id=-1,
                         .action=0
@@ -132,15 +127,60 @@ void TaskBuildExecutorActionQueues::build(
 }
 
 void TaskBuildExecutorActionQueues::visitModelActivityParallel(IModelActivityParallel *a) {
-    DEBUG_ENTER("visitModelActivityParallel");
+
+}
+
+void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTraverse *a) {
+
+}
+
+void TaskBuildExecutorActionQueues::process_scope(IModelEvalIterator *s_it) {
+    while (s_it->next()) {
+        switch (s_it->type()) {
+            case arl::dm::ModelEvalNodeT::Action: {
+                // TODO: must handle entry/exit of compound action
+                process_traverse(s_it->action());
+            } break;
+
+            case arl::dm::ModelEvalNodeT::Sequence: {
+                process_scope(s_it->iterator());
+            } break;
+
+            case arl::dm::ModelEvalNodeT::Parallel: {
+                process_parallel(s_it->iterator());
+            } break;
+        }
+    }
+}
+
+void TaskBuildExecutorActionQueues::process_parallel(IModelEvalIterator *it) {
+    DEBUG_ENTER("process_parallel");
     std::vector<int32_t> last_executor;
 
-    for (std::vector<IModelActivity *>::const_iterator
-        it=a->branches().begin();
-        it!=a->branches().end(); it++) {
-
+    while (it->next()) {
         m_last_executor.push_back(m_last_executor.back());
-        (*it)->accept(m_this);
+
+        switch (it->type()) {
+            case arl::dm::ModelEvalNodeT::Action: {
+                // TODO: must handle entry/exit of compound action
+                if (!it->action()->isCompound()) {
+                    process_traverse(it->action());
+                } else {
+                    // Action is compound. Process scope
+                    process_scope(it->iterator());
+                }
+
+                // TODO: 
+            } break;
+
+            case arl::dm::ModelEvalNodeT::Sequence: {
+                process_scope(it->iterator());
+            } break;
+
+            case arl::dm::ModelEvalNodeT::Parallel: {
+                process_parallel(it->iterator());
+            } break;
+        }
         
         // Merge the resulting 'last-executor' into the list
         // that we're maintaining
@@ -171,14 +211,16 @@ void TaskBuildExecutorActionQueues::visitModelActivityParallel(IModelActivityPar
         last_executor.begin(), 
         last_executor.end());
 
-    DEBUG_LEAVE("visitModelActivityParallel");
+    DEBUG_LEAVE("process_parallel");
 }
 
-void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTraverse *a) {
-    DEBUG_ENTER("visitModelActivityTraverse");
+void TaskBuildExecutorActionQueues::process_traverse(IModelFieldAction *a) {
+    DEBUG_ENTER("process_traverse");
     int32_t executor = 0; // TODO:
 
-    IModelFieldExecutor *executor_p = TaskFindExecutor().find(a->getTarget());
+    IModelFieldExecutor *executor_p = TaskFindExecutor().find(a);
+
+    fprintf(stdout, "Executor: %p\n", executor_p);
 
     if (executor_p) {
         // Search to find the index
@@ -223,12 +265,14 @@ void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTra
 
     int32_t this_action_id = m_executor_queues->at(executor).size()+1;
 
+    // TODO: Can't really rely on 'action' sticking around. Must convert to
+    //       code that can later be emitted
     m_executor_queues->at(executor).push_back(
         {
             .kind=ExecutorActionQueueEntryKind::Action,
             .action_id=this_action_id,
             .executor_id=-1,
-            .action=a->getTarget()
+            .action=a
         }
     );
 
@@ -240,7 +284,7 @@ void TaskBuildExecutorActionQueues::visitModelActivityTraverse(IModelActivityTra
     } else {
         m_last_executor.back().at(0) = executor;
     }
-    DEBUG_LEAVE("visitModelActivityTraverse");
+    DEBUG_LEAVE("process_traverse");
 }
 
 dmgr::IDebug *TaskBuildExecutorActionQueues::m_dbg = 0;

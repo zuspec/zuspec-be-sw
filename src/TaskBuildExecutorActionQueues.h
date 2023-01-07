@@ -23,6 +23,7 @@
 #include "dmgr/IDebug.h"
 #include "zsp/arl/dm/IContext.h"
 #include "zsp/arl/dm/IModelActivity.h"
+#include "zsp/arl/dm/IModelEvalIterator.h"
 #include "zsp/arl/dm/IModelFieldAction.h"
 #include "zsp/arl/dm/IModelFieldExecutor.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
@@ -51,6 +52,7 @@ using ExecutorActionQueueParallelEntryUP=std::unique_ptr<ExecutorActionQueuePara
 enum class ExecutorActionQueueEntryKind {
     Depend,
     Action,
+    Notify,
     Parallel
 };
 
@@ -87,12 +89,20 @@ public:
 
     void build(
         std::vector<ExecutorActionQueue>    &executor_queues,
-        const std::vector<IModelActivity *> &actvities
+        arl::dm::IModelEvalIterator         *activity_it
     );
 
 	virtual void visitModelActivityParallel(IModelActivityParallel *a) override;
 
 	virtual void visitModelActivityTraverse(IModelActivityTraverse *a) override;
+
+private:
+
+    void process_scope(IModelEvalIterator *s_it);
+
+    void process_parallel(IModelEvalIterator *it);
+
+    void process_traverse(IModelFieldAction *a);
 
 private:
     using LastExecutorFrame=std::vector<int32_t>;

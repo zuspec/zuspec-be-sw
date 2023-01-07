@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "vsc/dm/impl/TaskIsTypeFieldRef.h"
 #include "TaskGenerateEmbCVarDecl.h"
 
 
@@ -41,6 +42,16 @@ void TaskGenerateEmbCVarDecl::generate(arl::dm::ITypeProcStmt *stmt) {
     stmt->accept(m_this);
 }
 
+void TaskGenerateEmbCVarDecl::generate(
+        vsc::dm::IDataType          *type,
+        vsc::dm::ITypeField         *field) {
+    m_out->indent();
+    m_dt_gen.generate(type);
+    m_out->write(" %s%s;\n", 
+        vsc::dm::TaskIsTypeFieldRef().eval(field)?"*":"",
+        field->name().c_str());
+}
+ 
 void TaskGenerateEmbCVarDecl::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
     // Don't recurse
 }

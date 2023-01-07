@@ -70,6 +70,10 @@ void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     m_name = t->name();
 }
 
+void NameMap::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+    m_name = t->name();
+}
+
 }
 }
 }

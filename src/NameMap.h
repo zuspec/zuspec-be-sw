@@ -52,6 +52,8 @@ public:
 
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
+	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
 private:
     std::string                                                     m_name;
     std::unordered_map<vsc::dm::IDataType *,std::string>            m_type_m;

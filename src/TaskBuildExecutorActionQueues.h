@@ -80,7 +80,7 @@ using ExecutorActionQueue=std::vector<ExecutorActionQueueEntry>;
 class TaskBuildExecutorActionQueues : public VisitorBase {
 public:
     TaskBuildExecutorActionQueues(
-        IContext                                        *ctxt,
+        dmgr::IDebugMgr                                 *dmgr,
         const std::vector<IModelFieldExecutor *>        &executors,
         int32_t                                         dflt_executor
     );

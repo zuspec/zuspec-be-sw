@@ -20,6 +20,7 @@
  */
 #pragma once
 #include <set>
+#include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
 #include "NameMap.h"
@@ -31,6 +32,7 @@ namespace sw {
 class TaskGenerateEmbCStruct : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCStruct(
+        dmgr::IDebugMgr         *dmgr,
         IOutput                 *out,
         NameMap                 *name_m);
 
@@ -52,6 +54,7 @@ public:
 	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
 private:
+    static dmgr::IDebug                     *m_dbg;
     IOutput                                 *m_out;
     NameMap                                 *m_name_m;
     std::vector<vsc::dm::ITypeField *>      m_field_s;

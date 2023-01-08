@@ -32,6 +32,14 @@ TaskCollectSortTypes::TaskCollectSortTypes(dmgr::IDebugMgr *dmgr) {
     DEBUG_INIT("TaskCollectSortTypes", dmgr);
 }
 
+TaskCollectSortTypes::TaskCollectSortTypes(
+    dmgr::IDebugMgr                                         *dmgr,
+    const std::function<void (vsc::dm::IDataTypeStruct *)>  &new_type_f) :
+        m_new_type_f(new_type_f) {
+    fprintf(stdout, "TaskCollect: dmgr=%p\n", dmgr);
+    DEBUG_INIT("TaskCollectSortTypes", dmgr);
+}
+
 TaskCollectSortTypes::~TaskCollectSortTypes() {
 
 }
@@ -123,6 +131,10 @@ void TaskCollectSortTypes::enterType(vsc::dm::IDataTypeStruct *t) {
     if ((it=m_type_m.find(t)) == m_type_m.end()) {
         it = m_type_m.insert({t, m_type_l.size()}).first;
         m_type_l.push_back(t);
+
+        if (m_new_type_f) {
+            m_new_type_f(t);
+        }
 
         // Edge U -> V: U comes before V
         // tid must come before parent_tid

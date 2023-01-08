@@ -93,7 +93,8 @@ TEST_F(TestGenerateEmbCCompTreeData, smoke) {
     ASSERT_EQ(types.at(1)->name(), "C2");
     ASSERT_EQ(types.at(2)->name(), "pss_top");
 
-    TaskGenerateEmbCStruct struct_gen(out_h.get(), &name_m);
+    TaskGenerateEmbCStruct struct_gen(
+        m_ctxt->getDebugMgr(), out_h.get(), &name_m);
 
     for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
         it=types.begin();

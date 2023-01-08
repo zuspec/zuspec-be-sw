@@ -21,6 +21,7 @@
 #include <fstream>
 #include "Factory.h"
 #include "GeneratorFunctionsThreaded.h"
+#include "GeneratorMultiCoreEmbCTest.h"
 #include "Output.h"
 
 
@@ -43,6 +44,19 @@ void Factory::init(dmgr::IDebugMgr *dmgr) {
 
 IGeneratorFunctions *Factory::mkGeneratorFunctionsThreaded() {
     return new GeneratorFunctionsThreaded();
+}
+
+IGeneratorEvalIterator *Factory::mkGeneratorMultiCoreSingleImageEmbCTest(
+        const std::vector<arl::dm::IModelFieldExecutor *>  &executors,
+        int32_t                                            dflt_exec,
+        IOutput                                            *out_h,
+        IOutput                                            *out_c) {
+    return new GeneratorMultiCoreEmbCTest(
+        getDebugMgr(),
+        executors,
+        dflt_exec,
+        out_h,
+        out_c);
 }
 
 IOutput *Factory::mkFileOutput(const std::string &path) {

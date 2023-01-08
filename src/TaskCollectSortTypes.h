@@ -20,8 +20,10 @@
  */
 #pragma once
 #include <map>
+#include <memory>
 #include <vector>
 #include <set>
+#include <functional>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/IDataTypeComponent.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
@@ -30,11 +32,15 @@ namespace zsp {
 namespace be {
 namespace sw {
 
-
-
+class TaskCollectSortTypes;
+using TaskCollectSortTypesUP=std::unique_ptr<TaskCollectSortTypes>;
 class TaskCollectSortTypes : public arl::dm::VisitorBase {
 public:
     TaskCollectSortTypes(dmgr::IDebugMgr *dmgr);
+
+    TaskCollectSortTypes(
+        dmgr::IDebugMgr                                         *dmgr,
+        const std::function<void (vsc::dm::IDataTypeStruct *)>  &new_type_f);
 
     virtual ~TaskCollectSortTypes();
 
@@ -55,11 +61,12 @@ private:
     void leaveType();
 
 private:
-    static dmgr::IDebug                             *m_dbg;
-    std::map<vsc::dm::IDataTypeStruct *,int32_t>    m_type_m;
-    std::vector<vsc::dm::IDataTypeStruct *>         m_type_l;
-    std::vector<int32_t>                            m_type_s;
-    std::vector<std::set<uint32_t>>                 m_edges;
+    static dmgr::IDebug                                 *m_dbg;
+    std::function<void (vsc::dm::IDataTypeStruct *)>    m_new_type_f;
+    std::map<vsc::dm::IDataTypeStruct *,int32_t>        m_type_m;
+    std::vector<vsc::dm::IDataTypeStruct *>             m_type_l;
+    std::vector<int32_t>                                m_type_s;
+    std::vector<std::set<uint32_t>>                     m_edges;
 
 };
 

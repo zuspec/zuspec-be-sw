@@ -29,11 +29,11 @@ namespace sw {
 
 
 TaskBuildExecutorActionQueues::TaskBuildExecutorActionQueues(
-    IContext                                    *ctxt,
+    dmgr::IDebugMgr                             *dmgr,
     const std::vector<IModelFieldExecutor *>    &executors,
     int32_t                                     dflt_executor) :
     m_executors(executors.begin(), executors.end()), m_dflt_executor(dflt_executor) {
-    DEBUG_INIT("TaskBuildExecutorActionQueues", ctxt->getDebugMgr());
+    DEBUG_INIT("TaskBuildExecutorActionQueues", dmgr);
 
     m_last_executor.push_back({0});
 

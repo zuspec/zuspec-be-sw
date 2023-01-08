@@ -57,7 +57,7 @@ TEST_F(TestExecutorActionQueueBuilder, smoke) {
 
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
     std::vector<ExecutorActionQueue> queues;
-    TaskBuildExecutorActionQueues(m_ctxt.get(), {}, -1).build(
+    TaskBuildExecutorActionQueues(m_ctxt->getDebugMgr(), {}, -1).build(
         queues,
         activity_it
     );
@@ -119,7 +119,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_alt_executors) {
 
     std::vector<ExecutorActionQueue> queues;
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
-    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt->getDebugMgr(), executors, 0).build(
         queues,
         activity_it
     );
@@ -200,7 +200,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
 
     std::vector<ExecutorActionQueue> queues;
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
-    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt->getDebugMgr(), executors, 0).build(
         queues,
         activity_it
     );
@@ -292,7 +292,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
 
     std::vector<ExecutorActionQueue> queues;
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
-    TaskBuildExecutorActionQueues(m_ctxt.get(), executors, 0).build(
+    TaskBuildExecutorActionQueues(m_ctxt->getDebugMgr(), executors, 0).build(
         queues,
         activity_it
     );

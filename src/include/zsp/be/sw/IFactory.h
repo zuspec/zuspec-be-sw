@@ -20,6 +20,8 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/IModelFieldExecutor.h"
+#include "zsp/be/sw/IGeneratorEvalIterator.h"
 #include "zsp/be/sw/IGeneratorFunctions.h"
 #include "zsp/be/sw/IOutput.h"
 
@@ -39,6 +41,13 @@ public:
     virtual dmgr::IDebugMgr *getDebugMgr() = 0;
 
     virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() = 0;
+
+    virtual IGeneratorEvalIterator *mkGeneratorMultiCoreSingleImageEmbCTest(
+        const std::vector<arl::dm::IModelFieldExecutor *> &executors,
+        int32_t                                           dflt_exec,
+        IOutput                                           *out_h,
+        IOutput                                           *out_c
+    ) = 0;
 
     virtual IOutput *mkFileOutput(const std::string &path) = 0;
 

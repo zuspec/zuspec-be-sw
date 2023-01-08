@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateEmbCStruct.h"
 #include "TaskGenerateEmbCVarDecl.h"
 
@@ -28,9 +29,10 @@ namespace sw {
 
 
 TaskGenerateEmbCStruct::TaskGenerateEmbCStruct(
+    dmgr::IDebugMgr         *dmgr,
     IOutput                 *out,
     NameMap                 *name_m) : m_out(out), m_name_m(name_m) {
-
+    DEBUG_INIT("TaskGenerateEmbCStruct", dmgr);
 }
 
 TaskGenerateEmbCStruct::~TaskGenerateEmbCStruct() {
@@ -78,6 +80,8 @@ void TaskGenerateEmbCStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
 void TaskGenerateEmbCStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
 }
+
+dmgr::IDebug *TaskGenerateEmbCStruct::m_dbg = 0;
 
 }
 }

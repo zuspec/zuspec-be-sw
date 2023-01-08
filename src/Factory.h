@@ -43,6 +43,12 @@ public:
 
     virtual IGeneratorFunctions *mkGeneratorFunctionsThreaded() override;
 
+    virtual IGeneratorEvalIterator *mkGeneratorMultiCoreSingleImageEmbCTest(
+        const std::vector<arl::dm::IModelFieldExecutor *>  &executors,
+        int32_t                                            dflt_exec,
+        IOutput                                            *out_h,
+        IOutput                                            *out_c) override;
+
     virtual IOutput *mkFileOutput(const std::string &path) override;
 
     static IFactory *inst();

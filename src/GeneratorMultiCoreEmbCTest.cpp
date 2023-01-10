@@ -23,9 +23,11 @@
 #include "ModelEvalIteratorTypeCollectorListener.h"
 #include "TaskBuildExecutorActionQueues.h"
 #include "TaskCollectSortTypes.h"
+#include "TaskGenerateEmbCActionExec.h"
 #include "TaskGenerateEmbCCompTreeData.h"
 #include "TaskGenerateEmbCStruct.h"
 #include "TaskMangleTypeNames.h"
+#include "TaskGenerateActionQueueCalls.h"
 
 
 namespace zsp {
@@ -42,6 +44,7 @@ GeneratorMultiCoreEmbCTest::GeneratorMultiCoreEmbCTest(
             m_dmgr(dmgr), m_executors(executors.begin(), executors.end()),
             m_dflt_exec(dflt_exec), m_out_h(out_h), m_out_c(out_c) {
     DEBUG_INIT("GeneratorMultiCoreEmbCTest", dmgr);
+    m_entry_name = "entry";
 }
 
 GeneratorMultiCoreEmbCTest::~GeneratorMultiCoreEmbCTest() {
@@ -57,7 +60,6 @@ void GeneratorMultiCoreEmbCTest::generate(
     std::vector<ExecutorActionQueue> queues;
     for (auto it=m_executors.begin(); it!=m_executors.end(); it++) {
         execs.push_back(*it);
-        queues.push_back({});
     }
 
     TaskMangleTypeNames mangler(m_dmgr, &m_name_m);
@@ -101,8 +103,46 @@ void GeneratorMultiCoreEmbCTest::generate(
     // - Must collect action types on a per-file basis
     // - Must collect dependent functions on a per-file basis
     // - Must prototype 
+    for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
+        it=types.begin();
+        it!=types.end(); it++) {
+        if (dynamic_cast<arl::dm::IDataTypeAction *>(*it)) {
+            TaskGenerateEmbCActionExec(
+                m_dmgr, 
+                &m_name_m,
+                m_out_c).generate(dynamic_cast<arl::dm::IDataTypeAction *>(*it));
+        }
+    }
 
-    // TODO: Generate 
+    // TODO: Generate a 'core-main' for each executor
+    TaskGenerateActionQueueCalls gen_queue_calls(m_dmgr, &m_name_m);
+    for (uint32_t i=0; i<queues.size(); i++) {
+        m_out_c->println("void core_%d_%s() {", i, m_entry_name.c_str());
+        m_out_c->inc_ind();
+
+        gen_queue_calls.generate(m_out_c, queues.at(i));
+
+        m_out_c->dec_ind();
+        m_out_c->println("}");
+    }
+    m_out_c->println("");
+
+    // TODO: Generate a 'main' for the entire test
+    // - Accepts a core-id and invokes appropriate per-core dispatch function
+
+    m_out_c->println("void %s(int unsigned coreid) {", m_entry_name.c_str());
+    m_out_c->inc_ind();
+    m_out_c->println("switch (coreid) {");
+    m_out_c->inc_ind();
+    for (uint32_t i=0; i<queues.size(); i++) {
+        m_out_c->println("case %d: core_%d_%s(); break;",
+            i, i, m_entry_name.c_str());
+    }
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+
 }
 
 dmgr::IDebug *GeneratorMultiCoreEmbCTest::m_dbg = 0;

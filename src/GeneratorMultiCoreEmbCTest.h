@@ -51,6 +51,7 @@ private:
     static dmgr::IDebug                                     *m_dbg;
     dmgr::IDebugMgr                                         *m_dmgr;
     NameMap                                                 m_name_m;
+    std::string                                             m_entry_name;
     std::vector<arl::dm::IModelFieldExecutor*>              m_executors;
     int32_t                                                 m_dflt_exec;
     IOutput                                                 *m_out_h;

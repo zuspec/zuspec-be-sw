@@ -28,10 +28,12 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(NameMap *name_m) : 
-    m_name_m(name_m), m_out(0) {
-    m_type_scope = 0;
-    m_proc_scopes = 0;
+TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(
+        dmgr::IDebugMgr                                         *dmgr,
+        NameMap                                                 *name_m) :
+        m_name_m(name_m), m_out(0), m_type_scope(0), m_proc_scopes(0),
+        m_active_ptref(false), m_bottom_up_ptref(false) { 
+
 }
 
 TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
@@ -40,17 +42,12 @@ TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
 
 void TaskGenerateEmbCExpr::generate(
         IOutput                                         *out,
-        vsc::dm::ITypeField                             *type_scope,
-        std::vector<arl::dm::ITypeProcStmtDeclScope *>  *proc_scopes,
         vsc::dm::ITypeExpr                              *expr) {
     m_out = out;
-    m_type_scope = type_scope;
-    m_proc_scopes = proc_scopes;
     expr->accept(m_this);
 }
 
-void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
-    std::map<vsc::dm::BinOp, std::string> op_m = {
+static std::map<vsc::dm::BinOp, std::string> prv_op_m = {
     	{vsc::dm::BinOp::Eq, "=="},
 	    {vsc::dm::BinOp::Ne, "!="},
     	{vsc::dm::BinOp::Gt, ">"},
@@ -70,16 +67,21 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
 	    {vsc::dm::BinOp::Srl, ">>"},
 	    {vsc::dm::BinOp::Xor, "^"},
 	    {vsc::dm::BinOp::Not, "!"}
-    };
+};
 
+
+void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
     e->lhs()->accept(m_this);
-    m_out->write(" %s ", op_m.find(e->op())->second.c_str());
+    m_out->write(" %s ", prv_op_m.find(e->op())->second.c_str());
     e->rhs()->accept(m_this);
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
     // Walk through the elements of the expression
     if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::BottomUpScope) {
+        if (m_bottom_up_pref.size()) {
+            m_out->write("%s%s", m_bottom_up_pref.c_str(), m_bottom_up_ptref?"->":".");
+        }
         // We start by identifying the proc scope
         arl::dm::ITypeProcStmtDeclScope *s = m_proc_scopes->at(
             m_proc_scopes->size() - e->getPath().at(0).idx - 1
@@ -99,6 +101,9 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         }
     } else if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::ActiveScope) {
         // We start with the type scope
+        if (m_active_pref.size()) {
+            m_out->write("%s%s", m_active_pref.c_str(), m_active_ptref?"->":".");
+        }
     }
 }
 

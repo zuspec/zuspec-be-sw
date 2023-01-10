@@ -20,6 +20,8 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateEmbCActionExec.h"
+#include "TaskGenerateEmbCExpr.h"
+#include "TaskGenerateEmbCProcScope.h"
 
 
 namespace zsp {
@@ -30,7 +32,8 @@ namespace sw {
 TaskGenerateEmbCActionExec::TaskGenerateEmbCActionExec(
     dmgr::IDebugMgr             *dmgr,
     NameMap                     *name_m,
-    IOutput                     *out_c) : m_out_c(out_c), m_name_m(name_m) {
+    IOutput                     *out_c) : 
+        m_dmgr(dmgr), m_out_c(out_c), m_name_m(name_m) {
     DEBUG_INIT("TaskGenerateEmbCActionExec", dmgr);
 
 }
@@ -52,6 +55,14 @@ void TaskGenerateEmbCActionExec::generate(
         m_name_m->getName(action_t).c_str(),
         m_name_m->getName(action_t).c_str());
     m_out_c->inc_ind();
+
+    TaskGenerateEmbCExpr expr_gen(m_dmgr, m_name_m);
+    expr_gen.setActivePref("ctx", true);
+    TaskGenerateEmbCProcScope scope_gen(
+        m_dmgr,
+        m_out_c,
+        m_name_m,
+        &expr_gen);
     
     for (std::vector<arl::dm::ITypeExecProc *>::const_iterator
         body_it=m_execs.begin();
@@ -62,7 +73,7 @@ void TaskGenerateEmbCActionExec::generate(
             m_out_c->inc_ind();
         }
 
-        (*body_it)->getBody()->accept(m_this);
+        scope_gen.generate((*body_it)->getBody());
         
         if (m_execs.size() > 1) {
             m_out_c->dec_ind();
@@ -71,6 +82,7 @@ void TaskGenerateEmbCActionExec::generate(
     }
 
     m_out_c->dec_ind();
+    m_out_c->println("}");
     m_out_c->println("");
 }
 

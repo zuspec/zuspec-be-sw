@@ -49,6 +49,8 @@ public:
 
 	virtual void visitModelField(vsc::dm::IModelField *f) override;
 
+	virtual void visitModelFieldExecutor(arl::dm::IModelFieldExecutor *f) override;
+
 	virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
 
 	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;

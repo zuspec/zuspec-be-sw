@@ -44,15 +44,16 @@ void TaskGenerateEmbCCompTreeData::generate(arl::dm::IModelFieldComponentRoot *r
     m_out->println("static %s comp_tree = {", 
         m_name_m->getName(root->getDataType()).c_str());
     m_out->inc_ind();
+    int32_t last_field_count = 0;
     m_field_count_s.push_back(0);
     for (std::vector<vsc::dm::IModelFieldUP>::const_iterator
         it=root->fields().begin();
         it!=root->fields().end(); it++) {
-        if (it != root->fields().begin()) {
+        if (last_field_count != m_field_count_s.back()) {
             m_out->write(", ");
         }
+        last_field_count = m_field_count_s.back();
         (*it)->accept(m_this);
-        m_field_count_s.back() += 1;
     }
     m_field_count_s.pop_back();
     m_out->write("\n");
@@ -66,9 +67,15 @@ void TaskGenerateEmbCCompTreeData::visitModelField(vsc::dm::IModelField *f) {
     DEBUG_ENTER("visitModelField %s", f->name().c_str());
     m_field_s.push_back(f);
     f->getDataType()->accept(m_this);
+    m_field_count_s.back() += 1;
     m_field_s.pop_back();
     DEBUG_LEAVE("visitModelField %s", f->name().c_str());
 }
+
+void TaskGenerateEmbCCompTreeData::visitModelFieldExecutor(arl::dm::IModelFieldExecutor *f) {
+    // Ignore
+}
+
 
 void TaskGenerateEmbCCompTreeData::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
     // TODO: value

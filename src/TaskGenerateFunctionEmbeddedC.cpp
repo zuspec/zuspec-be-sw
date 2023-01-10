@@ -20,6 +20,7 @@
  */
 #include <map>
 #include "TaskGenerateEmbCExpr.h"
+#include "TaskGenerateEmbCProcScope.h"
 #include "TaskGenerateEmbCVarDecl.h"
 #include "TaskGenerateFunctionEmbeddedC.h"
 
@@ -30,8 +31,10 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateFunctionEmbeddedC::TaskGenerateFunctionEmbeddedC(NameMap *name_m) : 
-    m_name_m(name_m), m_out(0) {
+TaskGenerateFunctionEmbeddedC::TaskGenerateFunctionEmbeddedC(
+    dmgr::IDebugMgr         *dmgr,
+    NameMap                 *name_m) : 
+    m_dmgr(dmgr), m_name_m(name_m), m_out(0) {
     m_gen_decl = false;
     m_scope_depth = 0;
 
@@ -98,129 +101,6 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
 
 //    m_scope_s.pop_back();
     m_scope_s.pop_back();
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtAssign(ITypeProcStmtAssign *s) {
-    std::map<TypeProcStmtAssignOp,std::string> op_m = {
-        {TypeProcStmtAssignOp::Eq, "="},
-        {TypeProcStmtAssignOp::PlusEq, "+="},
-        {TypeProcStmtAssignOp::MinusEq, "-="},
-        {TypeProcStmtAssignOp::ShlEq, "<<="},
-        {TypeProcStmtAssignOp::ShrEq, ">>="},
-        {TypeProcStmtAssignOp::OrEq, "|="},
-        {TypeProcStmtAssignOp::AndEq, "&="}
-    };
-    TaskGenerateEmbCExpr expr_gen(m_name_m);
-
-    m_out->indent();
-    expr_gen.generate(m_out, 0, &m_scope_s, s->getLhs());
-    m_out->write(" %s ", op_m.find(s->op())->second.c_str());
-    expr_gen.generate(m_out, 0, &m_scope_s, s->getRhs());
-    m_out->write(";\n");
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtBreak(ITypeProcStmtBreak *s) {
-    m_out->println("break;");
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtContinue(ITypeProcStmtContinue *s) {
-    m_out->println("continue;");
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtForeach(ITypeProcStmtForeach *s) {
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtIfElse(ITypeProcStmtIfElse *s) {
-    m_out->print("if (");
-    s->getCond()->accept(m_this);
-    m_out->write(") {\n");
-    m_out->inc_ind();
-    s->getTrue()->accept(m_this);
-    m_out->dec_ind();
-
-    if (s->getFalse()) {
-        m_out->println("} else {");
-        m_out->inc_ind();
-        s->getFalse()->accept(m_this);
-        m_out->dec_ind();
-    }
-
-    m_out->println("}");
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtMatch(ITypeProcStmtMatch *s) {
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtRepeat(ITypeProcStmtRepeat *s) {
-    if (m_gen_decl) {
-        return;
-    }
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtRepeatWhile(ITypeProcStmtRepeatWhile *s) {
-    if (m_gen_decl) {
-        return;
-    }
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) {
-    if (s->getExpr()) {
-        TaskGenerateEmbCExpr expr_gen(m_name_m);
-
-        m_out->print("return ");
-        expr_gen.generate(m_out, 0, &m_scope_s, s->getExpr());
-        m_out->write(";\n");
-    } else {
-        m_out->println("return;");
-    }
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
-    if (m_gen_decl) {
-        // Avoid recursing deeper when generating declarations
-        return;
-    }
-
-    if (m_scope_s.size() > 1) {
-        m_out->println("{");
-        m_out->inc_ind();
-    }
-
-    // Generate all in-scope declarations at the beginning of the scope
-    m_gen_decl = true;
-    TaskGenerateEmbCVarDecl decl_gen(m_out, m_name_m);
-    for (std::vector<ITypeProcStmtUP>::const_iterator
-        it=s->getStatements().begin();
-        it!=s->getStatements().end(); it++) {
-        decl_gen.generate(it->get());
-    }
-
-    m_scope_s.push_back(s);
-    for (std::vector<ITypeProcStmtUP>::const_iterator
-        it=s->getStatements().begin();
-        it!=s->getStatements().end(); it++) {
-        (*it)->accept(m_this);
-    }
-    m_scope_s.pop_back();
-
-    if (m_scope_s.size() > 1) {
-        m_out->dec_ind();
-        m_out->println("}");
-    }
-
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s) {
-    // Ignore here. Handled by the containing scope
-}
-
-void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtWhile(ITypeProcStmtWhile *s) {
-
 }
 
 }

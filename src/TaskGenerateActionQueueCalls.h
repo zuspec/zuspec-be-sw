@@ -1,5 +1,5 @@
 /**
- * TaskGenerateFunctionEmbeddedC.h
+ * TaskGenerateActionQueueCalls.h
  *
  * Copyright 2022 Matthew Ballance and Contributors
  *
@@ -21,7 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/be/sw/IOutput.h"
-#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "TaskBuildExecutorActionQueues.h"
 #include "NameMap.h"
 
 namespace zsp {
@@ -30,27 +30,24 @@ namespace sw {
 
 
 
-class TaskGenerateFunctionEmbeddedC : public arl::dm::VisitorBase {
+class TaskGenerateActionQueueCalls {
 public:
-    TaskGenerateFunctionEmbeddedC(
-        dmgr::IDebugMgr         *dmgr,
-        NameMap                 *name_m);
+    TaskGenerateActionQueueCalls(
+        dmgr::IDebugMgr                 *dmgr,
+        NameMap                         *name_m
+    );
 
-    virtual ~TaskGenerateFunctionEmbeddedC();
+    virtual ~TaskGenerateActionQueueCalls();
 
     void generate(
-        IOutput                         *out_def,
-        arl::dm::IDataTypeFunction      *func);
-
-	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
+        IOutput                                     *out,
+        const std::vector<ExecutorActionQueueEntry> &ops);
 
 private:
-    dmgr::IDebugMgr                                 *m_dmgr;
-    NameMap                     			        *m_name_m;
-    IOutput                     			        *m_out;
-    bool                        			        m_gen_decl;
-    uint32_t                    			        m_scope_depth;
-	std::vector<arl::dm::ITypeProcStmtDeclScope *>	m_scope_s;
+    static dmgr::IDebug                 *m_dbg;
+    dmgr::IDebugMgr                     *m_dmgr;
+    NameMap                             *m_name_m;
+
 };
 
 }

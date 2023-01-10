@@ -47,6 +47,7 @@ public:
 
 private:
     static dmgr::IDebug                         *m_dbg;
+    dmgr::IDebugMgr                             *m_dmgr;
     NameMap                                     *m_name_m;
     IOutput                                     *m_out_c;
     std::vector<arl::dm::ITypeExecProc *>       m_execs;

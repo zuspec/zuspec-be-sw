@@ -53,6 +53,8 @@ public:
 
 	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
+	virtual void visitTypeFieldExecutor(arl::dm::ITypeFieldExecutor *f) override;
+
 private:
     static dmgr::IDebug                     *m_dbg;
     IOutput                                 *m_out;

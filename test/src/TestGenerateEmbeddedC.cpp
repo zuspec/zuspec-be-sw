@@ -82,7 +82,7 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
         my_func.get()
     );
 
-    TaskGenerateFunctionEmbeddedC(&name_m).generate(
+    TaskGenerateFunctionEmbeddedC(m_ctxt->getDebugMgr(), &name_m).generate(
         &out_def,
         my_func.get()
     );

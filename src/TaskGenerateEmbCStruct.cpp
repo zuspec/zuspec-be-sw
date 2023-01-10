@@ -53,6 +53,10 @@ void TaskGenerateEmbCStruct::generate(vsc::dm::IDataTypeStruct *type) {
     m_out->println("");
 }
 
+void TaskGenerateEmbCStruct::visitTypeFieldExecutor(arl::dm::ITypeFieldExecutor *f) {
+    // Ignore
+}
+
 void TaskGenerateEmbCStruct::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) {
     m_field_s.push_back(f);
     m_ref_s.push_back(false);

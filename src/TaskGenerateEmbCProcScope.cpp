@@ -47,7 +47,9 @@ TaskGenerateEmbCProcScope::~TaskGenerateEmbCProcScope() {
 }
 
 void TaskGenerateEmbCProcScope::generate(
+    vsc::dm::IDataTypeStruct    *type_scope,
     arl::dm::ITypeProcStmtScope *scope) {
+    m_type_s = type_scope;
     scope->accept(m_this);
 }
 
@@ -61,7 +63,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtAssign(ITypeProcStmtAssign *s) 
         {TypeProcStmtAssignOp::OrEq, "|="},
         {TypeProcStmtAssignOp::AndEq, "&="}
     };
-    m_expr_gen->init(0, &m_scope_s);
+    m_expr_gen->init(m_type_s, &m_scope_s);
 
     m_out->indent();
     m_expr_gen->generate(m_out, s->getLhs());
@@ -115,7 +117,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtRepeatWhile(ITypeProcStmtRepeat
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) {
     if (s->getExpr()) {
-        m_expr_gen->init(0, &m_scope_s);
+        m_expr_gen->init(m_type_s, &m_scope_s);
 
         m_out->print("return ");
         m_expr_gen->generate(m_out, s->getExpr());

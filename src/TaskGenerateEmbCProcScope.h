@@ -41,7 +41,9 @@ public:
 
     virtual ~TaskGenerateEmbCProcScope();
 
-    void generate(arl::dm::ITypeProcStmtScope *scope);
+    void generate(
+        vsc::dm::IDataTypeStruct        *type_scope,
+        arl::dm::ITypeProcStmtScope     *scope);
 
 	virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
@@ -72,6 +74,7 @@ private:
     IOutput                                         *m_out;
     ITaskGenerateExpr                               *m_expr_gen;
     NameMap                                         *m_name_m;
+    vsc::dm::IDataTypeStruct                        *m_type_s;
     uint32_t                    			        m_scope_depth;
 	std::vector<arl::dm::ITypeProcStmtDeclScope *>	m_scope_s;
 

@@ -39,7 +39,7 @@ public:
     virtual ~ITaskGenerateExpr() { }
 
     virtual void init(
-        vsc::dm::ITypeField                                 *type_scope,
+        vsc::dm::IDataTypeStruct                            *type_scope,
         std::vector<arl::dm::ITypeProcStmtDeclScope *>      *proc_scopes) = 0;
 
     virtual void generate(

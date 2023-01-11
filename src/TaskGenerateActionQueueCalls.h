@@ -20,6 +20,8 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/IModelFieldComponentRoot.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
 #include "TaskBuildExecutorActionQueues.h"
 #include "NameMap.h"
@@ -30,11 +32,12 @@ namespace sw {
 
 
 
-class TaskGenerateActionQueueCalls {
+class TaskGenerateActionQueueCalls : public arl::dm::VisitorBase {
 public:
     TaskGenerateActionQueueCalls(
         dmgr::IDebugMgr                 *dmgr,
-        NameMap                         *name_m
+        NameMap                         *name_m,
+        IModelFieldComponentRoot        *root
     );
 
     virtual ~TaskGenerateActionQueueCalls();
@@ -43,10 +46,43 @@ public:
         IOutput                                     *out,
         const std::vector<ExecutorActionQueueEntry> &ops);
 
+	virtual void visitModelField(vsc::dm::IModelField *f) override;
+
+	virtual void visitModelFieldRef(vsc::dm::IModelFieldRef *f) override;
+
+	virtual void visitModelFieldExecutor(arl::dm::IModelFieldExecutor *f) override;
+
+	virtual void visitModelFieldExecutorClaim(IModelFieldExecutorClaim *f) override;
+
+	virtual void visitDataTypeComponent(IDataTypeComponent *t) override;
+
+	virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
+
+	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
+
+	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
 private:
-    static dmgr::IDebug                 *m_dbg;
-    dmgr::IDebugMgr                     *m_dmgr;
-    NameMap                             *m_name_m;
+    bool need_comma();
+
+    void enter_field_scope();
+
+    void leave_field_scope();
+
+    void field_generated();
+
+    bool is_first();
+
+private:
+    static dmgr::IDebug                     *m_dbg;
+    dmgr::IDebugMgr                         *m_dmgr;
+    IOutput                                 *m_out;
+    NameMap                                 *m_name_m;
+    IModelFieldComponentRoot                *m_root;
+    std::vector<vsc::dm::IModelField *>     m_field_s;
+    std::vector<bool>                       m_isref_s;
+    std::vector<int32_t>                    m_field_count_s;
+    int32_t                                 m_field_count_last;
 
 };
 

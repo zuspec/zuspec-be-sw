@@ -65,14 +65,22 @@ void GeneratorMultiCoreEmbCTest::generate(
     TaskMangleTypeNames mangler(m_dmgr, &m_name_m);
     TaskCollectSortTypes type_s(m_dmgr, [&](vsc::dm::IDataTypeStruct *t) { });
 
+    // First, collect all types from the component tree
+    for (std::vector<arl::dm::IDataTypeComponent *>::const_iterator
+        it=root->getCompTypes().begin();
+        it!=root->getCompTypes().end(); it++) {
+        type_s.collect(*it);
+    }
+
     // Listen to the iterator to identify types and 
     // properly mangle them. This results in a unified name map and
     // list of all types.
     ModelEvalIteratorTypeCollectorListener type_collector_l(&type_s);
     it->addListener(&type_collector_l);
 
-    // Organize actions into queues and collect types
+    // Organize actions into queues and collect types from actions
     TaskBuildExecutorActionQueues(m_dmgr, execs, m_dflt_exec).build(queues, it);
+
 
     // TODO: Generate Types (.h)
     std::vector<vsc::dm::IDataTypeStruct *> types;
@@ -115,7 +123,7 @@ void GeneratorMultiCoreEmbCTest::generate(
     }
 
     // TODO: Generate a 'core-main' for each executor
-    TaskGenerateActionQueueCalls gen_queue_calls(m_dmgr, &m_name_m);
+    TaskGenerateActionQueueCalls gen_queue_calls(m_dmgr, &m_name_m, root);
     for (uint32_t i=0; i<queues.size(); i++) {
         m_out_c->println("void core_%d_%s() {", i, m_entry_name.c_str());
         m_out_c->inc_ind();

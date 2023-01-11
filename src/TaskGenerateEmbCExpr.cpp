@@ -20,6 +20,7 @@
  */
 #include <map>
 #include "vsc/dm/ITypeExprVal.h"
+#include "vsc/dm/impl/TaskIsTypeFieldRef.h"
 #include "TaskGenerateEmbCExpr.h"
 
 
@@ -101,8 +102,21 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         }
     } else if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::ActiveScope) {
         // We start with the type scope
+        bool prev_ptr = false;
         if (m_active_pref.size()) {
+//            prev_ptr = m_active_ptref;
             m_out->write("%s%s", m_active_pref.c_str(), m_active_ptref?"->":".");
+        }
+
+        vsc::dm::IDataTypeStruct *scope = m_type_scope;
+        for (uint32_t i=1; i<e->getPath().size(); i++) {
+            vsc::dm::ITypeField *field = scope->getField(e->getPath().at(i).idx);
+            if (i > 1) {
+                m_out->write("%s", (prev_ptr)?"->":".");
+            }
+            m_out->write("%s", field->name().c_str());
+            prev_ptr = vsc::dm::TaskIsTypeFieldRef().eval(field);
+            scope = field->getDataTypeT<vsc::dm::IDataTypeStruct>();
         }
     }
 }

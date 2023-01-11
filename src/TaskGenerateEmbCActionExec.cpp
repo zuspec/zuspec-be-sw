@@ -73,7 +73,9 @@ void TaskGenerateEmbCActionExec::generate(
             m_out_c->inc_ind();
         }
 
-        scope_gen.generate((*body_it)->getBody());
+        scope_gen.generate(
+            action_t,
+            (*body_it)->getBody());
         
         if (m_execs.size() > 1) {
             m_out_c->dec_ind();

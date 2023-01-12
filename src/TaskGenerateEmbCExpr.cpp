@@ -121,6 +121,24 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
     }
 }
 
+void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {
+
+}
+
+void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) {
+    m_out->write("%s(", m_name_m->getName(e->getTarget()).c_str());
+    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+        it=e->getParameters().begin();
+        it!=e->getParameters().end(); it++) {
+        if (it != e->getParameters().begin()) {
+            m_out->write(", ");
+        }
+        (*it)->accept(m_this);
+    }
+
+    m_out->write(")");
+}
+
 void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::dm::ITypeExprRange *e) {
 
 }

@@ -81,6 +81,14 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtContinue(ITypeProcStmtContinue 
 
 }
 
+void TaskGenerateEmbCProcScope::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
+    m_out->indent();
+    m_expr_gen->init(m_type_s, &m_scope_s);
+
+    m_expr_gen->generate(m_out, s->getExpr());
+    m_out->write(";\n");
+}
+
 void TaskGenerateEmbCProcScope::visitTypeProcStmtForeach(ITypeProcStmtForeach *s) {
 
 }

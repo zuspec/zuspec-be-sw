@@ -35,6 +35,7 @@ TaskGenerateActionQueueCalls::TaskGenerateActionQueueCalls(
     IModelFieldComponentRoot            *root) : 
         m_dmgr(dmgr), m_name_m(name_m), m_root(root) {
     DEBUG_INIT("TaskGenerateActionQueueCalls", dmgr);
+    m_ctx_name = "__ctx";
 }
 
 TaskGenerateActionQueueCalls::~TaskGenerateActionQueueCalls() {
@@ -56,7 +57,7 @@ void TaskGenerateActionQueueCalls::generate(
                 out->indent();
                 TaskGenerateEmbCDataType(out, m_name_m).generate(
                     it->action->getDataTypeT<vsc::dm::IDataTypeStruct>());
-                out->write(" ctx = {\n");
+                out->write(" %s = {\n", m_ctx_name.c_str());
                 out->inc_ind();
                 enter_field_scope();
                 for (std::vector<vsc::dm::IModelFieldUP>::const_iterator
@@ -68,8 +69,10 @@ void TaskGenerateActionQueueCalls::generate(
                 out->write("\n");
                 out->dec_ind();
                 out->println("};");
-                out->println("action_%s_exec(&ctx);", m_name_m->getName(
-                    it->action->getDataTypeT<vsc::dm::IDataTypeStruct>()).c_str());
+                out->println("action_%s_exec(&%s);", 
+                    m_name_m->getName(
+                        it->action->getDataTypeT<vsc::dm::IDataTypeStruct>()).c_str(),
+                    m_ctx_name.c_str());
                 out->dec_ind();
                 out->println("}");
             } break;

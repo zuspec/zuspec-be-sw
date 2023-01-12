@@ -79,6 +79,7 @@ private:
     IOutput                                 *m_out;
     NameMap                                 *m_name_m;
     IModelFieldComponentRoot                *m_root;
+    std::string                             m_ctx_name;
     std::vector<vsc::dm::IModelField *>     m_field_s;
     std::vector<bool>                       m_isref_s;
     std::vector<int32_t>                    m_field_count_s;

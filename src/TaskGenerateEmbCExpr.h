@@ -66,6 +66,10 @@ public:
 
 	virtual void visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) override;
 
+    virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
+
+    virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
+
 	virtual void visitTypeExprRange(vsc::dm::ITypeExprRange *e) override;
 
 	virtual void visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e) override;

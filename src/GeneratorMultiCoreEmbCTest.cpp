@@ -28,6 +28,7 @@
 #include "TaskGenerateEmbCStruct.h"
 #include "TaskMangleTypeNames.h"
 #include "TaskGenerateActionQueueCalls.h"
+#include "TaskGenerateFuncProtoEmbeddedC.h"
 
 
 namespace zsp {
@@ -82,14 +83,27 @@ void GeneratorMultiCoreEmbCTest::generate(
     TaskBuildExecutorActionQueues(m_dmgr, execs, m_dflt_exec).build(queues, it);
 
 
-    // TODO: Generate Types (.h)
-    std::vector<vsc::dm::IDataTypeStruct *> types;
-    type_s.sort(types);
+    // Generate Types (.h)
+    std::vector<vsc::dm::IDataTypeStruct *>     types;
+    std::vector<arl::dm::IDataTypeFunction *>   funcs;
+    type_s.sort(types, funcs);
 
     for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
         it=types.begin();
         it!=types.end(); it++) {
         TaskGenerateEmbCStruct(m_dmgr, m_out_h, &m_name_m).generate(*it);
+    }
+
+    // Generate prototypes for import functions to the .h file
+    // and prototypes for local function to the .c file
+    for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
+        it=funcs.begin();
+        it!=funcs.end(); it++) {
+        if ((*it)->getImportSpecs().size()) {
+            TaskGenerateFuncProtoEmbeddedC(&m_name_m).generate(m_out_h, *it);
+        } else {
+            TaskGenerateFuncProtoEmbeddedC(&m_name_m).generate(m_out_c, *it);
+        }
     }
 
     // Generate the component tree (.c)

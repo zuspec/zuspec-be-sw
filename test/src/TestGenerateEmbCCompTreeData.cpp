@@ -82,11 +82,12 @@ TEST_F(TestGenerateEmbCCompTreeData, smoke) {
         0));
 
     fprintf(stdout, "DebugMgr: %p\n", m_ctxt->getDebugMgr());
-    std::vector<vsc::dm::IDataTypeStruct *> types;
+    std::vector<vsc::dm::IDataTypeStruct *>     types;
+    std::vector<arl::dm::IDataTypeFunction *>   funcs;
     TaskCollectSortTypes collector(m_ctxt->getDebugMgr());
     
     collector.collect(pss_top.get());
-    collector.sort(types);
+    collector.sort(types, funcs);
 
     ASSERT_EQ(types.size(), 3);
     ASSERT_EQ(types.at(0)->name(), "C1");

@@ -46,9 +46,15 @@ public:
 
     void collect(vsc::dm::IDataTypeStruct *root);
 
-    void sort(std::vector<vsc::dm::IDataTypeStruct *> &types);
+    void sort(
+        std::vector<vsc::dm::IDataTypeStruct *>     &types,
+        std::vector<arl::dm::IDataTypeFunction *>   &funcs);
+
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
 
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
@@ -65,6 +71,8 @@ private:
     std::function<void (vsc::dm::IDataTypeStruct *)>    m_new_type_f;
     std::map<vsc::dm::IDataTypeStruct *,int32_t>        m_type_m;
     std::vector<vsc::dm::IDataTypeStruct *>             m_type_l;
+    std::map<arl::dm::IDataTypeFunction *, int32_t>     m_func_m;
+    std::vector<arl::dm::IDataTypeFunction *>           m_func_l;
     std::vector<int32_t>                                m_type_s;
     std::vector<std::set<uint32_t>>                     m_edges;
 

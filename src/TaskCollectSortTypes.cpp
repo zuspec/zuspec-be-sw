@@ -45,9 +45,27 @@ TaskCollectSortTypes::~TaskCollectSortTypes() {
 }
 
 void TaskCollectSortTypes::collect(vsc::dm::IDataTypeStruct *root) {
-    DEBUG_ENTER("collect");
+    DEBUG_ENTER("collect %s", root->name().c_str());
     root->accept(m_this);
     DEBUG_LEAVE("collect");
+}
+
+void TaskCollectSortTypes::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
+    DEBUG_ENTER("visitDataTypeAction %s", t->name().c_str());
+    enterType(t);
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=t->getFields().begin();
+        it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    for (std::vector<arl::dm::ITypeExecUP>::const_iterator
+        it=t->getExecs(arl::dm::ExecKindT::Body).begin();
+        it!=t->getExecs(arl::dm::ExecKindT::Body).end(); it++) {
+        DEBUG("TypeExec");
+        (*it)->accept(m_this);
+    }
+    leaveType(); 
+    DEBUG_LEAVE("visitDataTypeAction %s", t->name().c_str());
 }
 
 void TaskCollectSortTypes::visitDataTypeComponent(
@@ -61,6 +79,15 @@ void TaskCollectSortTypes::visitDataTypeComponent(
     }
     leaveType(); 
     DEBUG_LEAVE("visitDataTypeComponent %s", t->name().c_str());
+}
+
+void TaskCollectSortTypes::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
+    DEBUG_ENTER("visitDataTypeFunction %s", t->name().c_str());
+    if (m_func_m.find(t) == m_func_m.end()) {
+        m_func_m.insert({t, m_func_l.size()});
+        m_func_l.push_back(t);
+    }
+    DEBUG_LEAVE("visitDataTypeFunction %s", t->name().c_str());
 }
 
 void TaskCollectSortTypes::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
@@ -81,7 +108,12 @@ void TaskCollectSortTypes::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_LEAVE("visitTypeField %s", f->name().c_str());
 }
 
-void TaskCollectSortTypes::sort(std::vector<vsc::dm::IDataTypeStruct *> &types) {
+void TaskCollectSortTypes::sort(
+    std::vector<vsc::dm::IDataTypeStruct *>     &types,
+    std::vector<arl::dm::IDataTypeFunction *>   &funcs) {
+    funcs.clear();
+    funcs.insert(funcs.begin(), m_func_l.begin(), m_func_l.end());
+
     std::vector<uint32_t> indegree(m_edges.size(), 0);
 
     for (uint32_t i=0; i<m_edges.size(); i++) {

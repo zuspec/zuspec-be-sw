@@ -60,12 +60,13 @@ TEST_F(TestGenerateActionComponentTypes, smoke) {
         vsc::dm::TypeFieldAttr::Rand,
         0));
 
-    std::vector<vsc::dm::IDataTypeStruct *> types;
+    std::vector<vsc::dm::IDataTypeStruct *>     types;
+    std::vector<arl::dm::IDataTypeFunction *>   funcs;
     TaskCollectSortTypes collector(m_ctxt->getDebugMgr());
     
     collector.collect(pss_top.get());
     collector.collect(A_t.get());
-    collector.sort(types);
+    collector.sort(types, funcs);
 
     name_m.setName(A_t.get(), "pss_top__A");
 

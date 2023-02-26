@@ -1,6 +1,7 @@
 
 import os
 import ctypes
+from zsp_be_sw cimport decl
 from libc.stdint cimport intptr_t
 
 cdef Factory _inst = None
@@ -9,6 +10,10 @@ cdef class Factory(object):
 
     cpdef void init(self, dm_core.Factory dmgr):
         self._hndl.init(dmgr._hndl.getDebugMgr())
+
+    cpdef Output mkFileOutput(self, path):
+        cdef decl.IOutput *hndl = self._hndl.mkFileOutput(path.encode())
+        return Output.mk(hndl)
 
     @staticmethod
     def inst():

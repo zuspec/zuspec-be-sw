@@ -3,6 +3,8 @@ import os
 import ctypes
 from zsp_be_sw cimport decl
 from libc.stdint cimport intptr_t
+cimport debug_mgr.core as dm_core
+cimport zsp_arl_dm.core as arl_dm
 
 cdef Factory _inst = None
 
@@ -10,6 +12,36 @@ cdef class Factory(object):
 
     cpdef void init(self, dm_core.Factory dmgr):
         self._hndl.init(dmgr._hndl.getDebugMgr())
+
+    cpdef GeneratorFunctions mkGeneratorFunctionsThreaded(self):
+        return GeneratorFunctions.mk(
+            self._hndl.mkGeneratorFunctionsThreaded(),
+            True
+        )
+
+    cpdef GeneratorEvalIterator mkGeneratorMultiCoreSingleImageEmbCTest(
+        self,
+        executors,
+        int32_t                 dflt_exec,
+        Output                  out_h,
+        Output                  out_c):
+        cdef arl_dm.ModelFieldExecutor exec_dm
+        cdef cpp_vector[arl_dm.IModelFieldExecutorP] executors_l
+
+        for e in executors:
+            exec_dm = <arl_dm.ModelFieldExecutor>(e)
+            executors_l.push_back(exec_dm.asExecutor())
+
+        return GeneratorEvalIterator.mk(
+            self._hndl.mkGeneratorMultiCoreSingleImageEmbCTest(
+                executors_l,
+                dflt_exec,
+                out_h._hndl,
+                out_c._hndl
+            ),
+            True
+        )
+
 
     cpdef Output mkFileOutput(self, path):
         cdef decl.IOutput *hndl = self._hndl.mkFileOutput(path.encode())

@@ -23,7 +23,7 @@ cdef class Factory(object):
 
     cpdef Output mkFileOutput(self, path)
 
-cdef GeneratorEvalIterator(object):
+cdef class GeneratorEvalIterator(object):
     cdef decl.IGeneratorEvalIterator        *_hndl
     cdef bool                               _owned
 
@@ -35,13 +35,13 @@ cdef GeneratorEvalIterator(object):
     @staticmethod
     cdef mk(decl.IGeneratorEvalIterator *hndl, bool owned=*)
 
-cdef GeneratorFunctions(object):
+cdef class GeneratorFunctions(object):
     cdef decl.IGeneratorFunctions           *_hndl
     cdef bool                               _owned
 
     cpdef void generate(
         self,
-        arl_dm.mkContext                    ctxt,
+        arl_dm.Context                      ctxt,
         funcs,
         inc_c,
         inc_h,
@@ -52,7 +52,7 @@ cdef GeneratorFunctions(object):
     cdef mk(decl.IGeneratorFunctions *hndl, bool owned=*)
 
 
-cdef Output(object):
+cdef class Output(object):
     cdef decl.IOutput                       *_hndl
 
     cpdef void close(self)

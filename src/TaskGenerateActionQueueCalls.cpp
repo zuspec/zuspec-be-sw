@@ -61,8 +61,8 @@ void TaskGenerateActionQueueCalls::generate(
                 out->inc_ind();
                 enter_field_scope();
                 for (std::vector<vsc::dm::IModelFieldUP>::const_iterator
-                    f_it=it->action->fields().begin();
-                    f_it!=it->action->fields().end(); f_it++) {
+                    f_it=it->action->getFields().begin();
+                    f_it!=it->action->getFields().end(); f_it++) {
                     (*f_it)->accept(m_this);
                 }
                 leave_field_scope();
@@ -179,7 +179,7 @@ void TaskGenerateActionQueueCalls::visitDataTypeStruct(vsc::dm::IDataTypeStruct 
     m_out->inc_ind();
     enter_field_scope();
     for (uint32_t i=0; i<t->getFields().size(); i++) {
-        m_field_s.back()->fields().at(i)->accept(m_this);
+        m_field_s.back()->getFields().at(i)->accept(m_this);
     }
     leave_field_scope();
     m_out->write("\n");

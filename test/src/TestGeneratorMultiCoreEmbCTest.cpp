@@ -77,35 +77,30 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke) {
         m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // c
-            {TypeExprFieldRefElemKind::BottomUpScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 2}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {2} // c
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // a
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // a
+            ),
             BinOp::Add,
-            m_ctxt->mkTypeExprFieldRef({ // b
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 1}
-            }))
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {1} // b
+            ))
         )
     );
     val->set_val_u(1);
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // val2
-            {TypeExprFieldRefElemKind::ActiveScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 3}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {3} // val2
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // val1
-                {TypeExprFieldRefElemKind::ActiveScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 2}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val1
+            ),
             BinOp::Add,
             m_ctxt->mkTypeExprVal(val.get())
             )
@@ -222,35 +217,30 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, multi_comp_context) {
         m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // c
-            {TypeExprFieldRefElemKind::BottomUpScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 2}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {2} // c
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // a
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // a
+            ),
             BinOp::Add,
-            m_ctxt->mkTypeExprFieldRef({ // b
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 1}
-            }))
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {1} // b
+            ))
         )
     );
     val->set_val_u(1);
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // val2
-            {TypeExprFieldRefElemKind::ActiveScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 3}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {3} // val2
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // val1
-                {TypeExprFieldRefElemKind::ActiveScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 2}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val1
+            ),
             BinOp::Add,
             m_ctxt->mkTypeExprVal(val.get())
             )
@@ -387,21 +377,18 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, import_func_call) {
         m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // c
-            {TypeExprFieldRefElemKind::BottomUpScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 2}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {2} // c`
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // a
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // a
+            ),
             BinOp::Add,
-            m_ctxt->mkTypeExprFieldRef({ // b
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 1}
-            }))
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {1} // b
+            ))
         )
     );
     body->addStatement(m_ctxt->mkTypeProcStmtExpr(
@@ -411,16 +398,14 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, import_func_call) {
         )));
     val->set_val_u(1);
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // val2
-            {TypeExprFieldRefElemKind::ActiveScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 3}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {3} // val2
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // val1
-                {TypeExprFieldRefElemKind::ActiveScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 2}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val1
+            ),
             BinOp::Add,
             m_ctxt->mkTypeExprVal(val.get())
             )
@@ -547,21 +532,18 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, no_executors) {
         m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // c
-            {TypeExprFieldRefElemKind::BottomUpScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 2}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {2} // c
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // a
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // a
+            ),
             BinOp::Add,
-            m_ctxt->mkTypeExprFieldRef({ // b
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 1}
-            }))
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {1} // b
+            ))
         )
     );
     body->addStatement(m_ctxt->mkTypeProcStmtExpr(
@@ -571,16 +553,14 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, no_executors) {
         )));
     val->set_val_u(1);
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef({ // val2
-            {TypeExprFieldRefElemKind::ActiveScope, 0},
-            {TypeExprFieldRefElemKind::IdxOffset, 2}
-        }),
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
+        ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef({ // val1
-                {TypeExprFieldRefElemKind::ActiveScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 1}
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
+            ),
             BinOp::Add,
             m_ctxt->mkTypeExprVal(val.get())
             )

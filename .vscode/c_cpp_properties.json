@@ -8,7 +8,7 @@
                 "src/include",
                 "test/src",
                 "packages/debug-mgr/src/include",
-                "packages/libvsc-dm/src/include",
+                "packages/vsc-dm/src/include",
                 "packages/zuspec-arl-dm/src/include",
                 "packages/gtest/googletest/include"
             ],

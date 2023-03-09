@@ -47,16 +47,29 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
     OutputStr out_def("");
 
     IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
-    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 0));
-    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl(
+        "a",
+        ParamDir::In,
+        uint32.get(),
+        false,
+        0));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl(
+        "b",
+        ParamDir::In,
+        uint32.get(),
+        false,
+        0));
 
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
-    ITypeExprFieldRef *ref = m_ctxt->mkTypeExprFieldRef();
+    ITypeExprFieldRef *ref = m_ctxt->mkTypeExprFieldRef(
+        ITypeExprFieldRef::RootRefKind::BottomUpScope,
+        0
+    );
+    ref->addPathElem(0);
     IModelVal *val = m_ctxt->mkModelVal();
     val->setBits(32);
     val->set_val_u(25);
-    ref->addActiveScopeRef(0);
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtAssign(
             ref,

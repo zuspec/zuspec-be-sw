@@ -148,7 +148,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_executors) {
 
     m_ctxt->getDebugMgr()->enable(true);
 
-    IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
     m_ctxt->addDataTypeStruct(claim_t);
 
     IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
@@ -246,7 +246,7 @@ TEST_F(TestExecutorActionQueueBuilder, seq_par_diff_executor) {
 
     m_ctxt->getDebugMgr()->enable(true);
 
-    IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
     m_ctxt->addDataTypeStruct(claim_t);
 
     IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");

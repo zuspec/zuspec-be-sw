@@ -43,8 +43,18 @@ TEST_F(TestGenerateFunctionsThreaded, smoke) {
 
     IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
     IDataTypeFunctionUP my_func(m_ctxt->mkDataTypeFunction("my_func", uint32.get(), false));
-    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 0));
-    my_func->addParameter(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 0));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl(
+        "a",
+        ParamDir::In,
+        uint32.get(),
+        false,
+        0));
+    my_func->addParameter(m_ctxt->mkDataTypeFunctionParamDecl(
+        "b",
+        ParamDir::In,
+        uint32.get(),
+        false,
+        0));
 
     my_func->getBody()->addVariable(
         m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
@@ -53,21 +63,18 @@ TEST_F(TestGenerateFunctionsThreaded, smoke) {
     val->set_val_u(25);
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtAssign(
-            m_ctxt->mkTypeExprFieldRef({
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0} // v1
-            }),
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // v1
+            ),
             TypeProcStmtAssignOp::Eq,
             m_ctxt->mkTypeExprBin(
-                m_ctxt->mkTypeExprFieldRef({
-                    {TypeExprFieldRefElemKind::BottomUpScope, 1}, // Function parameter-list scope
-                    {TypeExprFieldRefElemKind::IdxOffset, 0} // 'a'
-                }),
+                m_ctxt->mkTypeExprFieldRef(
+                    ITypeExprFieldRef::RootRefKind::BottomUpScope, 1, {0} // a
+                ),
                 vsc::dm::BinOp::Add,
-                m_ctxt->mkTypeExprFieldRef({
-                    {TypeExprFieldRefElemKind::BottomUpScope, 1}, // Function parameter-list scope
-                    {TypeExprFieldRefElemKind::IdxOffset, 1} // 'b'
-                })
+                m_ctxt->mkTypeExprFieldRef(
+                    ITypeExprFieldRef::RootRefKind::BottomUpScope, 1, {1} // b
+                )
             )
         )
     );
@@ -76,10 +83,9 @@ TEST_F(TestGenerateFunctionsThreaded, smoke) {
 
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtReturn(
-            m_ctxt->mkTypeExprFieldRef({
-                {TypeExprFieldRefElemKind::BottomUpScope, 0},
-                {TypeExprFieldRefElemKind::IdxOffset, 0} // v1
-            })
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // v1
+            )
         )
     );
 

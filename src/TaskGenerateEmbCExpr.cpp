@@ -79,28 +79,26 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
 
 void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
     // Walk through the elements of the expression
-    if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::BottomUpScope) {
+    if (e->getRootRefKind() == vsc::dm::ITypeExprFieldRef::RootRefKind::BottomUpScope) {
         if (m_bottom_up_pref.size()) {
             m_out->write("%s%s", m_bottom_up_pref.c_str(), m_bottom_up_ptref?"->":".");
         }
         // We start by identifying the proc scope
         arl::dm::ITypeProcStmtDeclScope *s = m_proc_scopes->at(
-            m_proc_scopes->size() - e->getPath().at(0).idx - 1
+            m_proc_scopes->size() - e->getRootRefOffset() - 1
         );
 
         // Next element must be an offset
-        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(
-            e->getPath().at(1).idx
-        );
+        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(1));
 
         m_out->write("%s", v->name().c_str());
         vsc::dm::IDataTypeStruct *dt = dynamic_cast<vsc::dm::IDataTypeStruct *>(v->getDataType());
 
         for (uint32_t i=2; i<e->getPath().size(); i++) {
-            vsc::dm::ITypeField *field = dt->getField(e->getPath().at(i).idx);
+            vsc::dm::ITypeField *field = dt->getField(e->at(i));
             m_out->write(".%s", field->name().c_str());
         }
-    } else if (e->getPath().at(0).kind == vsc::dm::TypeExprFieldRefElemKind::ActiveScope) {
+    } else if (e->getRootRefKind() == vsc::dm::ITypeExprFieldRef::RootRefKind::TopDownScope) {
         // We start with the type scope
         bool prev_ptr = false;
         if (m_active_pref.size()) {
@@ -109,8 +107,8 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         }
 
         vsc::dm::IDataTypeStruct *scope = m_type_scope;
-        for (uint32_t i=1; i<e->getPath().size(); i++) {
-            vsc::dm::ITypeField *field = scope->getField(e->getPath().at(i).idx);
+        for (uint32_t i=0; i<e->size(); i++) {
+            vsc::dm::ITypeField *field = scope->getField(e->at(i));
             if (i > 1) {
                 m_out->write("%s", (prev_ptr)?"->":".");
             }

@@ -47,8 +47,8 @@ void TaskGenerateEmbCCompTreeData::generate(arl::dm::IModelFieldComponentRoot *r
     int32_t last_field_count = 0;
     m_field_count_s.push_back(0);
     for (std::vector<vsc::dm::IModelFieldUP>::const_iterator
-        it=root->fields().begin();
-        it!=root->fields().end(); it++) {
+        it=root->getFields().begin();
+        it!=root->getFields().end(); it++) {
         if (last_field_count != m_field_count_s.back()) {
             m_out->write(", ");
         }
@@ -109,7 +109,7 @@ void TaskGenerateEmbCCompTreeData::visitDataTypeStruct(vsc::dm::IDataTypeStruct 
         if (i) {
             m_out->write(", ");
         }
-        m_field_s.back()->fields().at(i)->accept(m_this);
+        m_field_s.back()->getFields().at(i)->accept(m_this);
         m_field_count_s.back() += 1;
     }
     m_field_count_s.pop_back();

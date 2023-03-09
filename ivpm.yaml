@@ -11,13 +11,11 @@ package:
     deps:
     - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git
-      branch: dm-refactor
 
   - name: default-dev
     deps:
     - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git
-      branch: dm-refactor
     - name: ninja
       src: pypi
     - name: cython

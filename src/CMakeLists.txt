@@ -1,14 +1,14 @@
 
-file(GLOB zuspec_be_sw_SRC
+file(GLOB zsp_be_sw_SRC
     "*.h"
     "*.cpp")
 
-add_library(zuspec-be-sw SHARED ${zuspec_be_sw_SRC})
+add_library(zsp-be-sw SHARED ${zsp_be_sw_SRC})
 
-target_include_directories(zuspec-be-sw PRIVATE
-    "${PACKAGES_DIR}/debug-mgr/src/include"
-    "${PACKAGES_DIR}/libvsc-dm/src/include"
-    "${PACKAGES_DIR}/zuspec-arl-dm/src/include"
+target_include_directories(zsp-be-sw PRIVATE
+    "${debug_mgr_INCDIR}"
+    "${vsc_dm_INCDIR}"
+    "${zsp_arl_dm_INCDIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 

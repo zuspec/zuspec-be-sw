@@ -110,8 +110,8 @@ TEST_F(TestGenerateEmbCCompTreeData, smoke) {
     ASSERT_TRUE(root);
 
     // Now, configure the value of c2_1.c1_1.v1 and c2_1.c1_2.v1
-    root->fields().at(1)->fields().at(1)->fields().at(1)->val()->set_val_u(1);
-    root->fields().at(1)->fields().at(2)->fields().at(1)->val()->set_val_u(2);
+    root->getFields().at(1)->getFields().at(1)->getFields().at(1)->val()->set_val_u(1);
+    root->getFields().at(1)->getFields().at(2)->getFields().at(1)->val()->set_val_u(2);
 
     TaskGenerateEmbCCompTreeData(
         m_ctxt->getDebugMgr(),

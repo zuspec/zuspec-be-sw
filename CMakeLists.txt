@@ -16,29 +16,24 @@ endif()
 if (NOT PACKAGES_DIR)
   set(PACKAGES_DIR ${CMAKE_SOURCE_DIR}/packages)
   set(ENABLE_TESTING True)
-
-
 endif()
 
-set (ZSP_ARL_DM_DIR "${PACKAGES_DIR}/zuspec-arl-dm")
+if (WIN32)
+  set(PYTHON ${PACKAGES_DIR}/python/Scripts/python.exe)
+else()
+  set(PYTHON ${PACKAGES_DIR}/python/bin/python)
+endif()
 
-ExternalProject_Add(ZuspecArl-DM
-  PREFIX zuspec-arl-dm
-  SOURCE_DIR ${ZSP_ARL_DM_DIR}
-  CMAKE_CACHE_ARGS
-    -DPACKAGES_DIR:PATH=${PACKAGES_DIR}
-    -DCMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=${CMAKE_INTERPROCEDURAL_OPTIMIZATION}
-    -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=${CMAKE_POSITION_INDEPENDENT_CODE}
-    -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
-    -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
-    -DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
-    -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
-    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DTESTING:BOOL=OFF
-  )
- 
+execute_process(COMMAND ${PYTHON} -m ivpm share cmake OUTPUT_VARIABLE IVPM_CMAKE_PATH)
+list(APPEND CMAKE_MODULE_PATH ${IVPM_CMAKE_PATH})
+message("IVPM_CMAKE_PATH: ${IVPM_CMAKE_PATH} ${CMAKE_MODULE_PATH}")
+
+include(ivpm)
+
+Ivpm_AddPythonExtProject(debug-mgr debug_mgr)
+Ivpm_AddPythonExtProject(vsc-dm vsc_dm)
+Ivpm_AddPythonExtProject(zuspec-arl-dm zsp_arl_dm)
+
 if(NOT WIN32)
   add_compile_options(-fPIC)
 endif()

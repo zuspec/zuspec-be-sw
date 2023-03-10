@@ -191,8 +191,8 @@ class build_ext(_build_ext):
         package_dir = build_py.get_package_dir(package)
 
         copy_file(
-            os.path.join(cwd, "build", "src", "libzuspec-be-sw.so"),
-            os.path.join(package_dir, "libzuspec-be-sw.so"))
+            os.path.join(cwd, "build", "src", "libzsp-be-sw.so"),
+            os.path.join(package_dir, "libzsp-be-sw.so"))
                 
         dest_filename = os.path.join(package_dir, filename)
         
@@ -251,8 +251,8 @@ ext = Extension("zsp_be_sw.core",
                 os.path.join(zuspec_be_sw_dir, 'src', 'include'),
                 os.path.join(packages_dir, 'zuspec-arl-dm', 'src', 'include'),
                 os.path.join(packages_dir, 'zuspec-arl-dm', 'python'),
-                os.path.join(packages_dir, 'libvsc-dm', 'src', 'include'),
-                os.path.join(packages_dir, 'libvsc-dm', 'python'),
+                os.path.join(packages_dir, 'vsc-dm', 'src', 'include'),
+                os.path.join(packages_dir, 'vsc-dm', 'python'),
                 os.path.join(packages_dir, 'debug-mgr', 'src', 'include'),
                 os.path.join(packages_dir, 'debug-mgr', 'python'),
             ]

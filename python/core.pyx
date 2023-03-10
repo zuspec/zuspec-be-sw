@@ -2,9 +2,11 @@
 import os
 import ctypes
 from zsp_be_sw cimport decl
+from libcpp.vector cimport vector as cpp_vector
 from libc.stdint cimport intptr_t
 cimport debug_mgr.core as dm_core
 cimport zsp_arl_dm.core as arl_dm
+cimport zsp_arl_dm.decl as arl_dm_decl
 
 cdef Factory _inst = None
 
@@ -26,7 +28,7 @@ cdef class Factory(object):
         Output                  out_h,
         Output                  out_c):
         cdef arl_dm.ModelFieldExecutor exec_dm
-        cdef cpp_vector[arl_dm.IModelFieldExecutorP] executors_l
+        cdef cpp_vector[arl_dm_decl.IModelFieldExecutorP] executors_l
 
         for e in executors:
             exec_dm = <arl_dm.ModelFieldExecutor>(e)
@@ -72,3 +74,47 @@ cdef class Factory(object):
 
         return _inst
 
+cdef class GeneratorEvalIterator(object):
+
+    cpdef void generate(
+        self,
+        arl_dm.ModelFieldComponentRoot      root,
+        arl_dm.ModelEvalIterator            it):
+        self._hndl.generate(root.asComponentRoot(), it._hndl)
+
+    @staticmethod
+    cdef mk(decl.IGeneratorEvalIterator *hndl, bool owned=True):
+        ret = GeneratorEvalIterator()
+        ret._hndl = hndl
+        ret._owned = owned
+        return ret
+
+cdef class GeneratorFunctions(object):
+
+    cpdef void generate(
+        self,
+        arl_dm.Context                      ctxt,
+        funcs,
+        inc_c,
+        inc_h,
+        Output                              out_c,
+        Output                              out_h):
+        pass
+    
+    @staticmethod
+    cdef mk(decl.IGeneratorFunctions *hndl, bool owned=True):
+        ret = GeneratorFunctions()
+        ret._hndl = hndl
+        ret._owned = owned
+        return ret
+
+cdef class Output(object):
+
+    cpdef void close(self):
+        self._hndl.close()
+
+    @staticmethod
+    cdef Output mk(decl.IOutput *hndl):
+        ret = Output()
+        ret._hndl = hndl
+        return ret

@@ -97,6 +97,33 @@ else:
 if result.returncode != 0:
     raise Exception("build failed")
 
+if cmake_build_tool == "Ninja":
+    result = subprocess.run(
+        ["ninja",
+         "-j",
+         "%d" % os.cpu_count(),
+         "install"
+        ],
+        cwd=os.path.join(cwd, "build"),
+        env=env)
+elif cmake_build_tool == "Unix Makefiles":
+    result = subprocess.run(
+        ["make",
+         "-j%d" % os.cpu_count(),
+         "install"
+        ],
+        cwd=os.path.join(cwd, "build"),
+        env=env)
+else:
+    raise Exception("Unknown build system %s" % cmake_build_tool)
+if result.returncode != 0:
+    raise Exception("build failed")
+
+# Update Python path for dependent packages
+for d in {"zuspec-arl-dm", "vsc-dm", "debug-mgr"}:
+    if os.path.isdir(os.path.join(packages_dir, d, "python")):
+        sys.path.insert(0, os.path.join(packages_dir, d, "python"))
+
 extra_compile_args = sysconfig.get_config_var('CFLAGS').split()
 extra_compile_args = []
 #extra_compile_args += ["-std=c++11", "-Wall", "-Wextra"]

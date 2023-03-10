@@ -70,6 +70,7 @@ result = subprocess.run(
      "-G%s" % cmake_build_tool,
      "-DCMAKE_BUILD_TYPE=Debug",
      "-DPACKAGES_DIR=%s" % packages_dir,
+     "-DCMAKE_INSTALL_PREFIX=%s" % os.path.join(cwd, "build")
      ],
     cwd=os.path.join(cwd, "build"),
     env=env)

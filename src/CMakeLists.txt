@@ -12,3 +12,7 @@ target_include_directories(zsp-be-sw PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
+install(TARGETS zsp-be-sw 
+    DESTINATION lib
+    EXPORT zsp-be-sw-targets)
+

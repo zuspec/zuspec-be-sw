@@ -62,7 +62,7 @@ void TaskBuildExecutorActionQueues::build(
                 {
                     .kind=ExecutorActionQueueEntryKind::Notify,
                     .action_id=1,
-                    .executor_id=-1,
+                    .executor_id=0,
                     .action=0
                 }
             );
@@ -100,7 +100,7 @@ void TaskBuildExecutorActionQueues::build(
                     {
                         .kind=ExecutorActionQueueEntryKind::Notify,
                         .action_id=m_executor_exec_ids[i],
-                        .executor_id=-1,
+                        .executor_id=i,
                         .action=0
                     }
                 );
@@ -254,6 +254,31 @@ void TaskBuildExecutorActionQueues::process_traverse(IModelFieldAction *a) {
                     .executor_id=m_last_executor.back().at(0)
                 }
             );
+
+            // Confirm that the original thread has emitted an event for us
+            bool found = false;
+            for (std::vector<ExecutorActionQueueEntry>::const_reverse_iterator
+                it=m_executor_queues->at(dep_executor).rbegin();
+                it!=m_executor_queues->at(dep_executor).rend(); it++) {
+                if (it->kind == ExecutorActionQueueEntryKind::Notify) {
+                    if (it->executor_id == executor) {
+                        found = true;
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            if (!found) {
+                m_executor_queues->at(dep_executor).push_back(
+                    {
+                        .kind=ExecutorActionQueueEntryKind::Notify,
+                        .action_id=dep_action_id,
+                        .executor_id=executor
+                    }
+                );
+            }
         }
     }
 
@@ -263,14 +288,14 @@ void TaskBuildExecutorActionQueues::process_traverse(IModelFieldAction *a) {
         // TODO: add a synchronizer on this executor
 //    }
 
-    int32_t this_action_id = m_executor_queues->at(executor).size()+1;
+    m_executor_exec_ids.at(executor) += 1;
 
     // TODO: Can't really rely on 'action' sticking around. Must convert to
     //       code that can later be emitted
     m_executor_queues->at(executor).push_back(
         {
             .kind=ExecutorActionQueueEntryKind::Action,
-            .action_id=this_action_id,
+            .action_id=m_executor_exec_ids.at(executor),
             .executor_id=-1,
             .action=a
         }

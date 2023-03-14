@@ -74,7 +74,18 @@ struct ExecutorActionQueueParallelEntry {
     std::vector<ExecutorActionQueueParallelBranch>  branches;
 };
 
-using ExecutorActionQueue=std::vector<ExecutorActionQueueEntry>;
+class ExecutorActionQueue : public std::vector<ExecutorActionQueueEntry> {
+public:
+
+    ExecutorActionQueue() : m_last_action_id(0) { }
+
+    uint32_t last_action_id() const { return m_last_action_id; }
+
+    uint32_t next_action_id() { m_last_action_id++; return m_last_action_id; }
+
+private:
+    uint32_t                m_last_action_id;
+};
 
 
 class TaskBuildExecutorActionQueues : public VisitorBase {

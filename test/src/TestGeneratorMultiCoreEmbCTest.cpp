@@ -642,6 +642,164 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, no_executors) {
     });
 }
 
+TEST_F(TestGeneratorMultiCoreEmbCTest, wcr_c010) {
+    NameMap name_m;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
+    std::vector<IModelFieldActionUP>   actions;
+
+    m_ctxt->getDebugMgr()->enable(true);
+    
+    IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
+
+    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    m_ctxt->addDataTypeStruct(claim_t);
+
+    IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec1", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec2", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec3", claim_t, false));
+    comp_t->addField(m_ctxt->mkTypeFieldExecutor("exec4", claim_t, false));
+    m_ctxt->addDataTypeComponent(comp_t);
+
+    IDataTypeFunctionUP write_f(m_ctxt->mkDataTypeFunction("write", 0, false));
+    write_f->addImportSpec(m_ctxt->mkDataTypeFunctionImport("C"));
+    IDataTypeFunctionUP copy_f(m_ctxt->mkDataTypeFunction("copy", 0, false));
+    copy_f->addImportSpec(m_ctxt->mkDataTypeFunctionImport("C"));
+    IDataTypeFunctionUP read_f(m_ctxt->mkDataTypeFunction("read", 0, false));
+    read_f->addImportSpec(m_ctxt->mkDataTypeFunctionImport("C"));
+
+    // Use a data type in order to get a claim
+    IDataTypeAction *write_t = m_ctxt->mkDataTypeAction("write_t");
+    write_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    write_t->setComponentType(comp_t);
+
+    ITypeProcStmtScope *write_body = m_ctxt->mkTypeProcStmtScope();
+    write_body->addStatement(m_ctxt->mkTypeProcStmtExpr(
+        m_ctxt->mkTypeExprMethodCallStatic(
+            write_f.get(),
+            {}
+        )));
+    write_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, write_body));
+
+    IDataTypeAction *copy_t = m_ctxt->mkDataTypeAction("copy_t");
+    copy_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    copy_t->setComponentType(comp_t);
+    ITypeProcStmtScope *copy_body = m_ctxt->mkTypeProcStmtScope();
+    copy_body->addStatement(m_ctxt->mkTypeProcStmtExpr(
+        m_ctxt->mkTypeExprMethodCallStatic(
+            copy_f.get(),
+            {}
+        )));
+    copy_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, copy_body));
+
+    IDataTypeAction *read_t = m_ctxt->mkDataTypeAction("read_t");
+    read_t->addField(m_ctxt->mkTypeFieldExecutorClaim("claim", claim_t, false));
+    read_t->setComponentType(comp_t);
+    ITypeProcStmtScope *read_body = m_ctxt->mkTypeProcStmtScope();
+    read_body->addStatement(m_ctxt->mkTypeProcStmtExpr(
+        m_ctxt->mkTypeExprMethodCallStatic(
+            read_f.get(),
+            {}
+        )));
+    read_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, read_body));
+
+
+    arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
+    IModelFieldComponentRootUP comp(comp_t->mkRootFieldT<IModelFieldComponentRoot>(
+        &build_ctxt,
+        "pss_top",
+        false));
+    comp->initCompTree();
+    IModelFieldExecutor *exec1 = comp->getFieldT<IModelFieldExecutor>(1);
+    IModelFieldExecutor *exec2 = comp->getFieldT<IModelFieldExecutor>(2);
+    IModelFieldExecutor *exec3 = comp->getFieldT<IModelFieldExecutor>(3);
+    IModelFieldExecutor *exec4 = comp->getFieldT<IModelFieldExecutor>(4);
+
+    {
+        IModelFieldAction *write = write_t->mkRootFieldT<IModelFieldAction>(
+            &build_ctxt, "write", false);
+        IModelFieldExecutorClaim *claim = write->getFieldT<IModelFieldExecutorClaim>(1);
+        claim->setRef(exec1);
+        actions.push_back(IModelFieldActionUP(write));
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
+            write,
+            0, // with_c
+            false, // own_with_c
+            0, // activity
+            false // own_activiy
+            );
+        activities->addActivity(t, true);
+    }
+
+    {
+        IModelFieldAction *copy = copy_t->mkRootFieldT<IModelFieldAction>(
+            &build_ctxt, "copy", false);
+        IModelFieldExecutorClaim *claim = copy->getFieldT<IModelFieldExecutorClaim>(1);
+        claim->setRef(exec2);
+        actions.push_back(IModelFieldActionUP(copy));
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
+            copy,
+            0, // with_c
+            false, // own_with_c
+            0, // activity
+            false // own_activiy
+            );
+        activities->addActivity(t, true);
+    }
+
+    {
+        IModelFieldAction *read = read_t->mkRootFieldT<IModelFieldAction>(
+            &build_ctxt, "read", false);
+        IModelFieldExecutorClaim *claim = read->getFieldT<IModelFieldExecutorClaim>(1);
+        claim->setRef(exec1);
+        actions.push_back(IModelFieldActionUP(read));
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
+            read,
+            0, // with_c
+            false, // own_with_c
+            0, // activity
+            false // own_activiy
+            );
+        activities->addActivity(t, true);
+    }
+
+    IOutputUP out_c;
+    IOutputUP out_h;
+
+    ASSERT_TRUE((out_c = IOutputUP(openOutput("test.c"))));
+    ASSERT_TRUE((out_h = IOutputUP(openOutput("test.h"))));
+
+    out_c->println("#include <stdio.h>");
+    out_c->println("#include \"test.h\"");
+
+    out_c->println("void write(void) { fprintf(stdout, \"write\\n\"); }");
+    out_c->println("void copy(void)  { fprintf(stdout, \"copy\\n\"); }");
+    out_c->println("void read(void)  { fprintf(stdout, \"read\\n\"); }");
+
+    std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
+
+    GeneratorMultiCoreEmbCTest(
+        m_ctxt->getDebugMgr(),
+        executors,
+        0,
+        out_h.get(),
+        out_c.get()).generate(comp.get(), activity_it);
+
+    out_c->println("int main() {");
+    out_c->inc_ind();
+    out_c->println("fprintf(stdout, \"PASSED\\n\");");
+    out_c->dec_ind();
+    out_c->println("}");
+
+    out_c->close();
+    out_h->close();
+
+    compileAndRun({
+        "test.c",
+    });
+}
+
 }
 }
 }

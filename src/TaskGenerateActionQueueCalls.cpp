@@ -78,11 +78,15 @@ void TaskGenerateActionQueueCalls::generate(
             } break;
 
             case ExecutorActionQueueEntryKind::Depend: {
-                out->println("// Depend (%d,%d)", it->executor_id, it->action_id);
+                out->println("zsp_esw_wait(%d,%d); // Wait for executor %d to reach point %d", 
+                    it->executor_id, it->action_id,
+                    it->executor_id, it->action_id);
             } break;
 
             case ExecutorActionQueueEntryKind::Notify: {
-                out->println("// Notify %d", it->action_id);
+                out->println("zsp_esw_notify(%d); // Notify that executor %d has reached point %d", 
+                    it->action_id,
+                    it->executor_id, it->action_id);
             } break;
         }
     }

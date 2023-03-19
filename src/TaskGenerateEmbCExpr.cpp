@@ -89,12 +89,12 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         );
 
         // Next element must be an offset
-        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(1));
+        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0));
 
         m_out->write("%s", v->name().c_str());
         vsc::dm::IDataTypeStruct *dt = dynamic_cast<vsc::dm::IDataTypeStruct *>(v->getDataType());
 
-        for (uint32_t i=2; i<e->getPath().size(); i++) {
+        for (uint32_t i=1; i<e->getPath().size(); i++) {
             vsc::dm::ITypeField *field = dt->getField(e->at(i));
             m_out->write(".%s", field->name().c_str());
         }

@@ -149,6 +149,7 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke) {
 
     out_c->println("#include <stdio.h>");
     out_c->println("#include \"test.h\"");
+    out_c->println("#include \"host_backend.h\"");
 
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
@@ -310,6 +311,7 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, multi_comp_context) {
 
     out_c->println("#include <stdio.h>");
     out_c->println("#include \"test.h\"");
+    out_c->println("#include \"host_backend.h\"");
 
     std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
@@ -771,6 +773,7 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, wcr_c010) {
 
     out_c->println("#include <stdio.h>");
     out_c->println("#include \"test.h\"");
+    out_c->println("#include \"host_backend.h\"");
 
     out_c->println("void write(void) { fprintf(stdout, \"write\\n\"); }");
     out_c->println("void copy(void)  { fprintf(stdout, \"copy\\n\"); }");

@@ -159,9 +159,12 @@ IOutput *TestBase::openOutput(const std::string &path) {
 };
 
 void TestBase::compileAndRun(const std::vector<std::string> &args) {
+    char tmp[1024];
     std::vector<std::string> output;
     compile(args);
     run(output);
+
+
 
     uint32_t n_pass = 0;
     uint32_t n_fail = 0;
@@ -184,17 +187,34 @@ void TestBase::compile(const std::vector<std::string> &args) {
 
     getcwd(cwd, sizeof(cwd));
 
-    const char **argv = new const char *[args.size()+4+1];
+    char tmp[1024];
+    size_t sz = readlink("/proc/self/exe", tmp, sizeof(tmp));
+    tmp[sz] = 0;
+    if (sz == -1) {
+        fprintf(stdout, "Error: readlink failed\n");
+    } else {
+        fprintf(stdout, "Success: %s\n", tmp);
+    }
+    std::string path = tmp;
+    path = path.substr(0, path.rfind("/"));
+    path = path.substr(0, path.rfind("/"));
+    path = path.substr(0, path.rfind("/"));
+    path = path + "/test/src/host_backend";
+    path = "-I" + path;
+    fprintf(stdout, "Dir: %s\n", path.c_str());
+
+    const char **argv = new const char *[args.size()+5+1];
     argv[0] = "gcc";
     argv[1] = "-o";
     argv[2] = "test.exe";
     argv[3] = "-I.";
+    argv[4] = strdup(path.c_str());
 
     for (uint32_t i=0; i<args.size(); i++) {
-        argv[4+i] = strdup(args.at(i).c_str());
+        argv[5+i] = strdup(args.at(i).c_str());
     }
 
-    argv[args.size()+4] = 0;
+    argv[args.size()+5] = 0;
 
     posix_spawn_file_actions_t action;
     std::string outfile = m_testdir + "/compile.out";

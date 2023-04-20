@@ -174,6 +174,130 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke) {
         "test.c",
     });
 }
+TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
+    NameMap name_m;
+    IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
+    std::vector<IModelFieldActionUP>   actions;
+
+    m_ctxt->getDebugMgr()->enable(true);
+    
+    IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
+
+    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
+    m_ctxt->addDataTypeStruct(claim_t);
+
+    IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
+    m_ctxt->addDataTypeComponent(comp_t);
+
+
+    // Use a data type in order to get a claim
+    IDataTypeAction *action_t = m_ctxt->mkDataTypeAction("action_t");
+    action_t->addField(m_ctxt->mkTypeFieldPhy("val1", uint32.get(), false, TypeFieldAttr::NoAttr, 0));
+    action_t->addField(m_ctxt->mkTypeFieldPhy("val2", uint32.get(), false, TypeFieldAttr::NoAttr, 0));
+    action_t->setComponentType(comp_t);
+
+    ITypeProcStmtScope *body = m_ctxt->mkTypeProcStmtScope();
+    vsc::dm::IModelValUP val(m_ctxt->mkModelValU(5, 32));
+    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 
+        m_ctxt->mkTypeExprVal(val.get())));
+    val->set_val_u(10);
+    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 
+        m_ctxt->mkTypeExprVal(val.get())));
+    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
+    body->addStatement(m_ctxt->mkTypeProcStmtAssign(
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {2} // c
+        ),
+        TypeProcStmtAssignOp::Eq,
+        m_ctxt->mkTypeExprBin(
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {0} // a
+            ),
+            BinOp::Add,
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::BottomUpScope, 0, {1} // b
+            ))
+        )
+    );
+    val->set_val_u(1);
+    body->addStatement(m_ctxt->mkTypeProcStmtAssign(
+        m_ctxt->mkTypeExprFieldRef(
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {3} // val2
+        ),
+        TypeProcStmtAssignOp::Eq,
+        m_ctxt->mkTypeExprBin(
+            m_ctxt->mkTypeExprFieldRef(
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val1
+            ),
+            BinOp::Add,
+            m_ctxt->mkTypeExprVal(val.get())
+            )
+        )
+    );
+
+    action_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, body));
+    m_ctxt->addDataTypeAction(action_t);
+
+    // TODO: add an exec body
+
+    arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
+    IModelFieldComponentRootUP comp(comp_t->mkRootFieldT<IModelFieldComponentRoot>(
+        &build_ctxt,
+        "pss_top",
+        false));
+    comp->initCompTree();
+
+    for (uint32_t i=0; i<16; i++) {
+        IModelFieldAction *action = action_t->mkRootFieldT<IModelFieldAction>(
+            &build_ctxt, "a", false);
+        IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
+        IModelField *val1 = action->getField(2);
+        val1->val()->set_val_u(i);
+        claim->setRef((i%2)?exec2:exec1);
+        actions.push_back(IModelFieldActionUP(action));
+        IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
+            action,
+            0, // with_c
+            false, // own_with_c
+            0, // activity
+            false // own_activiy
+            );
+        activities->addActivity(t, true);
+    }
+
+    IOutputUP out_c;
+    IOutputUP out_h;
+
+    ASSERT_TRUE((out_c = IOutputUP(openOutput("test.c"))));
+    ASSERT_TRUE((out_h = IOutputUP(openOutput("test.h"))));
+
+    out_c->println("#include <stdio.h>");
+    out_c->println("#include \"test.h\"");
+    out_c->println("#include \"host_backend.h\"");
+
+    std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
+    IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
+
+    GeneratorMultiCoreEmbCTest(
+        m_ctxt->getDebugMgr(),
+        executors,
+        0,
+        out_h.get(),
+        out_c.get()).generate(comp.get(), activity_it);
+
+    out_c->println("int main() {");
+    out_c->inc_ind();
+    out_c->println("fprintf(stdout, \"PASSED\\n\");");
+    out_c->dec_ind();
+    out_c->println("}");
+
+    out_c->close();
+    out_h->close();
+
+    compileAndRun({
+        "test.c",
+    });
+}
 
 TEST_F(TestGeneratorMultiCoreEmbCTest, multi_comp_context) {
     NameMap name_m;

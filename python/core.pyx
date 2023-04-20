@@ -57,7 +57,7 @@ cdef class Factory(object):
         if _inst is None:
             ext_dir = os.path.dirname(os.path.abspath(__file__))
 
-            core_lib = os.path.join(ext_dir, "libzuspec-be-sw.so")
+            core_lib = os.path.join(ext_dir, "libzsp-be-sw.so")
 
             if not os.path.isfile(core_lib):
                 raise Exception("Extension library core \"%s\" doesn't exist" % core_lib)

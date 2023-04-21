@@ -183,14 +183,9 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
     
     IDataTypeIntUP uint32(m_ctxt->mkDataTypeInt(false, 32));
 
-    vsc::dm::IDataTypeStruct *claim_t = m_ctxt->mkDataTypeStruct("claim_t");
-    m_ctxt->addDataTypeStruct(claim_t);
-
     IDataTypeComponent *comp_t = m_ctxt->mkDataTypeComponent("comp_t");
     m_ctxt->addDataTypeComponent(comp_t);
 
-
-    // Use a data type in order to get a claim
     IDataTypeAction *action_t = m_ctxt->mkDataTypeAction("action_t");
     action_t->addField(m_ctxt->mkTypeFieldPhy("val1", uint32.get(), false, TypeFieldAttr::NoAttr, 0));
     action_t->addField(m_ctxt->mkTypeFieldPhy("val2", uint32.get(), false, TypeFieldAttr::NoAttr, 0));
@@ -222,12 +217,12 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
     val->set_val_u(1);
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
         m_ctxt->mkTypeExprFieldRef(
-            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {3} // val2
+            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
         ),
         TypeProcStmtAssignOp::Eq,
         m_ctxt->mkTypeExprBin(
             m_ctxt->mkTypeExprFieldRef(
-                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val1
+                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
             ),
             BinOp::Add,
             m_ctxt->mkTypeExprVal(val.get())
@@ -250,10 +245,8 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
     for (uint32_t i=0; i<16; i++) {
         IModelFieldAction *action = action_t->mkRootFieldT<IModelFieldAction>(
             &build_ctxt, "a", false);
-        IModelFieldExecutorClaim *claim = action->getFieldT<IModelFieldExecutorClaim>(1);
-        IModelField *val1 = action->getField(2);
+        IModelField *val1 = action->getField(1);
         val1->val()->set_val_u(i);
-        claim->setRef((i%2)?exec2:exec1);
         actions.push_back(IModelFieldActionUP(action));
         IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
@@ -275,13 +268,12 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
     out_c->println("#include \"test.h\"");
     out_c->println("#include \"host_backend.h\"");
 
-    std::vector<IModelFieldExecutor *> executors({exec1, exec2, exec3, exec4});
     IModelEvalIterator *activity_it = m_ctxt->mkModelEvalIterator(activities.get());
 
     GeneratorMultiCoreEmbCTest(
         m_ctxt->getDebugMgr(),
-        executors,
-        0,
+        {},
+        -1,
         out_h.get(),
         out_c.get()).generate(comp.get(), activity_it);
 

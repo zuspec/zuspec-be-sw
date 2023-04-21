@@ -85,6 +85,7 @@ void TaskBuildExecutorActionQueues::build(
         }
     } else {
         m_executor_queues->push_back(ExecutorActionQueue());
+        m_executor_exec_ids.push_back(0);
         m_dflt_executor = 0;
     }
 

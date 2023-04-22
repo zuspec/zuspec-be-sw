@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/IsResourcePool.h"
 #include "TaskGenerateEmbCCompTreeData.h"
 
 
@@ -65,10 +66,14 @@ void TaskGenerateEmbCCompTreeData::generate(arl::dm::IModelFieldComponentRoot *r
 
 void TaskGenerateEmbCCompTreeData::visitModelField(vsc::dm::IModelField *f) {
     DEBUG_ENTER("visitModelField %s", f->name().c_str());
-    m_field_s.push_back(f);
-    f->getDataType()->accept(m_this);
-    m_field_count_s.back() += 1;
-    m_field_s.pop_back();
+    if (!m_ignore_field_s.size() || 
+        !m_ignore_field_s.back() ||
+        m_ignore_field_s.back()->find(f->name()) == m_ignore_field_s.back()->end()) {
+        m_field_s.push_back(f);
+        f->getDataType()->accept(m_this);
+        m_field_count_s.back() += 1;
+        m_field_s.pop_back();
+    }
     DEBUG_LEAVE("visitModelField %s", f->name().c_str());
 }
 
@@ -76,6 +81,26 @@ void TaskGenerateEmbCCompTreeData::visitModelFieldExecutor(arl::dm::IModelFieldE
     // Ignore
 }
 
+void TaskGenerateEmbCCompTreeData::visitModelFieldPool(arl::dm::IModelFieldPool *f) {
+    // Need to fill out resource array
+    if (arl::dm::IsResourcePool().test(f)) {
+        m_out->write("{");
+        m_ignore_field_s.push_back(&m_ignore_field_resource);
+        m_in_array_s.push_back(true);
+        for (uint32_t i=0; i<f->getObjects().size(); i++) {
+            m_field_s.push_back(f->getObjects().at(i).get());
+            f->getDataTypePool()->accept(m_this);
+            m_field_s.pop_back();
+            if (i+1 < f->getObjects().size()) {
+                m_out->write(",");
+            }
+        }
+        m_out->write("},");
+        m_in_array_s.pop_back();
+        m_field_count_s.back() += 1;
+        m_ignore_field_s.pop_back();
+    }
+}
 
 void TaskGenerateEmbCCompTreeData::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
     // TODO: value
@@ -100,17 +125,22 @@ void TaskGenerateEmbCCompTreeData::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
 
 void TaskGenerateEmbCCompTreeData::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
-    m_out->write("%s.%s={\n", 
-        (m_field_count_s.back())?"":m_out->ind(),
-        m_field_s.back()->name().c_str());
+    if (!m_in_array_s.size() || !m_in_array_s.back()) {
+        m_out->write("%s.%s={\n", 
+            (m_field_count_s.back())?"":m_out->ind(),
+            m_field_s.back()->name().c_str());
+    } else {
+        m_out->write("{\n");
+    }
     m_out->inc_ind();
+    int32_t last_field_count = 0;
     m_field_count_s.push_back(0);
     for (uint32_t i=0; i<t->getFields().size(); i++) {
-        if (i) {
+        if (i && m_field_count_s.back() != last_field_count) {
             m_out->write(", ");
+            last_field_count = m_field_count_s.back();
         }
         m_field_s.back()->getFields().at(i)->accept(m_this);
-        m_field_count_s.back() += 1;
     }
     m_field_count_s.pop_back();
     m_out->write("\n");
@@ -120,6 +150,9 @@ void TaskGenerateEmbCCompTreeData::visitDataTypeStruct(vsc::dm::IDataTypeStruct 
 }
 
 dmgr::IDebug *TaskGenerateEmbCCompTreeData::m_dbg = 0;
+std::set<std::string> TaskGenerateEmbCCompTreeData::m_ignore_field_resource = {
+    "initial"
+};
 
 }
 }

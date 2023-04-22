@@ -35,6 +35,7 @@ TaskGenerateActionQueueCalls::TaskGenerateActionQueueCalls(
     IModelFieldComponentRoot            *root) : 
         m_dmgr(dmgr), m_name_m(name_m), m_root(root) {
     DEBUG_INIT("TaskGenerateActionQueueCalls", dmgr);
+
     m_ctx_name = "__ctx";
 }
 

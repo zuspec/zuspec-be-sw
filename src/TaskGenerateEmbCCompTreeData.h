@@ -19,6 +19,8 @@
  *     Author: 
  */
 #pragma once
+#include <set>
+#include <string>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
@@ -51,6 +53,8 @@ public:
 
 	virtual void visitModelFieldExecutor(arl::dm::IModelFieldExecutor *f) override;
 
+	virtual void visitModelFieldPool(arl::dm::IModelFieldPool *f) override;
+
 	virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
 
 	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
@@ -63,7 +67,10 @@ private:
     NameMap                                 *m_name_m;
     std::vector<vsc::dm::IModelField *>     m_field_s;
     std::vector<int32_t>                    m_field_count_s;
+    std::vector<bool>                       m_in_array_s;
+    std::vector<std::set<std::string> *>    m_ignore_field_s;
 
+    static std::set<std::string>            m_ignore_field_resource;
 };
 
 }

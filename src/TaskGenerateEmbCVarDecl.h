@@ -45,6 +45,10 @@ public:
         vsc::dm::IDataType          *type,
         vsc::dm::ITypeField         *field);
 
+	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
+
+	virtual void visitTypeFieldPool(arl::dm::ITypeFieldPool *f) override;
+
 	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
 
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;

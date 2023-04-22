@@ -174,6 +174,7 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, smoke) {
         "test.c",
     });
 }
+
 TEST_F(TestGeneratorMultiCoreEmbCTest, smoke_no_executors) {
     NameMap name_m;
     IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));

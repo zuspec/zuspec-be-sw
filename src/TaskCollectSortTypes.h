@@ -60,6 +60,8 @@ public:
 
 	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 
+	virtual void visitTypeFieldPool(arl::dm::ITypeFieldPool *f) override;
+
 private:
 
     void enterType(vsc::dm::IDataTypeStruct *t);

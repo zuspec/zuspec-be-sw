@@ -31,7 +31,8 @@ namespace sw {
 TaskGenerateEmbCStruct::TaskGenerateEmbCStruct(
     dmgr::IDebugMgr         *dmgr,
     IOutput                 *out,
-    NameMap                 *name_m) : m_out(out), m_name_m(name_m) {
+    NameMap                 *name_m) : m_out(out), m_name_m(name_m),
+        m_mangler(dmgr, name_m) {
     DEBUG_INIT("TaskGenerateEmbCStruct", dmgr);
 }
 
@@ -40,17 +41,26 @@ TaskGenerateEmbCStruct::~TaskGenerateEmbCStruct() {
 }
 
 void TaskGenerateEmbCStruct::generate(vsc::dm::IDataTypeStruct *type) {
+    m_depth = 0;
+
+    type->accept(m_this);
+
+    // Ensure we're working with a properly-mangled name
+    m_mangler.mangle(type);
 
     m_out->println("typedef struct %s_s {", m_name_m->getName(type).c_str());
     m_out->inc_ind();
+    m_depth++;
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
         it=type->getFields().begin();
         it!=type->getFields().end(); it++) {
         (*it)->accept(m_this);
     }
+    m_depth--;
     m_out->dec_ind();
     m_out->println("} %s;", m_name_m->getName(type).c_str());
     m_out->println("");
+    m_ignore_field_s.clear();
 }
 
 void TaskGenerateEmbCStruct::visitTypeFieldExecutor(arl::dm::ITypeFieldExecutor *f) {
@@ -58,34 +68,70 @@ void TaskGenerateEmbCStruct::visitTypeFieldExecutor(arl::dm::ITypeFieldExecutor 
 }
 
 void TaskGenerateEmbCStruct::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) {
-    m_field_s.push_back(f);
-    m_ref_s.push_back(false);
-    f->getDataType()->accept(m_this);
-    m_ref_s.pop_back();
-    m_field_s.pop_back();
+    if (!m_ignore_field_s.size() || 
+        m_ignore_field_s.back()->find(f->name()) == m_ignore_field_s.back()->end()) {
+        m_field_s.push_back(f);
+        m_ref_s.push_back(false);
+        f->getDataType()->accept(m_this);
+        m_ref_s.pop_back();
+        m_field_s.pop_back();
+    }
+}
+
+void TaskGenerateEmbCStruct::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
+    if (!m_ignore_field_s.size() || 
+        m_ignore_field_s.back()->find(f->name()) == m_ignore_field_s.back()->end()) {
+        m_field_s.push_back(f);
+        m_ref_s.push_back(false);
+        f->getElemDataType()->accept(m_this);
+        m_ref_s.pop_back();
+        m_field_s.pop_back();
+    }
 }
 
 void TaskGenerateEmbCStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
-    m_field_s.push_back(f);
-    m_ref_s.push_back(true);
-    f->getDataType()->accept(m_this);
-    m_ref_s.pop_back();
-    m_field_s.pop_back();
+    if (!m_ignore_field_s.size() || 
+        m_ignore_field_s.back()->find(f->name()) == m_ignore_field_s.back()->end()) {
+        m_field_s.push_back(f);
+        m_ref_s.push_back(true);
+        f->getDataType()->accept(m_this);
+        m_ref_s.pop_back();
+        m_field_s.pop_back();
+    }
 }
 
 void TaskGenerateEmbCStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
-    TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    if (m_depth) {
+        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    }
 }
 
 void TaskGenerateEmbCStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
-    TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    if (m_depth) {
+        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    }
+}
+
+void TaskGenerateEmbCStruct::visitDataTypeResource(arl::dm::IDataTypeResource *t) {
+    if (!m_depth) {
+        m_ignore_field_s.push_back(&m_ignore_resource_fields);
+    } else {
+        visitDataTypeStruct(t);
+    }
 }
 
 void TaskGenerateEmbCStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
-    TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    if (m_depth) {
+        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+    }
 }
 
+
 dmgr::IDebug *TaskGenerateEmbCStruct::m_dbg = 0;
+
+std::set<std::string> TaskGenerateEmbCStruct::m_ignore_resource_fields = {
+    "initial"
+};
 
 }
 }

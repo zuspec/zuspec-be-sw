@@ -63,6 +63,12 @@ void TaskGenerateEmbCDataType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) 
     m_out->write("%s", m_name_m->getName(t).c_str());
 }
 
+void TaskGenerateEmbCDataType::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
+    // Each pool has its own 'pool' type. Bypass this reported
+    // type and use the pool-item type instead
+    f->getElemDataType()->accept(m_this);
+}
+
 }
 }
 }

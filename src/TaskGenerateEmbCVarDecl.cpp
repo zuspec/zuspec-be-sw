@@ -47,9 +47,20 @@ void TaskGenerateEmbCVarDecl::generate(
         vsc::dm::ITypeField         *field) {
     m_out->indent();
     m_dt_gen.generate(type);
-    m_out->write(" %s%s;\n", 
+    m_out->write(" %s%s", 
         vsc::dm::TaskIsTypeFieldRef().eval(field)?"*":"",
         field->name().c_str());
+    field->accept(m_this);
+    m_out->write(";\n");
+}
+
+void TaskGenerateEmbCVarDecl::visitTypeField(vsc::dm::ITypeField *f) {
+    // 
+}
+
+void TaskGenerateEmbCVarDecl::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
+    // Pools have a size...
+    m_out->write("[%d]", (f->getDeclSize() > 0)?f->getDeclSize():1);
 }
  
 void TaskGenerateEmbCVarDecl::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {

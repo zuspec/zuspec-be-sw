@@ -39,7 +39,9 @@ TaskMangleTypeNames::~TaskMangleTypeNames() {
 }
 
 void TaskMangleTypeNames::mangle(vsc::dm::IDataTypeStruct *t) {
-    t->accept(m_this);
+    if (!m_name_m->hasName(t)) {
+        t->accept(m_this);
+    }
 }
 
 void TaskMangleTypeNames::visitDataTypeAction(arl::dm::IDataTypeAction *i) {

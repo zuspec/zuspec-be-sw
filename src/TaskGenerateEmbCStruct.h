@@ -24,6 +24,7 @@
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
 #include "NameMap.h"
+#include "TaskMangleTypeNames.h"
 
 namespace zsp {
 namespace be {
@@ -47,9 +48,13 @@ public:
 
 	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
 
+	virtual void visitDataTypeResource(arl::dm::IDataTypeResource *t) override;
+
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 	virtual void visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) override;
+
+	virtual void visitTypeFieldPool(arl::dm::ITypeFieldPool *f) override;
 
 	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
@@ -57,10 +62,15 @@ public:
 
 private:
     static dmgr::IDebug                     *m_dbg;
+    uint32_t                                m_depth;
+    TaskMangleTypeNames                     m_mangler;
     IOutput                                 *m_out;
     NameMap                                 *m_name_m;
     std::vector<vsc::dm::ITypeField *>      m_field_s;
     std::vector<bool>                       m_ref_s;
+    std::vector<std::set<std::string> *>    m_ignore_field_s;
+
+    static std::set<std::string>            m_ignore_resource_fields;
 
 };
 

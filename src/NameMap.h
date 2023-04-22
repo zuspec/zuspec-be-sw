@@ -42,6 +42,14 @@ public:
 
     virtual ~NameMap();
 
+    bool hasName(vsc::dm::IDataType *type) {
+        return (m_type_m.find(type) != m_type_m.end());
+    }
+
+    bool hasName(arl::dm::IDataTypeFunction *func) {
+        return (m_func_m.find(func) != m_func_m.end());
+    }
+
     void setName(vsc::dm::IDataType *type, const std::string &name);
 
     void setName(arl::dm::IDataTypeFunction *func, const std::string &name);

@@ -221,7 +221,7 @@ void TaskBuildExecutorActionQueues::process_traverse(IModelFieldAction *a) {
 
     IModelFieldExecutor *executor_p = TaskFindExecutor().find(a);
 
-    fprintf(stdout, "Executor: %p\n", executor_p);
+    DEBUG("Executor: %p", executor_p);
 
     if (executor_p) {
         // Search to find the index

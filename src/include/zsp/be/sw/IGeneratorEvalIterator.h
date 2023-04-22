@@ -29,7 +29,8 @@ namespace be {
 namespace sw {
 
 
-
+class IGeneratorEvalIterator;
+using IGeneratorEvalIteratorUP=vsc::dm::UP<IGeneratorEvalIterator>;
 class IGeneratorEvalIterator {
 public:
 

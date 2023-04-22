@@ -28,7 +28,6 @@ namespace sw {
 
 
 TaskCollectSortTypes::TaskCollectSortTypes(dmgr::IDebugMgr *dmgr) {
-    fprintf(stdout, "TaskCollect: dmgr=%p\n", dmgr);
     DEBUG_INIT("TaskCollectSortTypes", dmgr);
 }
 
@@ -36,7 +35,6 @@ TaskCollectSortTypes::TaskCollectSortTypes(
     dmgr::IDebugMgr                                         *dmgr,
     const std::function<void (vsc::dm::IDataTypeStruct *)>  &new_type_f) :
         m_new_type_f(new_type_f) {
-    fprintf(stdout, "TaskCollect: dmgr=%p\n", dmgr);
     DEBUG_INIT("TaskCollectSortTypes", dmgr);
 }
 
@@ -106,6 +104,12 @@ void TaskCollectSortTypes::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_ENTER("visitTypeField %s", f->name().c_str());
     f->getDataType()->accept(m_this);
     DEBUG_LEAVE("visitTypeField %s", f->name().c_str());
+}
+
+void TaskCollectSortTypes::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
+    // Each pool has its own 'pool' type. Bypass this reported
+    // type and use the pool-item type instead
+    f->getElemDataType()->accept(m_this);
 }
 
 void TaskCollectSortTypes::sort(

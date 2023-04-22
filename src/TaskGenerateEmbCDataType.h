@@ -44,6 +44,8 @@ public:
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
+	virtual void visitTypeFieldPool(arl::dm::ITypeFieldPool *f) override;
+
 private:
     IOutput                     *m_out;
     NameMap                     *m_name_m;

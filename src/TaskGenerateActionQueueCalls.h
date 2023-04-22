@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include <map>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/IModelFieldComponentRoot.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"

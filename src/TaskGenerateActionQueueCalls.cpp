@@ -162,6 +162,7 @@ void TaskGenerateActionQueueCalls::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) 
 
 void TaskGenerateActionQueueCalls::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     DEBUG_ENTER("visitDataTypeInt");
+#ifdef UNDEFINED
     if (t->is_signed()) {
         m_out->write("%s.%s=%lld", 
             is_first()?m_out->ind():"",
@@ -173,6 +174,7 @@ void TaskGenerateActionQueueCalls::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
             m_field_s.back()->name().c_str(),
             m_field_s.back()->val()->val_u());
     }
+#endif
     DEBUG_LEAVE("visitDataTypeInt");
 }
 

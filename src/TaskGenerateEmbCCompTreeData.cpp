@@ -109,6 +109,7 @@ void TaskGenerateEmbCCompTreeData::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) 
 
 void TaskGenerateEmbCCompTreeData::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     DEBUG_ENTER("visitDataTypeInt");
+#ifdef UNDEFINED
     if (t->is_signed()) {
         m_out->write("%s.%s=%lld", 
             (m_field_count_s.back())?"":m_out->ind(),
@@ -120,6 +121,7 @@ void TaskGenerateEmbCCompTreeData::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
             m_field_s.back()->name().c_str(),
             m_field_s.back()->val()->val_u());
     }
+#endif
     DEBUG_LEAVE("visitDataTypeInt");
 }
 

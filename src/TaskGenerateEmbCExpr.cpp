@@ -66,7 +66,7 @@ static std::map<vsc::dm::BinOp, std::string> prv_op_m = {
 	    {vsc::dm::BinOp::LogOr, "|"},
 	    {vsc::dm::BinOp::Sll, "<<"},
 	    {vsc::dm::BinOp::Srl, ">>"},
-	    {vsc::dm::BinOp::Xor, "^"},
+	    {vsc::dm::BinOp::BinXor, "^"},
 	    {vsc::dm::BinOp::Not, "!"}
 };
 
@@ -89,7 +89,7 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         );
 
         // Next element must be an offset
-        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0));
+        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0)).get();
 
         m_out->write("%s", v->name().c_str());
         vsc::dm::IDataTypeStruct *dt = dynamic_cast<vsc::dm::IDataTypeStruct *>(v->getDataType());
@@ -147,7 +147,9 @@ void TaskGenerateEmbCExpr::visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e
 
 void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {
     // TODO: Should know whether we want a signed or unsigned value
+#ifdef UNDEFINED
     m_out->write("%lld", e->val()->val_i());
+#endif
 }
 
 }

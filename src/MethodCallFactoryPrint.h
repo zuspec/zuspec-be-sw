@@ -1,7 +1,7 @@
 /**
- * TaskMangleTypeNames.h
+ * MethodCallFactoryPrint.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -20,31 +20,30 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
-#include "vsc/dm/IDataTypeStruct.h"
-#include "zsp/arl/dm/impl/VisitorBase.h"
-#include "NameMap.h"
+#include "zsp/be/sw/IMethodCallFactoryAssocData.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class TaskMangleTypeNames : public virtual arl::dm::VisitorBase {
+
+
+class MethodCallFactoryPrint : public virtual IMethodCallFactoryAssocData {
 public:
-    TaskMangleTypeNames(
-        dmgr::IDebugMgr     *dmgr, 
-        INameMap            *name_m);
+    MethodCallFactoryPrint(dmgr::IDebugMgr *dmgr);
 
-    virtual ~TaskMangleTypeNames();
+    virtual ~MethodCallFactoryPrint();
 
-    void mangle(vsc::dm::IDataTypeStruct *t);
+    virtual vsc::dm::ITypeExpr *mkCallContext(
+        IContext                            *ctxt,
+        arl::dm::ITypeExprMethodCallContext *call) override;
 
-	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
-
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+    virtual vsc::dm::ITypeExpr *mkCallStatic(
+        IContext                            *ctxt,
+        arl::dm::ITypeExprMethodCallStatic  *call) override;
 
 private:
-    static dmgr::IDebug     *m_dbg;
-    INameMap                *m_name_m;
+    static dmgr::IDebug             *m_dbg;
 
 };
 

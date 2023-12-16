@@ -56,12 +56,13 @@ void TaskGenerateEmbCActionExec::generate(
         m_name_m->getName(action_t).c_str());
     m_out_c->inc_ind();
 
-    TaskGenerateEmbCExpr expr_gen(m_dmgr, m_name_m);
+    // TODO:
+    TaskGenerateEmbCExpr expr_gen(0);
     expr_gen.setActivePref("ctx", true);
+    // TODO:
     TaskGenerateEmbCProcScope scope_gen(
-        m_dmgr,
+        0,
         m_out_c,
-        m_name_m,
         &expr_gen);
     
     for (std::vector<arl::dm::ITypeExecProc *>::const_iterator

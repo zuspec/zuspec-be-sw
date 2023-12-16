@@ -19,10 +19,13 @@
  *     Author:
  */
 #include <fstream>
+#include "Context.h"
 #include "Factory.h"
 #include "GeneratorFunctionsThreaded.h"
 #include "GeneratorMultiCoreEmbCTest.h"
 #include "Output.h"
+#include "TaskGenerateC.h"
+#include "TaskInitContextC.h"
 
 
 namespace zsp {
@@ -57,6 +60,27 @@ IGeneratorEvalIterator *Factory::mkGeneratorMultiCoreSingleImageEmbCTest(
         dflt_exec,
         out_h,
         out_c);
+}
+
+IContext *Factory::mkContext(arl::dm::IContext *ctxt) {
+    return new Context(m_dmgr, ctxt);
+}
+
+void Factory::generateC(
+        IContext                                        *ctxt,
+        const std::vector<vsc::dm::IAccept *>           &roots,
+        std::ostream                                    *csrc,
+        std::ostream                                    *pub_h,
+        std::ostream                                    *prv_h) {
+    TaskGenerateC(
+        ctxt,
+        csrc,
+        pub_h,
+        prv_h).generate(roots);
+}
+
+void Factory::initContextC(arl::dm::IContext *ctxt) {
+    TaskInitContextC(m_dmgr).init(ctxt);
 }
 
 IOutput *Factory::mkFileOutput(const std::string &path) {

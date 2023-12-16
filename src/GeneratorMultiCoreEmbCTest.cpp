@@ -91,7 +91,8 @@ void GeneratorMultiCoreEmbCTest::generate(
     for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
         it=types.begin();
         it!=types.end(); it++) {
-        TaskGenerateEmbCStruct(m_dmgr, m_out_h, &m_name_m).generate(*it);
+        // TODO:
+        TaskGenerateEmbCStruct(0, m_out_h).generate(*it);
     }
 
     // Generate prototypes for import functions to the .h file
@@ -100,9 +101,10 @@ void GeneratorMultiCoreEmbCTest::generate(
         it=funcs.begin();
         it!=funcs.end(); it++) {
         if ((*it)->getImportSpecs().size()) {
-            TaskGenerateFuncProtoEmbeddedC(&m_name_m).generate(m_out_h, *it);
+            // TODO:
+            TaskGenerateFuncProtoEmbeddedC(0).generate(m_out_h, *it);
         } else {
-            TaskGenerateFuncProtoEmbeddedC(&m_name_m).generate(m_out_c, *it);
+            TaskGenerateFuncProtoEmbeddedC(0).generate(m_out_c, *it);
         }
     }
 

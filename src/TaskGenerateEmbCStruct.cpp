@@ -29,11 +29,10 @@ namespace sw {
 
 
 TaskGenerateEmbCStruct::TaskGenerateEmbCStruct(
-    dmgr::IDebugMgr         *dmgr,
-    IOutput                 *out,
-    NameMap                 *name_m) : m_out(out), m_name_m(name_m),
-        m_mangler(dmgr, name_m) {
-    DEBUG_INIT("TaskGenerateEmbCStruct", dmgr);
+    IContext                *ctxt,
+    IOutput                 *out) : m_ctxt(ctxt), m_out(out),
+        m_mangler(ctxt->getDebugMgr(), ctxt->nameMap()) {
+    DEBUG_INIT("TaskGenerateEmbCStruct", ctxt->getDebugMgr());
 }
 
 TaskGenerateEmbCStruct::~TaskGenerateEmbCStruct() {
@@ -48,7 +47,7 @@ void TaskGenerateEmbCStruct::generate(vsc::dm::IDataTypeStruct *type) {
     // Ensure we're working with a properly-mangled name
     m_mangler.mangle(type);
 
-    m_out->println("typedef struct %s_s {", m_name_m->getName(type).c_str());
+    m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(type).c_str());
     m_out->inc_ind();
     m_depth++;
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
@@ -58,7 +57,7 @@ void TaskGenerateEmbCStruct::generate(vsc::dm::IDataTypeStruct *type) {
     }
     m_depth--;
     m_out->dec_ind();
-    m_out->println("} %s;", m_name_m->getName(type).c_str());
+    m_out->println("} %s;", m_ctxt->nameMap()->getName(type).c_str());
     m_out->println("");
     m_ignore_field_s.clear();
 }
@@ -102,13 +101,13 @@ void TaskGenerateEmbCStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
 
 void TaskGenerateEmbCStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
     if (m_depth) {
-        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+        TaskGenerateEmbCVarDecl(m_ctxt, m_out).generate(t, m_field_s.back());
     }
 }
 
 void TaskGenerateEmbCStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (m_depth) {
-        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+        TaskGenerateEmbCVarDecl(m_ctxt, m_out).generate(t, m_field_s.back());
     }
 }
 
@@ -122,7 +121,7 @@ void TaskGenerateEmbCStruct::visitDataTypeResource(arl::dm::IDataTypeResource *t
 
 void TaskGenerateEmbCStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     if (m_depth) {
-        TaskGenerateEmbCVarDecl(m_out, m_name_m).generate(t, m_field_s.back());
+        TaskGenerateEmbCVarDecl(m_ctxt, m_out).generate(t, m_field_s.back());
     }
 }
 

@@ -1,7 +1,7 @@
 /**
- * TaskGenerateEmbCDataType.h
+ * TaskGenerateC.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -19,40 +19,42 @@
  *     Author: 
  */
 #pragma once
-#include "zsp/be/sw/IContext.h"
-#include "zsp/be/sw/IOutput.h"
+#include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "NameMap.h"
+#include "Output.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class TaskGenerateEmbCDataType : public arl::dm::VisitorBase {
+
+class TaskGenerateC : public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateEmbCDataType(
+    TaskGenerateC(
         IContext                *ctxt,
-        IOutput                 *out,
-        bool                    is_fparam=false);
+        std::ostream            *csrc,
+        std::ostream            *pub_h,
+        std::ostream            *prv_h);
 
-    virtual ~TaskGenerateEmbCDataType();
+    virtual ~TaskGenerateC();
 
-    void generate(vsc::dm::IDataType *type);
+    void generate(const std::vector<vsc::dm::IAccept *> &roots);
 
-	virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
-	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
+	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
-
-	virtual void visitTypeFieldPool(arl::dm::ITypeFieldPool *f) override;
 
 private:
     static dmgr::IDebug         *m_dbg;
     IContext                    *m_ctxt;
-    IOutput                     *m_out;
-    bool                        m_is_fparam;
+    Output                      m_csrc;
+    Output                      m_pub_h;
+    Output                      m_prv_h;
 
 };
 

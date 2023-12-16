@@ -1,11 +1,18 @@
 
 import ctypes
 from zsp_be_sw cimport decl
+cimport vsc_dm.core as vsc_dm
 cimport zsp_arl_dm.core as arl_dm
 cimport debug_mgr.core as dm_core
 from libcpp cimport bool
 from libc.stdint cimport int32_t
 
+cdef class Context(object):
+    cdef decl.IContext      *_hndl
+    cdef bool               _owned
+
+    @staticmethod
+    cdef Context mk(decl.IContext *hndl, bool owned=*)
 
 cdef class Factory(object):
     cdef decl.IFactory      *_hndl
@@ -20,6 +27,19 @@ cdef class Factory(object):
         int32_t                 dflt_exec,
         Output                  out_h,
         Output                  out_c)
+
+    cpdef Context mkContext(self, arl_dm.Context ctxt)
+
+    cpdef void generateC(
+        self,
+        Context ctxt,
+        roots,
+        csrc,
+        pub_h,
+        prv_h
+    )
+
+    cpdef void initContextC(self, arl_dm.Context ctxt)
 
     cpdef Output mkFileOutput(self, path)
 

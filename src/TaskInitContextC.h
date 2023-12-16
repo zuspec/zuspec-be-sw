@@ -1,7 +1,7 @@
-/*
- * Context.cpp
+/**
+ * TaskInitContextC.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -16,26 +16,37 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "Context.h"
-#include "TaskInitContextC.h"
-
+#pragma once
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/IContext.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-Context::Context(
-    dmgr::IDebugMgr         *dmgr,
-    arl::dm::IContext       *ctxt) : m_dmgr(dmgr), m_ctxt(ctxt) {
-    TaskInitContextC(dmgr).init(ctxt);
+
+
+class TaskInitContextC {
+public:
+    TaskInitContextC(dmgr::IDebugMgr *dmgr);
+
+    virtual ~TaskInitContextC();
+
+    void init(arl::dm::IContext *ctxt);
+
+protected:
+    void addMethodCallFactories(arl::dm::IContext *ctxt);
+
+private:
+    static dmgr::IDebug             *m_dbg;
+    dmgr::IDebugMgr                 *m_dmgr;
+
+};
+
+}
+}
 }
 
-Context::~Context() {
 
-}
-
-}
-}
-}

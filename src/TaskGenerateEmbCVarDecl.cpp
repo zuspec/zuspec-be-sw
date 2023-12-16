@@ -28,9 +28,9 @@ namespace sw {
 
 
 TaskGenerateEmbCVarDecl::TaskGenerateEmbCVarDecl(
-    IOutput             *out,
-    NameMap             *name_m) : m_out(out), m_name_m(name_m),
-        m_dt_gen(out, name_m) {
+    IContext            *ctxt,
+    IOutput             *out) : m_ctxt(ctxt), m_out(out),
+        m_dt_gen(ctxt, out) {
 
 }
 

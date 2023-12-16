@@ -19,6 +19,9 @@
  *     Author: 
  */
 #pragma once
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/IContext.h"
+#include "zsp/be/sw/INameMap.h"
 
 namespace zsp {
 namespace be {
@@ -29,6 +32,12 @@ class IContext {
 public:
 
     virtual ~IContext() { }
+
+    virtual dmgr::IDebugMgr *getDebugMgr() const = 0;
+
+    virtual arl::dm::IContext *ctxt() const = 0;
+
+    virtual INameMap *nameMap() = 0;
 
 };
 

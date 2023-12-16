@@ -19,18 +19,38 @@
  *     Author: 
  */
 #pragma once
+#include "zsp/be/sw/IContext.h"
+#include "NameMap.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class Context {
+class Context : public virtual IContext {
 public:
-    Context();
+    Context(
+        dmgr::IDebugMgr         *dmgr,
+        arl::dm::IContext       *ctxt);
 
     virtual ~Context();
 
+    virtual dmgr::IDebugMgr *getDebugMgr() const override {
+        return m_dmgr;
+    }
+
+    virtual arl::dm::IContext *ctxt() const override {
+        return m_ctxt;
+    }
+
+    virtual INameMap *nameMap() override {
+        return &m_name_m;
+    }
+
+private:
+    dmgr::IDebugMgr             *m_dmgr;
+    arl::dm::IContext           *m_ctxt;
+    NameMap                     m_name_m;
 };
 
 }

@@ -49,6 +49,18 @@ public:
         IOutput                                            *out_h,
         IOutput                                            *out_c) override;
 
+    virtual IContext *mkContext(arl::dm::IContext *ctxt) override;
+
+    virtual void generateC(
+        IContext                                        *ctxt,
+        const std::vector<vsc::dm::IAccept *>           &roots,
+        std::ostream                                    *csrc,
+        std::ostream                                    *pub_h,
+        std::ostream                                    *prv_h
+    ) override;
+
+    virtual void initContextC(arl::dm::IContext *ctxt) override;
+
     virtual IOutput *mkFileOutput(const std::string &path) override;
 
     static IFactory *inst();

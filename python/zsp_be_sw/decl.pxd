@@ -1,5 +1,7 @@
 
+cimport ciostream
 cimport zsp_arl_dm.decl as arl_dm
+cimport vsc_dm.decl as vsc_dm_decl
 cimport debug_mgr.decl as dm
 
 from libcpp.string cimport string as cpp_string
@@ -11,6 +13,11 @@ cimport cpython.ref as cpy_ref
 
 ctypedef IFactory *IFactoryP
 
+cdef extern from "zsp/be/sw/IContext.h" namespace "zsp::be::sw":
+    cdef cppclass IContext:
+        dm.IDebugMgr *getDebugMgr()
+        arl_dm.IContext *ctxt()
+
 cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
     cdef cppclass IFactory:
         void init(dm.IDebugMgr *dmgr)
@@ -21,6 +28,15 @@ cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
             int32_t                                         dflt_exec,
             IOutput                                         *out_h,
             IOutput                                         *out_c)
+        IContext *mkContext(arl_dm.IContext *ctxt)
+        void generateC(
+            IContext                                        *ctxt,
+            const cpp_vector[vsc_dm_decl.IAcceptP]          &roots,
+            ciostream.ostream                               *csrc,
+            ciostream.ostream                               *pub_h,
+            ciostream.ostream                               *prv_h)
+
+        void initContextC(arl_dm.IContext                   *ctxt)
 
         IOutput *mkFileOutput(const cpp_string &path)
 

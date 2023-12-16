@@ -27,8 +27,8 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateFuncProtoEmbeddedC::TaskGenerateFuncProtoEmbeddedC(NameMap *name_m) :
-    m_name_m(name_m), m_out(0) {
+TaskGenerateFuncProtoEmbeddedC::TaskGenerateFuncProtoEmbeddedC(IContext *ctxt) :
+    m_ctxt(ctxt), m_out(0) {
 
 }
 
@@ -44,7 +44,8 @@ void TaskGenerateFuncProtoEmbeddedC::generate(
 }
 
 void TaskGenerateFuncProtoEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
-    TaskGenerateEmbCDataType dt_gen(m_out, m_name_m);
+    TaskGenerateEmbCDataType dt_gen(m_ctxt, m_out);
+    TaskGenerateEmbCDataType param_dt_gen(m_ctxt, m_out, true);
 
     if (t->getReturnType()) {
         dt_gen.generate(t->getReturnType());
@@ -53,7 +54,7 @@ void TaskGenerateFuncProtoEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFun
         m_out->write("void ");
     }
 
-    m_out->write("%s(", m_name_m->getName(t).c_str());
+    m_out->write("%s(", m_ctxt->nameMap()->getName(t).c_str());
 
     if (t->getParameters().size() > 0) {
         m_out->write("\n");
@@ -61,7 +62,7 @@ void TaskGenerateFuncProtoEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFun
         m_out->inc_ind();
         for (uint32_t i=0; i<t->getParameters().size(); i++) {
             m_out->indent();
-            dt_gen.generate(t->getParameters().at(i)->getDataType());
+            param_dt_gen.generate(t->getParameters().at(i)->getDataType());
             m_out->write(" %s", t->getParameters().at(i)->name().c_str());
             if (i+1 < t->getParameters().size()) {
                 m_out->write(",\n");

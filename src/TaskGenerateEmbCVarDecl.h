@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "NameMap.h"
 #include "TaskGenerateEmbCDataType.h"
@@ -33,8 +34,8 @@ namespace sw {
 class TaskGenerateEmbCVarDecl : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCVarDecl(
-        IOutput                 *out,
-        NameMap                 *name_m);
+        IContext                *ctxt,
+        IOutput                 *out);
 
     virtual ~TaskGenerateEmbCVarDecl();
 
@@ -54,8 +55,8 @@ public:
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 
 private:
+    IContext                    *m_ctxt;
     IOutput                     *m_out;
-    NameMap                     *m_name_m;
     TaskGenerateEmbCDataType    m_dt_gen;
     int32_t                     m_depth;
 

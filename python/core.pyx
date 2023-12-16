@@ -4,11 +4,23 @@ import ctypes
 from zsp_be_sw cimport decl
 from libcpp.vector cimport vector as cpp_vector
 from libc.stdint cimport intptr_t
+cimport ciostream
 cimport debug_mgr.core as dm_core
+cimport vsc_dm.decl as vsc_dm_decl
+cimport vsc_dm.core as vsc_dm
 cimport zsp_arl_dm.core as arl_dm
 cimport zsp_arl_dm.decl as arl_dm_decl
 
 cdef Factory _inst = None
+
+cdef class Context(object):
+
+    @staticmethod
+    cdef Context mk(decl.IContext *hndl, bool owned=True):
+        ret = Context()
+        ret._hndl = hndl
+        ret._owned = owned
+        return ret
 
 cdef class Factory(object):
 
@@ -43,6 +55,38 @@ cdef class Factory(object):
             ),
             True
         )
+
+    cpdef Context mkContext(self, arl_dm.Context ctxt):
+        return Context.mk(
+            self._hndl.mkContext(ctxt.asContext()),
+            True)
+
+    cpdef void generateC(
+        self,
+        Context ctxt,
+        roots,
+        csrc,
+        pub_h,
+        prv_h):
+        cdef cpp_vector[vsc_dm_decl.IAcceptP] roots_c
+        cdef vsc_dm.ObjBase obj
+        cdef ciostream.costream csrc_s = ciostream.costream(csrc)
+        cdef ciostream.costream pub_h_s = ciostream.costream(pub_h)
+        cdef ciostream.costream prv_h_s = ciostream.costream(prv_h)
+
+        for r in roots:
+            obj = <vsc_dm.ObjBase>(r)
+            roots_c.push_back(obj._hndl)
+        
+        self._hndl.generateC(
+            ctxt._hndl,
+            roots_c, 
+            csrc_s.stream(),
+            pub_h_s.stream(),
+            prv_h_s.stream())
+
+    cpdef void initContextC(self, arl_dm.Context ctxt):
+        self._hndl.initContextC(ctxt.asContext())
 
 
     cpdef Output mkFileOutput(self, path):

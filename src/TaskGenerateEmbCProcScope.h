@@ -22,6 +22,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/ITypeProcStmtScope.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "ITaskGenerateExpr.h"
 #include "NameMap.h"
 
@@ -34,9 +35,8 @@ namespace sw {
 class TaskGenerateEmbCProcScope : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCProcScope(
-        dmgr::IDebugMgr         *dmgr,
+        IContext                *ctxt,
         IOutput                 *out,
-        NameMap                 *name_m,
         ITaskGenerateExpr       *expr_gen);
 
     virtual ~TaskGenerateEmbCProcScope();
@@ -73,9 +73,9 @@ public:
 
 private:
     static dmgr::IDebug                             *m_dbg;
+    IContext                                        *m_ctxt;
     IOutput                                         *m_out;
     ITaskGenerateExpr                               *m_expr_gen;
-    NameMap                                         *m_name_m;
     vsc::dm::IDataTypeStruct                        *m_type_s;
     uint32_t                    			        m_scope_depth;
 	std::vector<arl::dm::ITypeProcStmtDeclScope *>	m_scope_s;

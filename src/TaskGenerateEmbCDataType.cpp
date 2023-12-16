@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateEmbCDataType.h"
 
 using namespace zsp::arl::dm;
@@ -28,9 +29,11 @@ namespace sw {
 
 
 TaskGenerateEmbCDataType::TaskGenerateEmbCDataType(
+    IContext            *ctxt,
     IOutput             *out,
-    NameMap             *name_m) : m_out(out), m_name_m(name_m) {
-
+    bool                is_fparam) : 
+    m_ctxt(ctxt), m_out(out), m_is_fparam(is_fparam) {
+    DEBUG_INIT("zsp::be::sw""TaskGenerateEmbCDataType", ctxt->getDebugMgr());
 }
 
 TaskGenerateEmbCDataType::~TaskGenerateEmbCDataType() {
@@ -42,7 +45,7 @@ void TaskGenerateEmbCDataType::generate(vsc::dm::IDataType *type) {
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
-    m_out->write("%s", m_name_m->getName(t).c_str());
+    m_out->write("%s", m_ctxt->nameMap()->getName(t).c_str());
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
@@ -60,7 +63,11 @@ void TaskGenerateEmbCDataType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
 }
 
 void TaskGenerateEmbCDataType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
-    m_out->write("%s", m_name_m->getName(t).c_str());
+    if (m_is_fparam) {
+        m_out->write("%s *", m_ctxt->nameMap()->getName(t).c_str());
+    } else {
+        m_out->write("%s", m_ctxt->nameMap()->getName(t).c_str());
+    }
 }
 
 void TaskGenerateEmbCDataType::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
@@ -68,6 +75,8 @@ void TaskGenerateEmbCDataType::visitTypeFieldPool(arl::dm::ITypeFieldPool *f) {
     // type and use the pool-item type instead
     f->getElemDataType()->accept(m_this);
 }
+
+dmgr::IDebug *TaskGenerateEmbCDataType::m_dbg = 0;
 
 }
 }

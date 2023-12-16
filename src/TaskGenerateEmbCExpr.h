@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "vsc/dm/ITypeExpr.h"
@@ -35,9 +36,7 @@ class TaskGenerateEmbCExpr :
     public virtual ITaskGenerateExpr, 
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateEmbCExpr(
-        dmgr::IDebugMgr                                         *dmgr,
-        NameMap                                                 *name_m);
+    TaskGenerateEmbCExpr(IContext *ctxt);
 
     virtual ~TaskGenerateEmbCExpr();
     
@@ -77,7 +76,8 @@ public:
 	virtual void visitTypeExprVal(vsc::dm::ITypeExprVal *e) override;
 
 private:
-    NameMap                                             *m_name_m;
+    static dmgr::IDebug                                 *m_dbg;
+    IContext                                            *m_ctxt;
     IOutput                                             *m_out;
     vsc::dm::IDataTypeStruct                            *m_type_scope;
     std::vector<arl::dm::ITypeProcStmtDeclScope *>      *m_proc_scopes;

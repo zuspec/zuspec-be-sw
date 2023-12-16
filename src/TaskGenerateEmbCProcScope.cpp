@@ -33,12 +33,11 @@ namespace sw {
 
 
 TaskGenerateEmbCProcScope::TaskGenerateEmbCProcScope(
-    dmgr::IDebugMgr             *dmgr,
+    IContext                    *ctxt,
     IOutput                     *out,
-    NameMap                     *name_m,
     ITaskGenerateExpr           *expr_gen) : 
-        m_out(out), m_name_m(name_m), m_expr_gen(expr_gen) {
-    DEBUG_INIT("TaskGenerateEmbCProcScope", dmgr);
+        m_ctxt(ctxt), m_out(out), m_expr_gen(expr_gen) {
+    DEBUG_INIT("TaskGenerateEmbCProcScope", ctxt->getDebugMgr());
 
 }
 
@@ -142,7 +141,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
     }
 
     // Generate all in-scope declarations at the beginning of the scope
-    TaskGenerateEmbCVarDecl decl_gen(m_out, m_name_m);
+    TaskGenerateEmbCVarDecl decl_gen(m_ctxt, m_out);
     for (std::vector<ITypeProcStmtUP>::const_iterator
         it=s->getStatements().begin();
         it!=s->getStatements().end(); it++) {

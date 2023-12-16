@@ -56,7 +56,8 @@ void TaskGenerateActionQueueCalls::generate(
                 out->println("{");
                 out->inc_ind();
                 out->indent();
-                TaskGenerateEmbCDataType(out, m_name_m).generate(
+                // TODO:
+                TaskGenerateEmbCDataType(0, out).generate(
                     it->action->getDataTypeT<vsc::dm::IDataTypeStruct>());
                 out->write(" %s = {\n", m_ctx_name.c_str());
                 out->inc_ind();

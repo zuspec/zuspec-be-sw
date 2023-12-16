@@ -19,6 +19,8 @@
  *     Author: 
  */
 #pragma once
+#include "dmgr/IDebugMgr.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "NameMap.h"
@@ -31,7 +33,7 @@ namespace sw {
 
 class TaskGenerateFuncProtoEmbeddedC : public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateFuncProtoEmbeddedC(NameMap *name_m);
+    TaskGenerateFuncProtoEmbeddedC(IContext *ctxt);
 
     virtual ~TaskGenerateFuncProtoEmbeddedC();
 
@@ -42,7 +44,7 @@ public:
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 private:
-    NameMap                                 *m_name_m;
+    IContext                                *m_ctxt;
     IOutput                                 *m_out;
 };
 

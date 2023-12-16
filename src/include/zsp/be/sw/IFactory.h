@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/IModelFieldExecutor.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IGeneratorEvalIterator.h"
 #include "zsp/be/sw/IGeneratorFunctions.h"
 #include "zsp/be/sw/IOutput.h"
@@ -48,6 +49,18 @@ public:
         IOutput                                           *out_h,
         IOutput                                           *out_c
     ) = 0;
+
+    virtual IContext *mkContext(arl::dm::IContext *ctxt) = 0;
+
+    virtual void generateC(
+        IContext                                        *ctxt,
+        const std::vector<vsc::dm::IAccept *>           &roots,
+        std::ostream                                    *csrc,
+        std::ostream                                    *pub_h,
+        std::ostream                                    *prv_h
+    ) = 0;
+
+    virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 
     virtual IOutput *mkFileOutput(const std::string &path) = 0;
 

@@ -19,8 +19,10 @@
  *     Author:
  */
 #include <map>
+#include "dmgr/impl/DebugMacros.h"
 #include "vsc/dm/ITypeExprVal.h"
 #include "vsc/dm/impl/TaskIsTypeFieldRef.h"
+#include "zsp/be/sw/IMethodCallFactoryAssocData.h"
 #include "TaskGenerateEmbCExpr.h"
 
 
@@ -29,12 +31,10 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(
-        dmgr::IDebugMgr                                         *dmgr,
-        NameMap                                                 *name_m) :
-        m_name_m(name_m), m_out(0), m_type_scope(0), m_proc_scopes(0),
+TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(IContext *ctxt) :
+        m_ctxt(ctxt), m_out(0), m_type_scope(0), m_proc_scopes(0),
         m_active_ptref(false), m_bottom_up_ptref(false) { 
-
+    DEBUG_INIT("zsp::be::sw::TaskGenerateEmbCExpr", ctxt->getDebugMgr());
 }
 
 TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
@@ -44,8 +44,10 @@ TaskGenerateEmbCExpr::~TaskGenerateEmbCExpr() {
 void TaskGenerateEmbCExpr::generate(
         IOutput                                         *out,
         vsc::dm::ITypeExpr                              *expr) {
+    DEBUG_ENTER("generate");
     m_out = out;
     expr->accept(m_this);
+    DEBUG_LEAVE("generate");
 }
 
 static std::map<vsc::dm::BinOp, std::string> prv_op_m = {
@@ -124,17 +126,24 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMeth
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) {
-    m_out->write("%s(", m_name_m->getName(e->getTarget()).c_str());
-    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
-        it=e->getParameters().begin();
-        it!=e->getParameters().end(); it++) {
-        if (it != e->getParameters().begin()) {
-            m_out->write(", ");
+    DEBUG_ENTER("visitTypeExprMethodCallStatic");
+    fprintf(stdout, "assoc_data: %p", e->getTarget()->getAssociatedData());
+    fflush(stdout);
+    IMethodCallFactoryAssocData *assoc_data = 
+        dynamic_cast<IMethodCallFactoryAssocData *>(e->getTarget()->getAssociatedData());
+    if (assoc_data) {
+        vsc::dm::ITypeExprUP expr(assoc_data->mkCallStatic(m_ctxt, e));
+        if (expr) {
+            DEBUG_ENTER("Visit expr");
+            expr->accept(m_this);
+            DEBUG_LEAVE("Visit expr");
+        } else {
+            DEBUG("Null expr");
         }
-        (*it)->accept(m_this);
-    }
 
-    m_out->write(")");
+        m_out->write(")");
+    }
+    DEBUG_LEAVE("visitTypeExprMethodCallStatic");
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::dm::ITypeExprRange *e) {
@@ -150,7 +159,10 @@ void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {
 #ifdef UNDEFINED
     m_out->write("%lld", e->val()->val_i());
 #endif
+    m_out->write("<val>");
 }
+
+dmgr::IDebug *TaskGenerateEmbCExpr::m_dbg = 0;
 
 }
 }

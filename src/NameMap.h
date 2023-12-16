@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include "zsp/arl/dm/IDataTypeFunction.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/INameMap.h"
 #include "vsc/dm/IDataType.h"
 
 namespace zsp {
@@ -36,27 +37,29 @@ using NameMapUP=std::unique_ptr<NameMap>;
  * @brief Supports name mangling function and type names
  * 
  */
-class NameMap : public arl::dm::VisitorBase {
+class NameMap : 
+    public virtual INameMap,
+    public virtual arl::dm::VisitorBase {
 public:
     NameMap();
 
     virtual ~NameMap();
 
-    bool hasName(vsc::dm::IDataType *type) {
+    virtual bool hasName(vsc::dm::IDataType *type) const override {
         return (m_type_m.find(type) != m_type_m.end());
     }
 
-    bool hasName(arl::dm::IDataTypeFunction *func) {
+    virtual bool hasName(arl::dm::IDataTypeFunction *func) const override {
         return (m_func_m.find(func) != m_func_m.end());
     }
 
-    void setName(vsc::dm::IDataType *type, const std::string &name);
+    virtual void setName(vsc::dm::IDataType *type, const std::string &name) override;
 
-    void setName(arl::dm::IDataTypeFunction *func, const std::string &name);
+    virtual void setName(arl::dm::IDataTypeFunction *func, const std::string &name) override;
 
-    const std::string &getName(vsc::dm::IDataType *type);
+    virtual const std::string &getName(vsc::dm::IDataType *type) override;
 
-    const std::string &getName(arl::dm::IDataTypeFunction *func);
+    virtual const std::string &getName(arl::dm::IDataTypeFunction *func) override;
 
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 

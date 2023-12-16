@@ -277,6 +277,7 @@ ext = Extension("zsp_be_sw.core",
             include_dirs=[
                 os.path.join(zuspec_be_sw_dir, 'python'),
                 os.path.join(zuspec_be_sw_dir, 'src', 'include'),
+                os.path.join(packages_dir, 'ciostream', 'src', 'ciostream'),
                 os.path.join(packages_dir, 'zuspec-arl-dm', 'src', 'include'),
                 os.path.join(packages_dir, 'zuspec-arl-dm', 'python'),
                 os.path.join(packages_dir, 'vsc-dm', 'src', 'include'),

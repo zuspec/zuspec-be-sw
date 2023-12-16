@@ -30,7 +30,7 @@ namespace sw {
 
 TaskMangleTypeNames::TaskMangleTypeNames(
     dmgr::IDebugMgr             *dmgr,
-    NameMap                     *name_m) : m_name_m(name_m) {
+    INameMap                    *name_m) : m_name_m(name_m) {
     DEBUG_INIT("TaskMangleTypeName", dmgr);
 }
 

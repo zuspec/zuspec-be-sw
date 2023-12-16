@@ -48,8 +48,9 @@ void GeneratorFunctionsThreaded::generate(
     NameMapUP name_m(new NameMap());
     IFunctionMapUP func_m(new FunctionMap());
     TaskCollectReferencedFunctions collector(func_m.get());
-    TaskGenerateFuncProtoEmbeddedC proto_gen(name_m.get());
-    TaskGenerateFunctionEmbeddedC func_gen(ctxt->getDebugMgr(), name_m.get());
+    // TODO:
+    TaskGenerateFuncProtoEmbeddedC proto_gen(0);
+    TaskGenerateFunctionEmbeddedC func_gen(0);
 
     // Collect all functions
     // - Root functions provided

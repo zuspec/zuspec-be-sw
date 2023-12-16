@@ -22,6 +22,7 @@
 #include <set>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "NameMap.h"
 #include "TaskMangleTypeNames.h"
@@ -33,9 +34,8 @@ namespace sw {
 class TaskGenerateEmbCStruct : public arl::dm::VisitorBase {
 public:
     TaskGenerateEmbCStruct(
-        dmgr::IDebugMgr         *dmgr,
-        IOutput                 *out,
-        NameMap                 *name_m);
+        IContext                *ctxt,
+        IOutput                 *out);
 
     virtual ~TaskGenerateEmbCStruct();
 
@@ -62,10 +62,10 @@ public:
 
 private:
     static dmgr::IDebug                     *m_dbg;
+    IContext                                *m_ctxt;
     uint32_t                                m_depth;
     TaskMangleTypeNames                     m_mangler;
     IOutput                                 *m_out;
-    NameMap                                 *m_name_m;
     std::vector<vsc::dm::ITypeField *>      m_field_s;
     std::vector<bool>                       m_ref_s;
     std::vector<std::set<std::string> *>    m_ignore_field_s;

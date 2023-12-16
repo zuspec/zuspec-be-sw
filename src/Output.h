@@ -33,7 +33,7 @@ public:
     Output(
         std::ostream            *out,
         bool                    owned,
-        const std::string       &ind
+        const std::string       &ind=""
     );
 
     virtual ~Output();

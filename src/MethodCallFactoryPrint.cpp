@@ -51,8 +51,21 @@ vsc::dm::ITypeExpr *MethodCallFactoryPrint::mkCallStatic(
         arl::dm::ITypeExprMethodCallStatic  *call) {
     vsc::dm::ITypeExpr *ret = 0;
     DEBUG_ENTER("mkCallStatic");
-    ret = ctxt->ctxt()->mkTypeExprVal(
-        ctxt->ctxt()->mkValRefInt(20, true, 32)
+    std::vector<vsc::dm::ITypeExpr *> params;
+    params.push_back(ctxt->ctxt()->mkTypeExprVal(
+        ctxt->ctxt()->mkValRefStr("Hello"))
+    );
+
+    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+        it=call->getParameters().begin()+1;
+        it!=call->getParameters().end(); it++) {
+        params.push_back(ctxt->ctxt()->mkTypeExprRef(it->get(), false));
+    }
+
+    ret = ctxt->ctxt()->mkTypeExprMethodCallStatic(
+        ctxt->getBackendFunction(BackendFunctions::Printf),
+        params,
+        true
     );
 
     DEBUG_LEAVE("mkCallStatic");

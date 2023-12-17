@@ -27,6 +27,18 @@ namespace zsp {
 namespace be {
 namespace sw {
 
+enum class BackendFunctions {
+    Printf,
+    Read8,
+    Read16,
+    Read32,
+    Read64,
+    Write8,
+    Write16,
+    Write32,
+    Write64,
+    NumFuncs
+};
 
 class IContext {
 public:
@@ -38,6 +50,9 @@ public:
     virtual arl::dm::IContext *ctxt() const = 0;
 
     virtual INameMap *nameMap() = 0;
+
+    virtual arl::dm::IDataTypeFunction *getBackendFunction(
+        BackendFunctions    func) = 0;
 
 };
 

@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include "zsp/arl/dm/IDataTypeFunction.h"
 #include "zsp/be/sw/IContext.h"
 #include "NameMap.h"
 
@@ -47,10 +48,22 @@ public:
         return &m_name_m;
     }
 
+    virtual arl::dm::IDataTypeFunction *getBackendFunction(
+        BackendFunctions    func) override {
+        return m_backend_funcs[(int)func];
+    }
+
+    void setBackendFunction(
+        BackendFunctions                id,
+        zsp::arl::dm::IDataTypeFunction *func) {
+        m_backend_funcs[(int)id] = func;
+    }
+
 private:
-    dmgr::IDebugMgr             *m_dmgr;
-    arl::dm::IContext           *m_ctxt;
-    NameMap                     m_name_m;
+    dmgr::IDebugMgr                     *m_dmgr;
+    arl::dm::IContext                   *m_ctxt;
+    NameMap                             m_name_m;
+    arl::dm::IDataTypeFunction         *m_backend_funcs[(int)BackendFunctions::NumFuncs];
 };
 
 }

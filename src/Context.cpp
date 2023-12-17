@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include <string.h>
 #include "Context.h"
 #include "TaskInitContextC.h"
 
@@ -30,6 +31,10 @@ Context::Context(
     dmgr::IDebugMgr         *dmgr,
     arl::dm::IContext       *ctxt) : m_dmgr(dmgr), m_ctxt(ctxt) {
     TaskInitContextC(dmgr).init(ctxt);
+
+    // Find core functions
+    memset(m_backend_funcs, 0, sizeof(m_backend_funcs));
+    m_backend_funcs[(int)BackendFunctions::Printf] = ctxt->findDataTypeFunction("printf");
 }
 
 Context::~Context() {

@@ -39,6 +39,7 @@ TaskInitContextC::~TaskInitContextC() {
 void TaskInitContextC::init(arl::dm::IContext *ctxt) {
     DEBUG_ENTER("init");
     addMethodCallFactories(ctxt);
+    createBackendFuncs(ctxt);
     DEBUG_LEAVE("init");
 }
 
@@ -66,6 +67,16 @@ void TaskInitContextC::addMethodCallFactories(arl::dm::IContext *ctxt) {
         }
     }
     DEBUG_LEAVE("addMethodCallFactories");
+}
+
+void TaskInitContextC::createBackendFuncs(arl::dm::IContext *ctxt) {
+    arl::dm::IDataTypeFunction *printf_t = ctxt->mkDataTypeFunction(
+        "printf",
+        0,
+        false,
+        arl::dm::DataTypeFunctionFlags::Target);
+    ctxt->addDataTypeFunction(printf_t);
+
 }
 
 dmgr::IDebug *TaskInitContextC::m_dbg = 0;

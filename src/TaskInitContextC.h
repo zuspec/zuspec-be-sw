@@ -39,6 +39,8 @@ public:
 protected:
     void addMethodCallFactories(arl::dm::IContext *ctxt);
 
+    void createBackendFuncs(arl::dm::IContext *ctxt);
+
 private:
     static dmgr::IDebug             *m_dbg;
     dmgr::IDebugMgr                 *m_dmgr;

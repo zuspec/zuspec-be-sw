@@ -142,6 +142,21 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMetho
         }
 
         m_out->write(")");
+    } else {
+        // Directly render the function call
+        m_out->println("%s(", e->getTarget()->name().c_str());
+        m_out->inc_ind();
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+            it=e->getParameters().begin();
+            it!=e->getParameters().end(); it++) {
+            m_out->write(m_out->ind());
+            (*it)->accept(m_this);
+            if (it+1 != e->getParameters().end()) {
+                m_out->write(",\n");
+            }
+        }
+        m_out->dec_ind();
+        m_out->write(")\n");
     }
     DEBUG_LEAVE("visitTypeExprMethodCallStatic");
 }

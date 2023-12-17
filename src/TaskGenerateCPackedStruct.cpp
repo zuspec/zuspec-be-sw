@@ -108,6 +108,7 @@ void TaskGenerateCPackedStruct::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) {
     f->getDataType()->accept(m_this);
     if (m_width > 0) {
         m_out->write(" %s:%d;\n", f->name().c_str(), m_width);
+        m_bits += m_width;
     } else {
         m_out->write(" %s;\n", f->name().c_str());
     }

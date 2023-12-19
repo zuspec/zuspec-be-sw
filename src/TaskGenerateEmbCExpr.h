@@ -40,13 +40,6 @@ public:
 
     virtual ~TaskGenerateEmbCExpr();
     
-    virtual void init(
-        vsc::dm::IDataTypeStruct                            *type_scope,
-        std::vector<arl::dm::ITypeProcStmtDeclScope *>      *proc_scopes) override {
-        m_type_scope = type_scope;
-        m_proc_scopes = proc_scopes;
-    }
-
     void generate(
         IOutput                                             *out,
         vsc::dm::ITypeExpr                                  *expr);
@@ -79,8 +72,6 @@ private:
     static dmgr::IDebug                                 *m_dbg;
     IContext                                            *m_ctxt;
     IOutput                                             *m_out;
-    vsc::dm::IDataTypeStruct                            *m_type_scope;
-    std::vector<arl::dm::ITypeProcStmtDeclScope *>      *m_proc_scopes;
     std::string                                         m_bottom_up_pref;
     bool                                                m_bottom_up_ptref;
     std::string                                         m_active_pref;

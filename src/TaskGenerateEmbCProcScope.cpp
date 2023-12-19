@@ -36,7 +36,9 @@ TaskGenerateEmbCProcScope::TaskGenerateEmbCProcScope(
     IContext                    *ctxt,
     IOutput                     *out,
     ITaskGenerateExpr           *expr_gen) : 
-        m_ctxt(ctxt), m_out(out), m_expr_gen(expr_gen) {
+        m_ctxt(ctxt), m_out(out), 
+        m_expr_gen(expr_gen?expr_gen:&m_expr_gen_dflt),
+        m_expr_gen_dflt(ctxt) {
     DEBUG_INIT("TaskGenerateEmbCProcScope", ctxt->getDebugMgr());
 
 }
@@ -45,10 +47,7 @@ TaskGenerateEmbCProcScope::~TaskGenerateEmbCProcScope() {
 
 }
 
-void TaskGenerateEmbCProcScope::generate(
-    vsc::dm::IDataTypeStruct    *type_scope,
-    arl::dm::ITypeProcStmtScope *scope) {
-    m_type_s = type_scope;
+void TaskGenerateEmbCProcScope::generate(arl::dm::ITypeProcStmtScope *scope) {
     scope->accept(m_this);
 }
 
@@ -62,7 +61,6 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtAssign(ITypeProcStmtAssign *s) 
         {TypeProcStmtAssignOp::OrEq, "|="},
         {TypeProcStmtAssignOp::AndEq, "&="}
     };
-    m_expr_gen->init(m_type_s, &m_scope_s);
 
     m_out->indent();
     m_expr_gen->generate(m_out, s->getLhs());
@@ -82,7 +80,6 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtContinue(ITypeProcStmtContinue 
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
     m_out->indent();
-    m_expr_gen->init(m_type_s, &m_scope_s);
 
     m_expr_gen->generate(m_out, s->getExpr());
     m_out->write(";\n");
@@ -124,7 +121,6 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtRepeatWhile(ITypeProcStmtRepeat
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) {
     if (s->getExpr()) {
-        m_expr_gen->init(m_type_s, &m_scope_s);
 
         m_out->print("return ");
         m_expr_gen->generate(m_out, s->getExpr());
@@ -135,7 +131,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) 
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
-    if (m_scope_s.size() > 1) {
+    if (m_ctxt->execScope(1)) { // If theres at least 2 exec scopes
         m_out->println("{");
         m_out->inc_ind();
     }
@@ -148,15 +144,15 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
         decl_gen.generate(it->get());
     }
 
-    m_scope_s.push_back(s);
+    m_ctxt->pushExecScope(s);
     for (std::vector<ITypeProcStmtUP>::const_iterator
         it=s->getStatements().begin();
         it!=s->getStatements().end(); it++) {
         (*it)->accept(m_this);
     }
-    m_scope_s.pop_back();
+    m_ctxt->popExecScope();
 
-    if (m_scope_s.size() > 1) {
+    if (m_ctxt->execScope(1)) {
         m_out->dec_ind();
         m_out->println("}");
     }

@@ -54,6 +54,18 @@ public:
     virtual arl::dm::IDataTypeFunction *getBackendFunction(
         BackendFunctions    func) = 0;
 
+    virtual void pushTypeScope(vsc::dm::IDataTypeStruct *t) = 0;
+
+    virtual vsc::dm::IDataTypeStruct *typeScope() = 0;
+
+    virtual void popTypeScope() = 0;
+
+    virtual void pushExecScope(arl::dm::ITypeProcStmtDeclScope *s) = 0;
+
+    virtual arl::dm::ITypeProcStmtDeclScope *execScope(int32_t off=0) = 0;
+
+    virtual void popExecScope() = 0;
+
 };
 
 }

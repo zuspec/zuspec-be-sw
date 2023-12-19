@@ -24,6 +24,7 @@
 #include "vsc/dm/impl/TaskIsTypeFieldRef.h"
 #include "zsp/be/sw/IMethodCallFactoryAssocData.h"
 #include "TaskGenerateEmbCExpr.h"
+#include "TaskGenerateEmbCVal.h"
 
 
 namespace zsp {
@@ -32,7 +33,7 @@ namespace sw {
 
 
 TaskGenerateEmbCExpr::TaskGenerateEmbCExpr(IContext *ctxt) :
-        m_ctxt(ctxt), m_out(0), m_type_scope(0), m_proc_scopes(0),
+        m_ctxt(ctxt), m_out(0),
         m_active_ptref(false), m_bottom_up_ptref(false) { 
     DEBUG_INIT("zsp::be::sw::TaskGenerateEmbCExpr", ctxt->getDebugMgr());
 }
@@ -86,9 +87,7 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
             m_out->write("%s%s", m_bottom_up_pref.c_str(), m_bottom_up_ptref?"->":".");
         }
         // We start by identifying the proc scope
-        arl::dm::ITypeProcStmtDeclScope *s = m_proc_scopes->at(
-            m_proc_scopes->size() - e->getRootRefOffset() - 1
-        );
+        arl::dm::ITypeProcStmtDeclScope *s = m_ctxt->execScope(e->getRootRefOffset());
 
         // Next element must be an offset
         arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0)).get();
@@ -108,7 +107,7 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
             m_out->write("%s%s", m_active_pref.c_str(), m_active_ptref?"->":".");
         }
 
-        vsc::dm::IDataTypeStruct *scope = m_type_scope;
+        vsc::dm::IDataTypeStruct *scope = m_ctxt->typeScope();
         for (uint32_t i=0; i<e->size(); i++) {
             vsc::dm::ITypeField *field = scope->getField(e->at(i));
             if (i > 1) {
@@ -122,7 +121,39 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {
+    DEBUG_ENTER("visitTypeExprMethodCallContext");
+    fprintf(stdout, "assoc_data: %p", e->getTarget()->getAssociatedData());
+    fflush(stdout);
+    IMethodCallFactoryAssocData *assoc_data = 
+        dynamic_cast<IMethodCallFactoryAssocData *>(e->getTarget()->getAssociatedData());
+    if (assoc_data) {
+        vsc::dm::ITypeExprUP expr(assoc_data->mkCallContext(m_ctxt, e));
+        if (expr) {
+            DEBUG_ENTER("Visit expr");
+            expr->accept(m_this);
+            DEBUG_LEAVE("Visit expr");
+        } else {
+            DEBUG("Null expr");
+        }
 
+        m_out->write(")");
+    } else {
+        // Directly render the function call
+        m_out->println("%s(", m_ctxt->nameMap()->getName(e->getTarget()).c_str());
+        m_out->inc_ind();
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+            it=e->getParameters().begin();
+            it!=e->getParameters().end(); it++) {
+            m_out->write(m_out->ind());
+            (*it)->accept(m_this);
+            if (it+1 != e->getParameters().end()) {
+                m_out->write(",\n");
+            }
+        }
+        m_out->dec_ind();
+        m_out->write(")\n");
+    }
+    DEBUG_LEAVE("visitTypeExprMethodCallContext");
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) {
@@ -144,7 +175,7 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMetho
         m_out->write(")");
     } else {
         // Directly render the function call
-        m_out->println("%s(", e->getTarget()->name().c_str());
+        m_out->println("%s(", m_ctxt->nameMap()->getName(e->getTarget()).c_str());
         m_out->inc_ind();
         for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
             it=e->getParameters().begin();
@@ -170,11 +201,9 @@ void TaskGenerateEmbCExpr::visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {
-    // TODO: Should know whether we want a signed or unsigned value
-#ifdef UNDEFINED
-    m_out->write("%lld", e->val()->val_i());
-#endif
-    m_out->write("<val>");
+    DEBUG_ENTER("visitTypeExprVal");
+    TaskGenerateEmbCVal(m_ctxt).generate(m_out, e->val());
+    DEBUG_LEAVE("visitTypeExprVal");
 }
 
 dmgr::IDebug *TaskGenerateEmbCExpr::m_dbg = 0;

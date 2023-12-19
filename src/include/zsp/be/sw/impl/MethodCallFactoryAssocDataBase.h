@@ -1,7 +1,7 @@
 /**
- * ITaskGenerateExpr.h
+ * MethodCallFactoryAssocDataBase.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -19,34 +19,30 @@
  *     Author: 
  */
 #pragma once
-#include <memory>
-#include <vector>
-#include "vsc/dm/ITypeExpr.h"
-#include "vsc/dm/ITypeField.h"
-#include "zsp/arl/dm/ITypeProcStmtDeclScope.h"
-#include "zsp/be/sw/IOutput.h"
-
+#include "zsp/be/sw/IMethodCallFactoryAssocData.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class ITaskGenerateExpr;
-using ITaskGenerateExprUP=std::unique_ptr<ITaskGenerateExpr>;
-class ITaskGenerateExpr {
+
+
+class MethodCallFactoryAssocDataBase : public virtual IMethodCallFactoryAssocData {
 public:
 
-    virtual ~ITaskGenerateExpr() { }
+    virtual ~MethodCallFactoryAssocDataBase() { }
 
-/*
-    virtual void init(
-        vsc::dm::IDataTypeStruct                            *type_scope,
-        std::vector<arl::dm::ITypeProcStmtDeclScope *>      *proc_scopes) = 0;
- */
+    virtual vsc::dm::ITypeExpr *mkCallContext(
+        IContext                            *ctxt,
+        arl::dm::ITypeExprMethodCallContext *call) override {
+        return 0;
+    }
 
-    virtual void generate(
-        IOutput                     *out,
-        vsc::dm::ITypeExpr          *expr) = 0;
+    virtual vsc::dm::ITypeExpr *mkCallStatic(
+        IContext                            *ctxt,
+        arl::dm::ITypeExprMethodCallStatic  *call) override {
+        return 0;
+    }
 
 };
 

@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskInitContextC.h"
 #include "MethodCallFactoryPrint.h"
+#include "MethodCallFactoryRegRw.h"
 
 namespace zsp {
 namespace be {
@@ -49,6 +50,7 @@ void TaskInitContextC::addMethodCallFactories(arl::dm::IContext *ctxt) {
         it=ctxt->getDataTypeFunctions().begin();
         it!=ctxt->getDataTypeFunctions().end(); it++) {
         const std::string &name = (*it)->name();
+        DEBUG("name: %s", name.c_str());
         int32_t first_colon_idx = name.find("::");
         if (first_colon_idx != -1) {
             std::string pkgname = name.substr(0, first_colon_idx);
@@ -58,11 +60,32 @@ void TaskInitContextC::addMethodCallFactories(arl::dm::IContext *ctxt) {
                 int32_t last_colon = name.rfind("::");
                 std::string leafname = name.substr(last_colon+2);
                 if (leafname == "print") {
-                    DEBUG("TODO: attach print");
                     (*it)->setAssociatedData(new MethodCallFactoryPrint(m_dmgr));
                 }
             } else if (pkgname == "addr_reg_pkg") {
-
+                int32_t next_colon = name.find("::", first_colon_idx+2);
+                DEBUG("next_colon: %d first_colon: %d", next_colon, first_colon_idx);
+                if (next_colon != -1) {
+                    std::string comp_struct_name = name.substr(
+                        first_colon_idx+2,
+                        next_colon-first_colon_idx-2);
+                    int32_t last_colon = name.rfind("::");
+                    std::string leaf = name.substr(last_colon+2);
+                    DEBUG("leaf: %s", leaf.c_str());
+                    if (leaf == "read") {
+                        (*it)->setAssociatedData(new MethodCallFactoryRegRw(
+                            m_dmgr, false, false));
+                    } else if (leaf == "read_val") {
+                        (*it)->setAssociatedData(new MethodCallFactoryRegRw(
+                            m_dmgr, false, true));
+                    } else if (leaf == "write") {
+                        (*it)->setAssociatedData(new MethodCallFactoryRegRw(
+                            m_dmgr, true, false));
+                    } else if (leaf == "write_val") {
+                        (*it)->setAssociatedData(new MethodCallFactoryRegRw(
+                            m_dmgr, true, true));
+                    }
+                }
             }
         }
     }
@@ -76,7 +99,6 @@ void TaskInitContextC::createBackendFuncs(arl::dm::IContext *ctxt) {
         false,
         arl::dm::DataTypeFunctionFlags::Target);
     ctxt->addDataTypeFunction(printf_t);
-
 }
 
 dmgr::IDebug *TaskInitContextC::m_dbg = 0;

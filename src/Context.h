@@ -59,11 +59,25 @@ public:
         m_backend_funcs[(int)id] = func;
     }
 
+    virtual void pushTypeScope(vsc::dm::IDataTypeStruct *t) override;
+
+    virtual vsc::dm::IDataTypeStruct *typeScope() override;
+
+    virtual void popTypeScope() override;
+
+    virtual void pushExecScope(arl::dm::ITypeProcStmtDeclScope *s) override;
+
+    virtual arl::dm::ITypeProcStmtDeclScope *execScope(int32_t off=0) override;
+
+    virtual void popExecScope() override;
+
 private:
-    dmgr::IDebugMgr                     *m_dmgr;
-    arl::dm::IContext                   *m_ctxt;
-    NameMap                             m_name_m;
-    arl::dm::IDataTypeFunction         *m_backend_funcs[(int)BackendFunctions::NumFuncs];
+    dmgr::IDebugMgr                                 *m_dmgr;
+    arl::dm::IContext                               *m_ctxt;
+    NameMap                                         m_name_m;
+    arl::dm::IDataTypeFunction                      *m_backend_funcs[(int)BackendFunctions::NumFuncs];
+    std::vector<vsc::dm::IDataTypeStruct *>         m_typescope_s;
+    std::vector<arl::dm::ITypeProcStmtDeclScope *>  m_execscope_s;
 };
 
 }

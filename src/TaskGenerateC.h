@@ -47,6 +47,8 @@ public:
 
 	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
 
+    virtual void visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) override;
+
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 private:

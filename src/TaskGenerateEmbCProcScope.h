@@ -25,6 +25,7 @@
 #include "zsp/be/sw/IContext.h"
 #include "ITaskGenerateExpr.h"
 #include "NameMap.h"
+#include "TaskGenerateEmbCExpr.h"
 
 namespace zsp {
 namespace be {
@@ -37,13 +38,11 @@ public:
     TaskGenerateEmbCProcScope(
         IContext                *ctxt,
         IOutput                 *out,
-        ITaskGenerateExpr       *expr_gen);
+        ITaskGenerateExpr       *expr_gen=0);
 
     virtual ~TaskGenerateEmbCProcScope();
 
-    void generate(
-        vsc::dm::IDataTypeStruct        *type_scope,
-        arl::dm::ITypeProcStmtScope     *scope);
+    void generate(arl::dm::ITypeProcStmtScope *scope);
 
 	virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
@@ -76,9 +75,7 @@ private:
     IContext                                        *m_ctxt;
     IOutput                                         *m_out;
     ITaskGenerateExpr                               *m_expr_gen;
-    vsc::dm::IDataTypeStruct                        *m_type_s;
-    uint32_t                    			        m_scope_depth;
-	std::vector<arl::dm::ITypeProcStmtDeclScope *>	m_scope_s;
+    TaskGenerateEmbCExpr                            m_expr_gen_dflt;
 
 };
 

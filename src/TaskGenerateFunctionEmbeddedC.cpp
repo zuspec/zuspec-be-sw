@@ -94,7 +94,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
     m_out->write(") {\n");
 
     m_out->inc_ind();
-    t->getBody()->accept(m_this);
+    TaskGenerateEmbCProcScope(m_ctxt, m_out).generate(t->getBody());
     m_out->dec_ind();
 
     m_out->println("}");
@@ -104,7 +104,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
 }
 
 void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
-    TaskGenerateEmbCExpr(m_ctxt).generate(m_out, s->getExpr());
+//    TaskGenerateEmbCExpr(m_ctxt).generate(m_out, s->getExpr());
 }
 
 dmgr::IDebug *TaskGenerateFunctionEmbeddedC::m_dbg = 0;

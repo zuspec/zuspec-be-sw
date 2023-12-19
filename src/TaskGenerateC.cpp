@@ -23,6 +23,7 @@
 #include "TaskGenerateFunctionEmbeddedC.h"
 #include "TaskGenerateFuncProtoEmbeddedC.h"
 #include "TaskGenerateCPackedStruct.h"
+#include "TaskGenerateEmbCRegGroup.h"
 #include "TaskGenerateEmbCStruct.h"
 
 
@@ -79,6 +80,12 @@ void TaskGenerateC::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t)
     // TODO: determine whether this is an 'interface' type
     TaskGenerateCPackedStruct(m_ctxt).generate(&m_prv_h, t);
     DEBUG_LEAVE("visitDataTypePackedStruct %s", t->name().c_str());
+}
+
+void TaskGenerateC::visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) {
+    DEBUG_ENTER("visitDataTypeRegGroup %s", t->name().c_str());
+    TaskGenerateEmbCRegGroup(m_ctxt, &m_prv_h).generate(t);
+    DEBUG_LEAVE("visitDataTypeRegGroup %s", t->name().c_str());
 }
 
 void TaskGenerateC::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {

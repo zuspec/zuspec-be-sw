@@ -66,6 +66,8 @@ public:
 
 	virtual void visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e) override;
 
+	virtual void visitTypeExprUnary(vsc::dm::ITypeExprUnary *e) override;
+
 	virtual void visitTypeExprVal(vsc::dm::ITypeExprVal *e) override;
 
 private:

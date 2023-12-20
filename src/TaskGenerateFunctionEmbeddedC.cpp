@@ -57,8 +57,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
     m_scope_depth = 0;
     m_out->indent();
 
-//    m_scope_s.push_back(t);
-//    m_scope_s.push_back(t->getBody());
+    m_ctxt->pushExecScope(t->getParamScope());
 
     TaskGenerateEmbCDataType dt_gen(m_ctxt, m_out);
     TaskGenerateEmbCDataType dt_gen_param(m_ctxt, m_out, true);
@@ -73,15 +72,13 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
     m_out->write("%s(", m_ctxt->nameMap()->getName(t).c_str());
 
     if (t->getParameters().size() > 0) {
-        m_out->write("\n");
         m_out->inc_ind();
         m_out->inc_ind();
         for (uint32_t i=0; i<t->getParameters().size(); i++) {
-            m_out->indent();
             dt_gen_param.generate(t->getParameters().at(i)->getDataType());
-            m_out->write(" %s", t->getParameters().at(i)->name().c_str());
+            m_out->write("%s", t->getParameters().at(i)->name().c_str());
             if (i+1 < t->getParameters().size()) {
-                m_out->write(",\n");
+                m_out->write(", ");
             }
         }
         m_out->dec_ind();
@@ -99,8 +96,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
 
     m_out->println("}");
 
-//    m_scope_s.pop_back();
-    m_scope_s.pop_back();
+    m_ctxt->popExecScope();
 }
 
 void TaskGenerateFunctionEmbeddedC::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {

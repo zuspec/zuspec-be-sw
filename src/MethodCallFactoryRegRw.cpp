@@ -69,6 +69,18 @@ vsc::dm::ITypeExpr *MethodCallFactoryRegRw::mkCallContext(
     DEBUG("bit_sz: %d", bit_sz);
 
     std::vector<vsc::dm::ITypeExpr *> params;
+    params.push_back(ctxt->ctxt()->mkTypeExprUnary(
+        call->getContext(),
+        false,
+        vsc::dm::UnaryOp::Ptr
+    ));
+
+    if (m_is_write) {
+        params.push_back(ctxt->ctxt()->mkTypeExprRef(
+            call->getParameters().at(0).get(),
+            false
+        ));
+    }
 
     ret = ctxt->ctxt()->mkTypeExprMethodCallStatic(
         rw_func,

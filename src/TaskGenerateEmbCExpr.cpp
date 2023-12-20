@@ -25,6 +25,7 @@
 #include "zsp/be/sw/IMethodCallFactoryAssocData.h"
 #include "TaskGenerateEmbCExpr.h"
 #include "TaskGenerateEmbCVal.h"
+#include "TaskIsPtrVar.h"
 
 
 namespace zsp {
@@ -92,12 +93,17 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
         // Next element must be an offset
         arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0)).get();
 
+        bool is_ptr_ref = TaskIsPtrVar().check(v);
+
+        // TODO: What if we reference as a whole?
         m_out->write("%s", v->name().c_str());
         vsc::dm::IDataTypeStruct *dt = dynamic_cast<vsc::dm::IDataTypeStruct *>(v->getDataType());
 
         for (uint32_t i=1; i<e->getPath().size(); i++) {
             vsc::dm::ITypeField *field = dt->getField(e->at(i));
-            m_out->write(".%s", field->name().c_str());
+            m_out->write("%s%s", 
+                (is_ptr_ref)?"->":".", field->name().c_str());
+            is_ptr_ref = false;
         }
     } else if (e->getRootRefKind() == vsc::dm::ITypeExprFieldRef::RootRefKind::TopDownScope) {
         // We start with the type scope
@@ -135,8 +141,6 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMeth
         } else {
             DEBUG("Null expr");
         }
-
-        m_out->write(")");
     } else {
         // Directly render the function call
         m_out->println("%s(", m_ctxt->nameMap()->getName(e->getTarget()).c_str());
@@ -151,7 +155,7 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMeth
             }
         }
         m_out->dec_ind();
-        m_out->write(")\n");
+        m_out->write(")");
     }
     DEBUG_LEAVE("visitTypeExprMethodCallContext");
 }
@@ -171,23 +175,20 @@ void TaskGenerateEmbCExpr::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMetho
         } else {
             DEBUG("Null expr");
         }
-
-        m_out->write(")");
     } else {
         // Directly render the function call
-        m_out->println("%s(", m_ctxt->nameMap()->getName(e->getTarget()).c_str());
+        m_out->write("%s(", m_ctxt->nameMap()->getName(e->getTarget()).c_str());
         m_out->inc_ind();
         for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
             it=e->getParameters().begin();
             it!=e->getParameters().end(); it++) {
-            m_out->write(m_out->ind());
             (*it)->accept(m_this);
             if (it+1 != e->getParameters().end()) {
-                m_out->write(",\n");
+                m_out->write(",%s", (it+1!=e->getParameters().end())?" ":"");
             }
         }
         m_out->dec_ind();
-        m_out->write(")\n");
+        m_out->write(")");
     }
     DEBUG_LEAVE("visitTypeExprMethodCallStatic");
 }
@@ -198,6 +199,17 @@ void TaskGenerateEmbCExpr::visitTypeExprRange(vsc::dm::ITypeExprRange *e) {
 
 void TaskGenerateEmbCExpr::visitTypeExprRangelist(vsc::dm::ITypeExprRangelist *e) {
 
+}
+
+void TaskGenerateEmbCExpr::visitTypeExprUnary(vsc::dm::ITypeExprUnary *e) {
+    DEBUG_ENTER("visitTypeExprUnary");
+    switch (e->op()) {
+        case vsc::dm::UnaryOp::Ptr: {
+            m_out->write("&");
+            e->target()->accept(m_this);
+        }
+    }
+    DEBUG_LEAVE("visitTypeExprUnary");
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {

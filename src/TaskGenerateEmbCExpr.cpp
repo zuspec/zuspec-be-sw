@@ -82,16 +82,22 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
+    DEBUG_ENTER("visitTypeExprFieldRef kind=%d root_offset=%d", e->getRootRefKind(), e->getRootRefOffset());
+    for (uint32_t i=0; i<e->getPath().size(); i++) {
+        DEBUG("  Elem[%d] %d", i, e->getPath().at(i));
+    }
     // Walk through the elements of the expression
     if (e->getRootRefKind() == vsc::dm::ITypeExprFieldRef::RootRefKind::BottomUpScope) {
         if (m_bottom_up_pref.size()) {
             m_out->write("%s%s", m_bottom_up_pref.c_str(), m_bottom_up_ptref?"->":".");
         }
         // We start by identifying the proc scope
-        arl::dm::ITypeProcStmtDeclScope *s = m_ctxt->execScope(e->getRootRefOffset());
+        ExecScopeVarInfo vi = m_ctxt->execScopeVar(
+            e->getRootRefOffset(),
+            e->at(0));
 
         // Next element must be an offset
-        arl::dm::ITypeProcStmtVarDecl *v = s->getVariables().at(e->at(0)).get();
+        arl::dm::ITypeProcStmtVarDecl *v = vi.var;
 
         bool is_ptr_ref = TaskIsPtrVar().check(v);
 
@@ -124,6 +130,8 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
             scope = field->getDataTypeT<vsc::dm::IDataTypeStruct>();
         }
     }
+
+    DEBUG_LEAVE("visitTypeExprFieldRef");
 }
 
 void TaskGenerateEmbCExpr::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {

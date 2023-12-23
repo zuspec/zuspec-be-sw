@@ -89,21 +89,19 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtForeach(ITypeProcStmtForeach *s
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtIfElse(ITypeProcStmtIfElse *s) {
-    m_out->print("if (");
-    s->getCond()->accept(m_this);
-    m_out->write(") {\n");
-    m_out->inc_ind();
-    s->getTrue()->accept(m_this);
-    m_out->dec_ind();
-
-    if (s->getFalse()) {
-        m_out->println("} else {");
-        m_out->inc_ind();
-        s->getFalse()->accept(m_this);
-        m_out->dec_ind();
+    for (uint32_t i=0; i<s->getIfClauses().size(); i++) {
+        m_out->print("%sif (", i?"else ":"");
+        TaskGenerateEmbCExpr(m_ctxt).generate(
+            m_out, s->getIfClauses().at(i)->getCond());
+        m_out->write(") ");
+        s->getIfClauses().at(i)->getStmt()->accept(m_this);
     }
 
-    m_out->println("}");
+    if (s->getElseClause()) {
+        m_out->write("else ");
+        s->getElseClause()->accept(m_this);
+    }
+    m_out->write("\n");
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtMatch(ITypeProcStmtMatch *s) {
@@ -130,10 +128,13 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) 
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtScope");
     if (m_ctxt->execScope(1)) { // If theres at least 2 exec scopes
         m_out->println("{");
         m_out->inc_ind();
     }
+
+    m_ctxt->pushExecScope(s);
 
     // Generate all in-scope declarations at the beginning of the scope
     TaskGenerateEmbCVarDecl decl_gen(m_ctxt, m_out);
@@ -143,7 +144,6 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
         decl_gen.generate(it->get());
     }
 
-    m_ctxt->pushExecScope(s);
     for (std::vector<ITypeProcStmtUP>::const_iterator
         it=s->getStatements().begin();
         it!=s->getStatements().end(); it++) {
@@ -155,7 +155,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
         m_out->dec_ind();
         m_out->println("}");
     }
-
+    DEBUG_LEAVE("visitTypeProcStmtScope");
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s) {

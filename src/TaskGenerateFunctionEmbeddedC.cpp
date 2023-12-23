@@ -57,7 +57,7 @@ void TaskGenerateFunctionEmbeddedC::visitDataTypeFunction(arl::dm::IDataTypeFunc
     m_scope_depth = 0;
     m_out->indent();
 
-    m_ctxt->pushExecScope(t->getParamScope());
+    m_ctxt->pushExecScope(t);
 
     TaskGenerateEmbCDataType dt_gen(m_ctxt, m_out);
     TaskGenerateEmbCDataType dt_gen_param(m_ctxt, m_out, true);

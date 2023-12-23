@@ -40,6 +40,30 @@ enum class BackendFunctions {
     NumFuncs
 };
 
+enum class ExecScopeVarFlags {
+    NoFlags = 0,
+    IsPtr = (1 << 0)
+};
+
+static inline ExecScopeVarFlags operator | (const ExecScopeVarFlags lhs, const ExecScopeVarFlags rhs) {
+	return static_cast<ExecScopeVarFlags>(
+			static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
+}
+
+static inline ExecScopeVarFlags operator & (const ExecScopeVarFlags lhs, const ExecScopeVarFlags rhs) {
+	return static_cast<ExecScopeVarFlags>(
+			static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
+}
+
+static inline ExecScopeVarFlags operator ~ (const ExecScopeVarFlags lhs) {
+	return static_cast<ExecScopeVarFlags>(~static_cast<uint32_t>(lhs));
+}
+
+struct ExecScopeVarInfo {
+    arl::dm::ITypeProcStmtVarDecl       *var;
+    ExecScopeVarFlags                   flags;
+};
+
 class IContext {
 public:
 
@@ -60,9 +84,13 @@ public:
 
     virtual void popTypeScope() = 0;
 
-    virtual void pushExecScope(arl::dm::ITypeProcStmtDeclScope *s) = 0;
+    virtual void pushExecScope(vsc::dm::IAccept *s) = 0;
 
-    virtual arl::dm::ITypeProcStmtDeclScope *execScope(int32_t off=0) = 0;
+    virtual vsc::dm::IAccept *execScope(int32_t off=0) = 0;
+
+    virtual ExecScopeVarInfo execScopeVar(
+        int32_t     scope_off,
+        int32_t     var_off) = 0;
 
     virtual void popExecScope() = 0;
 

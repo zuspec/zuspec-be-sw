@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "vsc/dm/impl/TaskIsTypeFieldRef.h"
+#include "TaskGenerateEmbCExpr.h"
 #include "TaskGenerateEmbCVarDecl.h"
 
 
@@ -73,7 +74,8 @@ void TaskGenerateEmbCVarDecl::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVar
     m_out->write(" %s", s->name().c_str());
 
     if (s->getInit()) {
-        // TODO: write initial value
+        m_out->write(" = ");
+        TaskGenerateEmbCExpr(m_ctxt).generate(m_out, s->getInit());
     }
     m_out->write(";\n");
 }

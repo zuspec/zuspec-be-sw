@@ -20,6 +20,7 @@
  */
 #include <string.h>
 #include "Context.h"
+#include "TaskGetExecScopeVarInfo.h"
 #include "TaskInitContextC.h"
 
 
@@ -73,12 +74,24 @@ void Context::popTypeScope() {
     m_typescope_s.pop_back();
 }
 
-void Context::pushExecScope(arl::dm::ITypeProcStmtDeclScope *s) {
+void Context::pushExecScope(vsc::dm::IAccept *s) {
     m_execscope_s.push_back(s);
 }
 
-arl::dm::ITypeProcStmtDeclScope *Context::execScope(int32_t off) {
+vsc::dm::IAccept *Context::execScope(int32_t off) {
     return (off<m_execscope_s.size())?m_execscope_s.at(m_execscope_s.size()-off-1):0;
+}
+
+ExecScopeVarInfo Context::execScopeVar(
+        int32_t     scope_off,
+        int32_t     var_off) {
+    if (scope_off < m_execscope_s.size()) {
+        return TaskGetExecScopeVarInfo().get(
+            m_execscope_s.at(m_execscope_s.size()-scope_off-1), 
+            var_off);
+    } else {
+        return {.var=0, .flags=ExecScopeVarFlags::NoFlags};
+    }
 }
 
 void Context::popExecScope() {

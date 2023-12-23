@@ -65,9 +65,13 @@ public:
 
     virtual void popTypeScope() override;
 
-    virtual void pushExecScope(arl::dm::ITypeProcStmtDeclScope *s) override;
+    virtual void pushExecScope(vsc::dm::IAccept *s) override;
 
-    virtual arl::dm::ITypeProcStmtDeclScope *execScope(int32_t off=0) override;
+    virtual vsc::dm::IAccept *execScope(int32_t off=0) override;
+
+    virtual ExecScopeVarInfo execScopeVar(
+        int32_t     scope_off,
+        int32_t     var_off) override;
 
     virtual void popExecScope() override;
 
@@ -77,7 +81,7 @@ private:
     NameMap                                         m_name_m;
     arl::dm::IDataTypeFunction                      *m_backend_funcs[(int)BackendFunctions::NumFuncs];
     std::vector<vsc::dm::IDataTypeStruct *>         m_typescope_s;
-    std::vector<arl::dm::ITypeProcStmtDeclScope *>  m_execscope_s;
+    std::vector<vsc::dm::IAccept *>                 m_execscope_s;
 };
 
 }

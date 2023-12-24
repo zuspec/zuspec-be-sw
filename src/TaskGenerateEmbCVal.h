@@ -40,6 +40,8 @@ public:
         IOutput                 *out,
         const vsc::dm::ValRef   &val);
 
+	virtual void visitDataTypeBool(vsc::dm::IDataTypeBool *t) override;
+
 	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
 
 	virtual void visitDataTypeString(vsc::dm::IDataTypeString *t) override;

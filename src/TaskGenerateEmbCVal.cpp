@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "vsc/dm/impl/ValRefBool.h"
 #include "vsc/dm/impl/ValRefInt.h"
 #include "vsc/dm/impl/ValRefStr.h"
 #include "TaskGenerateEmbCVal.h"
@@ -45,6 +46,13 @@ void TaskGenerateEmbCVal::generate(
     m_val = val;
     val.type()->accept(m_this);
     DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateEmbCVal::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
+    DEBUG_ENTER("visitDataTypeBool");
+    vsc::dm::ValRefBool val_b(m_val);
+    m_out->write("%s", (val_b.get_val())?"true":"false");
+    DEBUG_LEAVE("visitDataTypeBool");
 }
 
 void TaskGenerateEmbCVal::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {

@@ -89,12 +89,15 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtForeach(ITypeProcStmtForeach *s
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtIfElse(ITypeProcStmtIfElse *s) {
+    DEBUG_ENTER("visitTypeProcStmtIfElse");
     for (uint32_t i=0; i<s->getIfClauses().size(); i++) {
         m_out->print("%sif (", i?"else ":"");
         TaskGenerateEmbCExpr(m_ctxt).generate(
             m_out, s->getIfClauses().at(i)->getCond());
         m_out->write(") ");
+        DEBUG_ENTER("generate if-clause statement");
         s->getIfClauses().at(i)->getStmt()->accept(m_this);
+        DEBUG_LEAVE("generate if-clause statement");
     }
 
     if (s->getElseClause()) {
@@ -102,6 +105,7 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtIfElse(ITypeProcStmtIfElse *s) 
         s->getElseClause()->accept(m_this);
     }
     m_out->write("\n");
+    DEBUG_LEAVE("visitTypeProcStmtIfElse");
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtMatch(ITypeProcStmtMatch *s) {
@@ -129,10 +133,10 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtReturn(ITypeProcStmtReturn *s) 
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
     DEBUG_ENTER("visitTypeProcStmtScope");
-    if (m_ctxt->execScope(1)) { // If theres at least 2 exec scopes
+//    if (m_ctxt->execScope(1)) { // If theres at least 2 exec scopes
         m_out->println("{");
         m_out->inc_ind();
-    }
+//    }
 
     m_ctxt->pushExecScope(s);
 
@@ -151,10 +155,10 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtScope(ITypeProcStmtScope *s) {
     }
     m_ctxt->popExecScope();
 
-    if (m_ctxt->execScope(1)) {
+//    if (m_ctxt->execScope(1)) {
         m_out->dec_ind();
         m_out->println("}");
-    }
+//    }
     DEBUG_LEAVE("visitTypeProcStmtScope");
 }
 

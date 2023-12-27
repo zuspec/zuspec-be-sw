@@ -167,7 +167,12 @@ void TaskGenerateEmbCProcScope::visitTypeProcStmtVarDecl(ITypeProcStmtVarDecl *s
 }
 
 void TaskGenerateEmbCProcScope::visitTypeProcStmtWhile(ITypeProcStmtWhile *s) {
-
+    DEBUG_ENTER("visitTypeProcStmtWhile");
+    m_out->print("while (");
+    TaskGenerateEmbCExpr(m_ctxt).generate(m_out, s->getCond());
+    m_out->write(") ");
+    s->getBody()->accept(m_this);
+    DEBUG_LEAVE("visitTypeProcStmtWhile");
 }
 
 dmgr::IDebug *TaskGenerateEmbCProcScope::m_dbg = 0;

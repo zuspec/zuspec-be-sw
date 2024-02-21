@@ -303,11 +303,13 @@ setup(
   keywords = ["SystemVerilog", "Verilog", "RTL", "Python"],
   url = "https://github.com/zuspec/zuspec-be-sw",
   install_requires=[
+    'ciostream',
     'zuspec-arl-dm',
     'vsc-dm',
     'debug-mgr'
   ],
   setup_requires=[
+    'ciostream',
     'setuptools_scm',
     'vsc-dm',
     'debug-mgr',

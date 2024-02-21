@@ -11,6 +11,8 @@ package:
     deps:
     - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git
+    - name: ciostream
+      src: pypi
 
   - name: default-dev
     deps:

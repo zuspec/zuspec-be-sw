@@ -83,6 +83,7 @@ void TaskGenerateEmbCExpr::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
 
 void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) {
     DEBUG_ENTER("visitTypeExprFieldRef kind=%d root_offset=%d", e->getRootRefKind(), e->getRootRefOffset());
+#ifdef UNDEFINED // TODO
     for (uint32_t i=0; i<e->getPath().size(); i++) {
         DEBUG("  Elem[%d] %d", i, e->getPath().at(i));
     }
@@ -130,6 +131,8 @@ void TaskGenerateEmbCExpr::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) 
             scope = field->getDataTypeT<vsc::dm::IDataTypeStruct>();
         }
     }
+#endif // UNDEFINED
+
 
     DEBUG_LEAVE("visitTypeExprFieldRef");
 }

@@ -1,0 +1,20 @@
+
+import function void print(string s);
+
+component pss_top {
+
+    int val = 1;
+
+    action Sub {
+        exec body {
+            print("Hello World!");
+        }
+    }
+
+    action Entry {
+        activity {
+            do Sub;
+            do Sub;
+        }
+    }
+}

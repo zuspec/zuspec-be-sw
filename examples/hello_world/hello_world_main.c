@@ -7,10 +7,13 @@ void print(const char *s) {
 
 int main() {
     pss_top_Entry_actor_t   actor;
+    int ret;
 
     pss_top_Entry_actor_init(&actor);
 
-    while (pss_top_Entry_actor_runOneTask(&actor)) {
+    actor.funcs.print_f = &print;
+
+    while ((ret=zsp_rt_run_one_task(&actor.actor))) {
         ;
     }
 }

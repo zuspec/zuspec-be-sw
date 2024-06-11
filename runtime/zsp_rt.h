@@ -37,10 +37,14 @@ void zsp_rt_mblk_rewind(
 typedef struct zsp_rt_actor_s {
     zsp_rt_mblk_t           *stack_r;
     zsp_rt_mblk_t           *stack_s;
+    struct zsp_rt_task_s    *task_q;
+    struct zsp_rt_task_s    *task;
 
 } zsp_rt_actor_t;
 
-typedef void (*zsp_rt_init_f)(zsp_rt_actor_t *, void *);
+typedef void (*zsp_rt_init_f)(
+    struct zsp_rt_actor_s *, 
+    struct zsp_rt_task_s *);
 
 void zsp_rt_actor_init(zsp_rt_actor_t *actor);
 
@@ -51,19 +55,31 @@ typedef struct zsp_rt_task_s *(*zsp_rt_task_f)(
     struct zsp_rt_task_s        *task);
 
 typedef struct zsp_rt_task_s {
-    struct zsp_rt_task_s    *prev;
+    struct zsp_rt_task_s    *upper;
     zsp_rt_task_f           func;
     uint32_t                idx;
     zsp_rt_mblk_t           *stack_prev_p;
-    zsp_rt_mblk_t           stack_prev;
+    uint32_t                stack_prev_base;
+    struct zsp_rt_task_s    *next;
 } zsp_rt_task_t;
 
-void zsp_rt_task_init(
-    zsp_rt_actor_t          *actor,
-    zsp_rt_task_t           *task,
-    zsp_rt_task_f           run_f);
+int zsp_rt_run_one_task(
+    zsp_rt_actor_t          *actor);
 
-zsp_rt_task_t *zsp_rt_task_return(
+void zsp_rt_queue_task(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_task_t           *task);
+
+zsp_rt_task_t *zsp_rt_task_enter(
+    struct zsp_rt_actor_s   *actor,
+    uint32_t                sz,
+    zsp_rt_init_f           init_f);
+
+zsp_rt_task_t *zsp_rt_task_run(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_task_t           *task);
+
+zsp_rt_task_t *zsp_rt_task_leave(
     zsp_rt_actor_t          *actor,
     zsp_rt_task_t           *task,
     void                    *rval);

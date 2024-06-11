@@ -9,12 +9,13 @@ void pss_top_init(
 void pss_top_Sub_init(
     pss_top_Entry_actor_t   *actor,
     pss_top_Sub_t           *obj) {
-
+    ((zsp_rt_task_t *)obj)->func = (zsp_rt_task_f)&pss_top_Sub_run;
 }
 
 void pss_top_Sub_exec_body_init(
     pss_top_Entry_actor_t       *actor,
     pss_top_Sub_exec_body_t     *obj) {
+    ((zsp_rt_task_t *)obj)->func = (zsp_rt_task_f)&pss_top_Sub_exec_body_run;
 
 }
 
@@ -26,11 +27,11 @@ zsp_rt_task_t *pss_top_Sub_exec_body_run(
     switch (((zsp_rt_task_t *)obj)->idx) {
         case 0: {
             ((zsp_rt_task_t *)obj)->idx++;
-            actor->funcs.print_f("Hello World!");
+//            actor->funcs.print_f("Hello World!");
         }
         case 1: {
             ((zsp_rt_task_t *)obj)->idx++;
-            ret = zsp_rt_task_return(
+            ret = zsp_rt_task_leave(
                 (zsp_rt_actor_t *)actor,
                 ((zsp_rt_task_t *)obj),
                 0
@@ -54,19 +55,20 @@ zsp_rt_task_t *pss_top_Sub_run(
             // TODO: invoke solve process
 
             // TODO: invoke beginning of body
-            body = (pss_top_Sub_exec_body_t *)zsp_rt_mblk_alloc(
-                &((zsp_rt_actor_t *)actor)->stack_s,
-                sizeof(pss_top_Sub_exec_body_t));
-            pss_top_Sub_exec_body_init(actor, body);
+            body = (pss_top_Sub_exec_body_t *)zsp_rt_task_enter(
+                (zsp_rt_actor_t *)actor,
+                sizeof(pss_top_Sub_exec_body_t),
+                (zsp_rt_init_f)&pss_top_Sub_exec_body_init);
 
-            if ((ret=pss_top_Sub_exec_body_run(actor, body))) {
+            if ((ret=zsp_rt_task_run(
+                (zsp_rt_actor_t *)actor, (zsp_rt_task_t *)body))) {
                 break;
             }
         }
 
         case 1: {
             // We're done! Manage return
-            ret = zsp_rt_task_return(
+            ret = zsp_rt_task_leave(
                 (zsp_rt_actor_t *)actor,
                 ((zsp_rt_task_t *)obj),
                 0
@@ -79,88 +81,105 @@ zsp_rt_task_t *pss_top_Sub_run(
 void pss_top_Entry_init(
     pss_top_Entry_actor_t   *actor,
     pss_top_Entry_t         *obj) {
-    zsp_rt_task_init(
-        (zsp_rt_actor_t *)actor, 
-        (zsp_rt_task_t *)obj,
-        (zsp_rt_task_f)&pss_top_Entry_run);
+    ((zsp_rt_task_t *)obj)->func = (zsp_rt_task_f)&pss_top_Entry_run;
     
     // Normally, we'd initialize plain-data fields, etc
+    obj->loop_i = 0;
 }
 
 zsp_rt_task_t *pss_top_Entry_run(
     pss_top_Entry_actor_t   *actor,
     pss_top_Entry_t         *obj) {
     zsp_rt_task_t *ret = 0;
+    int retry = 0;
 
+    do {
+        retry = 0;
     switch (((zsp_rt_task_t *)obj)->idx) {
         case 0: {
+            ((zsp_rt_task_t *)obj)->idx++;
+            // Root action always suspends on first call
+            ret = (zsp_rt_task_t *)obj;
+        } break;
+        case 1: {
             pss_top_Sub_t *Sub_1;
             ((zsp_rt_task_t *)obj)->idx++;
 
-            Sub_1 = (pss_top_Sub_t *)zsp_rt_mblk_alloc(
-                &((zsp_rt_actor_t *)actor)->stack_s,
-                sizeof(pss_top_Sub_t));
+            Sub_1 = (pss_top_Sub_t *)zsp_rt_task_enter(
+                (zsp_rt_actor_t *)actor,
+                sizeof(pss_top_Sub_t),
+                (zsp_rt_init_f)&pss_top_Sub_init);
 
-            pss_top_Sub_init(actor, Sub_1);
-
-            if ((ret=pss_top_Sub_run(actor, Sub_1))) {
-                break;
-            }
-        }
-        case 1: {
-            pss_top_Sub_t *Sub_2;
-            ((zsp_rt_task_t *)obj)->idx++;
-
-            Sub_2 = (pss_top_Sub_t *)zsp_rt_mblk_alloc(
-                &((zsp_rt_actor_t *)actor)->stack_s,
-                sizeof(pss_top_Sub_t));
-
-            // Maybe want an atomic 'first call'?
-            pss_top_Sub_init(actor, Sub_2);
-
-            // TODO: Apply any post_init initialization
-            // expressions here.
-
-            if ((ret=pss_top_Sub_run(actor, Sub_2))) {
+            if ((ret=zsp_rt_task_run(
+                (zsp_rt_actor_t *)actor, 
+                (zsp_rt_task_t *)Sub_1))) {
                 break;
             }
         }
         case 2: {
+            pss_top_Sub_t *Sub_2;
+            ((zsp_rt_task_t *)obj)->idx++;
+
+            Sub_2 = (pss_top_Sub_t *)zsp_rt_task_enter(
+                (zsp_rt_actor_t *)actor,
+                sizeof(pss_top_Sub_t),
+                (zsp_rt_init_f)&pss_top_Sub_init);
+
+            // TODO: Apply any post_init initialization
+            // expressions here.
+
+            if ((ret=zsp_rt_task_run(
+                (zsp_rt_actor_t *)actor, (zsp_rt_task_t *)Sub_2))) {
+                break;
+            }
+        }
+
+        case 3: {
+            ((zsp_rt_task_t *)obj)->idx++;
+            if (obj->loop_i++ < 100000000) {
+                ((zsp_rt_task_t *)obj)->idx = 1;
+                ret = (zsp_rt_task_t *)obj;
+                retry = 1;
+                break;
+            }
+        }
+
+        case 4: {
             // All done. Tear down this stack frame 
             // and return the next task to run
-            ret = zsp_rt_task_return(
+            ret = zsp_rt_task_leave(
                 (zsp_rt_actor_t *)actor,
                 (zsp_rt_task_t *)obj,
                 0);
         }
-
     }
+    } while (!retry);
 
     return ret;
 }
 
 void pss_top_Entry_actor_init(pss_top_Entry_actor_t *actor) {
+    pss_top_Entry_t *root_action;
 
     zsp_rt_actor_init((zsp_rt_actor_t *)actor);
 
-    // Initialize the component treej
+    // Initialize the component tree
     pss_top_init(actor, &actor->root_comp);
 
     // Create the root action and add it as a task
+    root_action = (pss_top_Entry_t *)zsp_rt_task_enter(
+        (zsp_rt_actor_t *)actor,
+        sizeof(pss_top_Entry_t),
+        (zsp_rt_init_f)&pss_top_Entry_init);
 
-    // Configure the active task
+    zsp_rt_task_run(
+        (zsp_rt_actor_t *)actor,
+        (zsp_rt_task_t *)root_action
+    );
+
+    zsp_rt_queue_task(
+        (zsp_rt_actor_t *)actor,
+        (zsp_rt_task_t *)root_action);
 }
 
-int pss_top_Entry_actor_runOneTask(
-    pss_top_Entry_actor_t   *actor) {
-
-    return 0;
-}
-
-void pss_top_Entry_actor_run(
-    pss_top_Entry_actor_t   *actor) {
-    while (pss_top_Entry_actor_runOneTask(actor)) {
-        ; 
-    }
-}
 

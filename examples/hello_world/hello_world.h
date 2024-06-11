@@ -43,8 +43,8 @@ zsp_rt_task_t *pss_top_Sub_exec_body_run(
 
 // Action-type struct
 typedef struct pss_top_Entry_s {
-
-
+    zsp_rt_task_t               task;
+    uint32_t                    loop_i;
 } pss_top_Entry_t;
 
 void pss_top_Entry_init(

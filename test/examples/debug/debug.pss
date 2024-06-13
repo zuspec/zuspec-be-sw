@@ -1,0 +1,15 @@
+
+
+component pss_top {
+
+    action Entry {
+        exec body {
+            int i = 2;
+            int x = 3;
+            print("i");
+            print("x");
+        }
+
+    }
+
+}

@@ -25,6 +25,7 @@
 #include "GeneratorMultiCoreEmbCTest.h"
 #include "Output.h"
 #include "TaskGenerateC.h"
+#include "TaskGenerateExecModel.h"
 #include "TaskInitContextC.h"
 
 
@@ -78,6 +79,22 @@ void Factory::generateC(
         pub_h,
         prv_h).generate(roots);
 }
+
+void Factory::generateExecModel(
+        arl::dm::IContext                               *ctxt,
+        arl::dm::IDataTypeComponent                     *comp_t,
+        arl::dm::IDataTypeAction                        *action_t,
+        std::ostream                                    *out_c,
+        std::ostream                                    *out_h,
+        std::ostream                                    *out_h_prv) {
+    TaskGenerateExecModel(m_dmgr).generate(
+        comp_t,
+        action_t,
+        out_c,
+        out_h,
+        out_h_prv);
+}
+
 
 void Factory::initContextC(arl::dm::IContext *ctxt) {
     TaskInitContextC(m_dmgr).init(ctxt);

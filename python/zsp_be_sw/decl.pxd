@@ -1,5 +1,5 @@
 
-cimport ciostream
+cimport ciostream.core as ciostream
 cimport zsp_arl_dm.decl as arl_dm
 cimport vsc_dm.decl as vsc_dm_decl
 cimport debug_mgr.decl as dm
@@ -35,6 +35,15 @@ cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
             ciostream.ostream                               *csrc,
             ciostream.ostream                               *pub_h,
             ciostream.ostream                               *prv_h)
+
+        void generateExecModel(
+            arl_dm.IContextP                                ctxt,
+            arl_dm.IDataTypeComponentP                      comp_t,
+            arl_dm.IDataTypeActionP                         action_t,
+            ciostream.ostream                               *csrc,
+            ciostream.ostream                               *pub_h,
+            ciostream.ostream                               *prv_h)
+
 
         void initContextC(arl_dm.IContext                   *ctxt)
 

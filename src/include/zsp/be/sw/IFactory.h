@@ -60,6 +60,15 @@ public:
         std::ostream                                    *prv_h
     ) = 0;
 
+    virtual void generateExecModel(
+        arl::dm::IContext                               *ctxt,
+        arl::dm::IDataTypeComponent                     *comp_t,
+        arl::dm::IDataTypeAction                        *action_t,
+        std::ostream                                    *out_c,
+        std::ostream                                    *out_h,
+        std::ostream                                    *out_h_prv) = 0;
+
+
     virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 
     virtual IOutput *mkFileOutput(const std::string &path) = 0;

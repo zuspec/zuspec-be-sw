@@ -13,7 +13,7 @@ typedef struct zsp_rt_mblk_s {
     struct zsp_rt_mblk_s        *prev;
     uint32_t                    base;
     uint32_t                    limit;
-    uint32_t                    mem[1];
+    uint8_t                     mem[1];
 } zsp_rt_mblk_t;
 
 zsp_rt_mblk_t *zsp_rt_mblk_new(
@@ -75,9 +75,16 @@ zsp_rt_task_t *zsp_rt_task_enter(
     uint32_t                sz,
     zsp_rt_init_f           init_f);
 
+/*
 zsp_rt_task_t *zsp_rt_task_run(
     zsp_rt_actor_t          *actor,
     zsp_rt_task_t           *task);
+ */
+static inline zsp_rt_task_t *zsp_rt_task_run(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_task_t           *task) {
+    return task->func(actor, task);
+}
 
 zsp_rt_task_t *zsp_rt_task_leave(
     zsp_rt_actor_t          *actor,

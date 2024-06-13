@@ -65,6 +65,7 @@ zsp_rt_task_t *zsp_rt_task_enter(
     init_f(actor, task);
 }
 
+/*
 zsp_rt_task_t *zsp_rt_task_run(
     zsp_rt_actor_t          *actor,
     zsp_rt_task_t           *task) {
@@ -73,6 +74,7 @@ zsp_rt_task_t *zsp_rt_task_run(
     t = task->func(actor, task);
     return t;
 }
+ */
 
 zsp_rt_task_t *zsp_rt_task_leave(
     zsp_rt_actor_t          *actor,
@@ -103,7 +105,7 @@ zsp_rt_task_t *zsp_rt_task_leave(
 
 void zsp_rt_actor_init(zsp_rt_actor_t *actor) {
     actor->stack_s = (zsp_rt_mblk_t *)malloc(
-        sizeof(zsp_rt_mblk_t)+1024-sizeof(uint32_t)
+        sizeof(zsp_rt_mblk_t)+1024-sizeof(uint8_t)
     );
     memset(actor->stack_s, 0, sizeof(zsp_rt_mblk_t));
     actor->stack_r = actor->stack_s;

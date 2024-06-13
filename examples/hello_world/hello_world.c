@@ -95,6 +95,7 @@ zsp_rt_task_t *pss_top_Entry_run(
 
     do {
         retry = 0;
+        ret = 0;
     switch (((zsp_rt_task_t *)obj)->idx) {
         case 0: {
             ((zsp_rt_task_t *)obj)->idx++;
@@ -136,7 +137,7 @@ zsp_rt_task_t *pss_top_Entry_run(
 
         case 3: {
             ((zsp_rt_task_t *)obj)->idx++;
-            if (obj->loop_i++ < 100000000) {
+            if (++(obj->loop_i) < 100) {
                 ((zsp_rt_task_t *)obj)->idx = 1;
                 ret = (zsp_rt_task_t *)obj;
                 retry = 1;
@@ -153,7 +154,7 @@ zsp_rt_task_t *pss_top_Entry_run(
                 0);
         }
     }
-    } while (!retry);
+    } while (retry);
 
     return ret;
 }

@@ -1,0 +1,73 @@
+
+buffer data {
+    rand bit[32]       val;
+
+}
+
+// Actor -- an independent thread of execution
+// Executor -- an actor corresponding to a core
+// - Semantics for 'do action' are blocking
+//
+// m2m is: 
+// - put command in 'channel-req' mailbox
+// - put command in 'req' fifo
+//   - Concept is that 
+// - wait for acknowledge through 'channel-ack' mailbox
+//
+// 
+
+component dma_core_c : actor_c<dma_core_c::Main> {
+
+    // External 'do Action' on this component
+    // queues action to be run and waits for its
+    // completion
+    // Question: where does memory access go?
+    // - run actions on a component ref
+
+    // Root thread
+    action Main {
+        SelectChannelA sel_channel;
+        ProcessChannelA proc_channel;
+
+        activity {
+            // Blocking wait for command in the fifo
+            do wait_cmd;
+
+            repeat {
+                // Priority-select for channel to process
+                sel_channel;
+
+                // Perform a series of channel memory accesses
+                proc_channel(chan=sel_channel.chan);
+
+            } while (have_active_channels);
+        }
+
+        exec body {
+            // Wait 
+        }
+
+    }
+}
+
+component pss_top {
+    action Producer {
+        output data dat_o;
+    }
+
+    action Consumer {
+        input data dat_i;
+        output data dat_o;
+
+    }
+
+    action Entry {
+        activity {
+            repeat (1000) {
+                P : do Producer;
+                C : do Consumer;
+                bind P.dat_o C.dat_i;
+            }
+        }
+    }
+}

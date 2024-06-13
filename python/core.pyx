@@ -1,10 +1,11 @@
 
 import os
 import ctypes
+import typing
 from zsp_be_sw cimport decl
 from libcpp.vector cimport vector as cpp_vector
 from libc.stdint cimport intptr_t
-cimport ciostream
+cimport ciostream.core as ciostream
 cimport debug_mgr.core as dm_core
 cimport vsc_dm.decl as vsc_dm_decl
 cimport vsc_dm.core as vsc_dm
@@ -84,6 +85,26 @@ cdef class Factory(object):
             csrc_s.stream(),
             pub_h_s.stream(),
             prv_h_s.stream())
+
+    cpdef void generateExecModel(
+        self,
+        arl_dm.Context                                  ctxt,
+        arl_dm.DataTypeComponent                        comp_t,
+        arl_dm.DataTypeAction                           action_t,
+        csrc,
+        pub_h,
+        prv_h):
+        cdef ciostream.costream csrc_s = ciostream.costream(csrc)
+        cdef ciostream.costream pub_h_s = ciostream.costream(pub_h)
+        cdef ciostream.costream prv_h_s = ciostream.costream(prv_h)
+        self._hndl.generateExecModel(
+            ctxt.asContext(),
+            comp_t.asComponent(),
+            action_t.asAction(),
+            csrc_s.stream(),
+            pub_h_s.stream(),
+            prv_h_s.stream()
+        )
 
     cpdef void initContextC(self, arl_dm.Context ctxt):
         self._hndl.initContextC(ctxt.asContext())

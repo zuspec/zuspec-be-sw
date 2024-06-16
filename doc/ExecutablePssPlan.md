@@ -10,3 +10,24 @@
 - match
 - repeat
 
+##
+- Component DS and init
+  - 
+  - exec_init_down / exec_init_up as static-virtual methods
+  - Assume static knowledge of inheritance relationships
+  -
+
+## Phase 1
+
+---
+abc:
+  - def
+  - efg
+  - igh
+def:
+  - efg
+  - igh
+  - def
+---
+
+

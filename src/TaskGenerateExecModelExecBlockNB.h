@@ -1,5 +1,5 @@
 /**
- * INameMap.h
+ * TaskGenerateExecModelExecBlockNB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,42 +19,40 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/IDataType.h"
-#include "zsp/arl/dm/IDataTypeFunction.h"
+#include <vector>
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/ITypeExec.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class INameMap;
-using INameMapUP=vsc::dm::UP<INameMap>;
-class INameMap {
+class TaskGenerateExecModel;
+
+class TaskGenerateExecModelExecBlockNB {
 public:
+    TaskGenerateExecModelExecBlockNB(
+        TaskGenerateExecModel *gen);
 
-    enum class Kind {
-        Mangled,
-        Hierarchical
-    };
+    virtual ~TaskGenerateExecModelExecBlockNB();
 
-    virtual ~INameMap() { }
+    virtual void generate(
+        const std::string                       &fname,
+        arl::dm::ITypeExec                      *i);
 
-    virtual bool hasName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
+    virtual void generate(
+        const std::string                       &fname,
+        const std::vector<arl::dm::ITypeExecUP> &i);
 
-    virtual void setName(
-        vsc::dm::IAccept    *type,
-        const std::string   &name,
-        Kind                kind=Kind::Mangled) = 0;
-
-    virtual std::string getName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
+protected:
+    dmgr::IDebug                        *m_dbg;
+    TaskGenerateExecModel               *m_gen;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

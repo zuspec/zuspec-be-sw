@@ -5,7 +5,13 @@ class TestExecSmoke(TestBase):
 
     def test_smoke(self):
         content = """
-        component pss_top {
+        component base_t {
+            int a;
+        }
+        component pss_top : base_t {
+            int         a;
+            int         b;
+            base_t      c;
             action Entry {
                 exec pre_solve {
 //                    print("Hello from Smoke Test");
@@ -32,3 +38,7 @@ class TestExecSmoke(TestBase):
             h_out,
             h_prv_out
         )
+
+        print("c_out:\n%s" % c_out.getvalue())
+        print("h_out:\n%s" % h_out.getvalue())
+        print("h_prv_out:\n%s" % h_prv_out.getvalue())

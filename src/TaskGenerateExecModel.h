@@ -19,10 +19,12 @@
  *     Author: 
  */
 #pragma once
+#include <unordered_set>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/arl/dm/IDataTypeComponent.h"
 #include "zsp/arl/dm/IDataTypeAction.h"
+#include "zsp/be/sw/INameMap.h"
 
 namespace zsp {
 namespace be {
@@ -35,10 +37,9 @@ public:
     TaskGenerateExecModel(
         dmgr::IDebugMgr                 *dmgr);
 
-    
-
-
     virtual ~TaskGenerateExecModel();
+
+    dmgr::IDebugMgr *getDebugMgr() const { return m_dmgr; }
 
     void generate(
         arl::dm::IDataTypeComponent     *comp_t,
@@ -47,8 +48,32 @@ public:
         std::ostream                    *out_h,
         std::ostream                    *out_h_prv);
 
+    const std::string &getActorName() const {
+        return m_actor_name;
+    }
+
+    /**
+     */
+    bool fwdDecl(vsc::dm::IDataType *dt, bool add=true);
+
+    INameMap *getNameMap() { return m_name_m.get(); }
+
+    IOutput *getOutC() { return m_out_c.get(); }
+
+    IOutput *getOutH() { return m_out_h.get(); }
+
+    IOutput *getOutHPrv() { return m_out_h_prv.get(); }
+
 private:
-    static dmgr::IDebug                 *m_dbg;
+    static dmgr::IDebug                         *m_dbg;
+    dmgr::IDebugMgr                             *m_dmgr;
+    IOutputUP                                   m_out_c;
+    IOutputUP                                   m_out_h;
+    IOutputUP                                   m_out_h_prv;
+    std::string                                 m_actor_name;
+    INameMapUP                                  m_name_m;
+
+    std::unordered_set<vsc::dm::IDataType *>    m_dt_fwd_decl;
 
 };
 

@@ -34,36 +34,60 @@ NameMap::~NameMap() {
 
 }
 
-void NameMap::setName(vsc::dm::IDataType *type, const std::string &name) {
-    m_type_m.insert({type, name});
+void NameMap::setName(
+    vsc::dm::IAccept    *type, 
+    const std::string   &name,
+    INameMap::Kind      kind) {
+    KindM::iterator kind_it = m_name_m.find(kind);
+    NameM::iterator name_it;
+
+    if (kind_it == m_name_m.end()) {
+        kind_it = m_name_m.insert({kind, NameM()}).first;
+    }
+    name_it = kind_it->second.find(type);
+
+    if (name_it != kind_it->second.end()) {
+        // Erase old version
+        kind_it->second.erase(name_it);
+    }
+
+    kind_it->second.insert({type, name});
 }
 
-void NameMap::setName(arl::dm::IDataTypeFunction *func, const std::string &name) {
-    m_func_m.insert({func, name});
-}
+bool NameMap::hasName(
+        vsc::dm::IAccept    *type,
+        Kind                kind) {
+    KindM::iterator kind_it = m_name_m.find(kind);
 
-const std::string &NameMap::getName(vsc::dm::IDataType *type) {
-    std::unordered_map<vsc::dm::IDataType *,std::string>::const_iterator it;
-    
-    if ((it=m_type_m.find(type)) != m_type_m.end()) {
-        return it->second;
+    if (kind_it == m_name_m.end()) {
+        return false;
     } else {
+        NameM::iterator name_it = kind_it->second.find(type);
+
+        return !(name_it == kind_it->second.end());
+    }
+}
+
+std::string NameMap::getName(
+    vsc::dm::IAccept    *type,
+    INameMap::Kind      kind) {
+    KindM::iterator kind_it = m_name_m.find(kind);
+    NameM::iterator name_it;
+
+    if (kind_it == m_name_m.end()) {
+        kind_it = m_name_m.insert({kind, NameM()}).first;
+    }
+    name_it = kind_it->second.find(type);
+
+    if (name_it == kind_it->second.end()) {
+        // Go compute the name
         m_name.clear();
+        m_kind = kind;
         type->accept(m_this);
-        return m_name;
+        name_it = kind_it->second.insert({type, m_name}).first;
     }
-}
 
-const std::string &NameMap::getName(arl::dm::IDataTypeFunction *func) {
-    std::unordered_map<arl::dm::IDataTypeFunction*,std::string>::const_iterator it;
-
-    if ((it=m_func_m.find(func)) != m_func_m.end()) {
-        return it->second;
-    } else {
-        m_name.clear();
-        func->accept(m_this);
-        return m_name;
-    }
+    return name_it->second;
 }
 
 void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
@@ -71,6 +95,10 @@ void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
 }
 
 void NameMap::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+    m_name = t->name();
+}
+
+void NameMap::visitTypeField(vsc::dm::ITypeField *t) {
     m_name = t->name();
 }
 

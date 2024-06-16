@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -45,30 +46,34 @@ public:
 
     virtual ~NameMap();
 
-    virtual bool hasName(vsc::dm::IDataType *type) const override {
-        return (m_type_m.find(type) != m_type_m.end());
-    }
+    virtual bool hasName(
+        vsc::dm::IAccept    *type,
+        Kind                kind=Kind::Mangled) override;
 
-    virtual bool hasName(arl::dm::IDataTypeFunction *func) const override {
-        return (m_func_m.find(func) != m_func_m.end());
-    }
+    virtual void setName(
+        vsc::dm::IAccept    *type, 
+        const std::string   &name,
+        Kind                kind=Kind::Mangled) override;
 
-    virtual void setName(vsc::dm::IDataType *type, const std::string &name) override;
-
-    virtual void setName(arl::dm::IDataTypeFunction *func, const std::string &name) override;
-
-    virtual const std::string &getName(vsc::dm::IDataType *type) override;
-
-    virtual const std::string &getName(arl::dm::IDataTypeFunction *func) override;
+    virtual std::string getName(
+        vsc::dm::IAccept    *type,
+        INameMap::Kind      kind=Kind::Mangled) override;
 
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
+	virtual void visitTypeField(vsc::dm::ITypeField *t) override;
+
 private:
-    std::string                                                     m_name;
-    std::unordered_map<vsc::dm::IDataType *,std::string>            m_type_m;
-    std::unordered_map<arl::dm::IDataTypeFunction *,std::string>    m_func_m;
+    using NameM=std::map<vsc::dm::IAccept *, std::string>;
+    using KindM=std::map<INameMap::Kind, NameM>;
+
+
+private:
+    std::string                 m_name;
+    INameMap::Kind              m_kind;
+    KindM                       m_name_m;
 
 };
 

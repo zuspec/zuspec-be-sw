@@ -1,5 +1,5 @@
 /**
- * INameMap.h
+ * TaskGenerateFwdDecl.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,42 +19,39 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/IDataType.h"
-#include "zsp/arl/dm/IDataTypeFunction.h"
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class INameMap;
-using INameMapUP=vsc::dm::UP<INameMap>;
-class INameMap {
+
+
+class TaskGenerateFwdDecl : public virtual arl::dm::VisitorBase {
 public:
+    TaskGenerateFwdDecl(
+        dmgr::IDebugMgr     *dmgr,
+        INameMap            *name_m,
+        IOutput             *out);
 
-    enum class Kind {
-        Mangled,
-        Hierarchical
-    };
+    virtual ~TaskGenerateFwdDecl();
 
-    virtual ~INameMap() { }
+    void generate(vsc::dm::IAccept *item);
 
-    virtual bool hasName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
+	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
-    virtual void setName(
-        vsc::dm::IAccept    *type,
-        const std::string   &name,
-        Kind                kind=Kind::Mangled) = 0;
+private:
+    static dmgr::IDebug             *m_dbg;
+    INameMap                        *m_name_m;
+    IOutput                         *m_out;
 
-    virtual std::string getName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

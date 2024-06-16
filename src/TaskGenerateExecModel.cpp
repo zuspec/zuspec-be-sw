@@ -19,7 +19,10 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "NameMap.h"
+#include "Output.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelComponent.h"
 
 
 namespace zsp {
@@ -28,7 +31,7 @@ namespace sw {
 
 
 TaskGenerateExecModel::TaskGenerateExecModel(
-    dmgr::IDebugMgr         *dmgr) {
+    dmgr::IDebugMgr         *dmgr) : m_dmgr(dmgr) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModel", dmgr);
 }
 
@@ -43,8 +46,46 @@ void TaskGenerateExecModel::generate(
         std::ostream                    *out_h,
         std::ostream                    *out_h_prv) {
     DEBUG_ENTER("generate");
+    m_name_m =  INameMapUP(new NameMap());
+    m_out_c = IOutputUP(new Output(out_c, false));
+    m_out_h = IOutputUP(new Output(out_h, false));
+    m_out_h_prv = IOutputUP(new Output(out_h_prv, false));
 
+
+    m_actor_name = comp_t->name();
+    m_actor_name += "_";
+    m_actor_name += action_t->name();
+    m_out_h->println("#ifndef INCLUDED_%s_H", m_actor_name.c_str());
+    m_out_h->println("#define INCLUDED_%s_H", m_actor_name.c_str());
+    m_out_h->println("");
+
+    m_out_h_prv->println("#ifndef INCLUDED_%s_PRV_H", m_actor_name.c_str());
+    m_out_h_prv->println("#define INCLUDED_%s_PRV_H", m_actor_name.c_str());
+    m_out_c->println("#include \"%s.h\"", m_actor_name.c_str());
+    m_out_c->println("#include \"%s_prv.h\"", m_actor_name.c_str());
+    m_out_h_prv->println("");
+
+    // First, generate the component-tree data-types and 
+    TaskGenerateExecModelComponent(this).generate(comp_t);
+
+    m_out_h->println("");
+    m_out_h->println("#endif /* INCLUDED_%s_H */", m_actor_name.c_str());
+    m_out_h_prv->println("");
+    m_out_h_prv->println("#endif /* INCLUDED_%s_PRV_H */", m_actor_name.c_str());
     DEBUG_LEAVE("generate");
+}
+
+bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
+    std::unordered_set<vsc::dm::IDataType *>::const_iterator it;
+
+    if ((it=m_dt_fwd_decl.find(dt)) == m_dt_fwd_decl.end()) {
+        if (add) {
+            m_dt_fwd_decl.insert(dt);
+        }
+        return false;
+    } else {
+        return true;
+    }
 }
 
 dmgr::IDebug *TaskGenerateExecModel::m_dbg = 0;

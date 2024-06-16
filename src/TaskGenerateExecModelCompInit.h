@@ -1,5 +1,5 @@
 /**
- * INameMap.h
+ * TaskGenerateExecModelCompInit.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,42 +19,35 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/IDataType.h"
-#include "zsp/arl/dm/IDataTypeFunction.h"
+#include "TaskGenerateExecModelStructInit.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class INameMap;
-using INameMapUP=vsc::dm::UP<INameMap>;
-class INameMap {
-public:
 
-    enum class Kind {
-        Mangled,
-        Hierarchical
+
+class TaskGenerateExecModelCompInit : public TaskGenerateExecModelStructInit {
+public:
+    TaskGenerateExecModelCompInit(TaskGenerateExecModel *gen);
+
+    virtual ~TaskGenerateExecModelCompInit();
+
+	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+private:
+    enum class Mode {
+        DataFieldInit,
+        SubCompInit
     };
 
-    virtual ~INameMap() { }
-
-    virtual bool hasName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
-
-    virtual void setName(
-        vsc::dm::IAccept    *type,
-        const std::string   &name,
-        Kind                kind=Kind::Mangled) = 0;
-
-    virtual std::string getName(
-        vsc::dm::IAccept    *type,
-        Kind                kind=Kind::Mangled) = 0;
+private:
+    Mode                m_mode;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

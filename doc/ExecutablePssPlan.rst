@@ -19,10 +19,15 @@
 
 ## Phase 1
 
+.. list-table:: Phase1 Development Tasks
+    :header-rows: 1
 
+    * - Item
+      - Description
+      - Status
+    * - abc
+      - asd
+      - Done
 
-|- abc -|- def -|- efg -|
-|-----|-----|-----|
-|Text1| Text2 is a bit longer | Text3 is shorter|
 
 

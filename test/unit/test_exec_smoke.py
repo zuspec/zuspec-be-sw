@@ -16,7 +16,9 @@ class TestExecSmoke(TestBase):
             exec init_down {
                 int i;
                 i = 1;
+                i = a;
             }
+
             action Entry {
                 exec pre_solve {
 //                    print("Hello from Smoke Test");

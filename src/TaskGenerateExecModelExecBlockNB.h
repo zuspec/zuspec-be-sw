@@ -24,6 +24,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/arl/dm/ITypeExec.h"
+#include "IGenRefExpr.h"
 
 namespace zsp {
 namespace be {
@@ -36,6 +37,7 @@ class TaskGenerateExecModelExecBlockNB :
 public:
     TaskGenerateExecModelExecBlockNB(
         TaskGenerateExecModel       *gen,
+        IGenRefExpr                 *refgen,
         IOutput                     *out);
 
     virtual ~TaskGenerateExecModelExecBlockNB();
@@ -48,6 +50,7 @@ public:
 protected:
     static dmgr::IDebug         *m_dbg;
     TaskGenerateExecModel       *m_gen;
+    IGenRefExpr                 *m_refgen;
     IOutput                     *m_out;
 };
 

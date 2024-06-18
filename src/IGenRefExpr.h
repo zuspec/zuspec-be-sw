@@ -1,5 +1,5 @@
-/*
- * TaskGenerateExecModelFuncNB.cpp
+/**
+ * IGenRefExpr.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,32 +16,34 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelFuncNB.h"
-
+#pragma once
+#include "vsc/dm/ITypeExprRef.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelFuncNB::TaskGenerateExecModelFuncNB(
-    TaskGenerateExecModel       *gen,
-    IGenRefExpr                 *refgen,
-    IOutput                     *out) : TaskGenerateExecModelExecBlockNB(gen, refgen, out) {
 
-}
+class IGenRefExpr {
+public:
 
-TaskGenerateExecModelFuncNB::~TaskGenerateExecModelFuncNB() {
+    virtual ~IGenRefExpr() { }
 
-}
+    virtual std::string genLval(vsc::dm::ITypeExpr *ref) = 0;
 
-void TaskGenerateExecModelFuncNB::generate(arl::dm::IDataTypeFunction *f) {
+    virtual std::string genRval(vsc::dm::ITypeExpr *ref) = 0;
 
-}
+    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
 
-}
-}
-}
+    virtual void popScope() = 0;
+
+};
+
+} /* namespace sw */
+} /* namespace be */
+} /* namespace zsp */
+
+

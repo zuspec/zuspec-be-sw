@@ -19,8 +19,10 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "GenRefExprExecModel.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecScopeNB.h"
+#include "TaskGenerateExecModelExprNB.h"
 
 
 namespace zsp {
@@ -30,7 +32,9 @@ namespace sw {
 
 TaskGenerateExecModelExecScopeNB::TaskGenerateExecModelExecScopeNB(
     TaskGenerateExecModel   *gen,
-    IOutput                 *out) : m_dbg(0), m_gen(gen), m_out(out) {
+    IGenRefExpr             *refgen,
+    IOutput                 *out) : 
+    m_dbg(0), m_gen(gen), m_refgen(refgen), m_out(out) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecScopeNB", gen->getDebugMgr());
 }
 
@@ -63,7 +67,23 @@ void TaskGenerateExecModelExecScopeNB::generate(
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
     DEBUG_ENTER("visitTypeProcStmtAssign");
     m_out_s.back().exec()->println("// assignment");
+    m_out_s.back().exec()->indent();
+    m_out_s.back().exec()->write("%s = ",
+        m_refgen->genLval(s->getLhs()).c_str());
+    TaskGenerateExecModelExprNB(
+        m_gen, 
+        dynamic_cast<GenRefExprExecModel *>(m_refgen), 
+        m_out_s.back().exec());
+    m_out_s.back().exec()->write(";\n");
     DEBUG_LEAVE("visitTypeProcStmtAssign");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
+    DEBUG_ENTER("visitTypeScopeStmtScope");
+    m_refgen->pushScope(s);
+    arl::dm::VisitorBase::visitTypeProcStmtScope(s);
+    m_refgen->popScope();
+    DEBUG_LEAVE("visitTypeScopeStmtScope");
 }
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {

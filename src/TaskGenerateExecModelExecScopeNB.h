@@ -23,6 +23,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/ITypeExec.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "IGenRefExpr.h"
 #include "OutputExecScope.h"
 
 
@@ -36,6 +37,7 @@ class TaskGenerateExecModelExecScopeNB : public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModelExecScopeNB(
         TaskGenerateExecModel   *gen,
+        IGenRefExpr             *refgen,
         IOutput                 *out);
 
     virtual ~TaskGenerateExecModelExecScopeNB();
@@ -48,6 +50,8 @@ public:
         const std::vector<arl::dm::ITypeExecUP> &i,
         bool                                    new_scope);
 
+	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
+
 	virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
@@ -55,6 +59,7 @@ public:
 protected:
     dmgr::IDebug                        *m_dbg;
     TaskGenerateExecModel               *m_gen;
+    IGenRefExpr                         *m_refgen;
     IOutput                             *m_out;
     std::vector<OutputExecScope>        m_out_s;
 

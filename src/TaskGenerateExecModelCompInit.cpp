@@ -22,6 +22,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelCompInit.h"
 #include "TaskGenerateExecModelExecBlockNB.h"
+#include "GenRefExprExecModel.h"
 
 
 namespace zsp {
@@ -44,6 +45,11 @@ TaskGenerateExecModelCompInit::~TaskGenerateExecModelCompInit() {
 void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
     if (m_depth == 0) {
+        GenRefExprExecModel refgen(
+            m_gen, 
+            t,
+            "__obj",
+            true);
         const std::vector<arl::dm::ITypeExecUP> &init_down = 
             t->getExecs(arl::dm::ExecKindT::InitDown);
         const std::vector<arl::dm::ITypeExecUP> &init_up = 
@@ -52,7 +58,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         // First, generate exec init_* functions if we'll be calling them
         if (init_down.size()) {
             // Invoke the init_down exec block
-            TaskGenerateExecModelExecBlockNB(m_gen, m_out_c).generate(
+            TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out_c).generate(
                 m_gen->getNameMap()->getName(t) + "__init_down",
                 "struct " + m_gen->getNameMap()->getName(t) + "_s",
                 init_down
@@ -61,7 +67,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
 
         if (init_up.size()) {
             // Invoke the init_up exec block
-            TaskGenerateExecModelExecBlockNB(m_gen, m_out_c).generate(
+            TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out_c).generate(
                 m_gen->getNameMap()->getName(t) + "__init_up",
                 "struct " + m_gen->getNameMap()->getName(t) + "_s",
                 init_down

@@ -31,7 +31,9 @@ namespace sw {
 
 TaskGenerateExecModelExecBlockNB::TaskGenerateExecModelExecBlockNB(
         TaskGenerateExecModel       *gen,
-        IOutput                     *out) : m_gen(gen), m_out(out) {
+        IGenRefExpr                 *refgen,
+        IOutput                     *out) : 
+        m_gen(gen), m_refgen(refgen), m_out(out) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecBlockNB", gen->getDebugMgr());
 }
 
@@ -48,7 +50,7 @@ void TaskGenerateExecModelExecBlockNB::generate(
         tname.c_str());
     m_gen->getOutC()->inc_ind();
 
-    TaskGenerateExecModelExecScopeNB(m_gen, m_out).generate(
+    TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out).generate(
         execs,
         false
     );

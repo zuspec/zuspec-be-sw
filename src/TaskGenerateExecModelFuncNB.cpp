@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelFuncNB.h"
 
 
@@ -26,11 +27,17 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelFuncNB::TaskGenerateExecModelFuncNB() {
+TaskGenerateExecModelFuncNB::TaskGenerateExecModelFuncNB(
+    TaskGenerateExecModel       *gen,
+    IOutput                     *out) : TaskGenerateExecModelExecBlockNB(gen, out) {
 
 }
 
 TaskGenerateExecModelFuncNB::~TaskGenerateExecModelFuncNB() {
+
+}
+
+void TaskGenerateExecModelFuncNB::generate(arl::dm::IDataTypeFunction *f) {
 
 }
 

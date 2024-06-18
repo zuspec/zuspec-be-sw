@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelCompInit.h"
+#include "TaskGenerateExecModelExecBlockNB.h"
 
 
 namespace zsp {
@@ -43,7 +44,31 @@ TaskGenerateExecModelCompInit::~TaskGenerateExecModelCompInit() {
 void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
     if (m_depth == 0) {
-        m_out_c->println("void %s_init(struct %s_s *actor, struct %s_s *obj) {",
+        const std::vector<arl::dm::ITypeExecUP> &init_down = 
+            t->getExecs(arl::dm::ExecKindT::InitDown);
+        const std::vector<arl::dm::ITypeExecUP> &init_up = 
+            t->getExecs(arl::dm::ExecKindT::InitUp);
+
+        // First, generate exec init_* functions if we'll be calling them
+        if (init_down.size()) {
+            // Invoke the init_down exec block
+            TaskGenerateExecModelExecBlockNB(m_gen, m_out_c).generate(
+                m_gen->getNameMap()->getName(t) + "__init_down",
+                "struct " + m_gen->getNameMap()->getName(t) + "_s",
+                init_down
+            );
+        }
+
+        if (init_up.size()) {
+            // Invoke the init_up exec block
+            TaskGenerateExecModelExecBlockNB(m_gen, m_out_c).generate(
+                m_gen->getNameMap()->getName(t) + "__init_up",
+                "struct " + m_gen->getNameMap()->getName(t) + "_s",
+                init_down
+            );
+        }
+
+        m_out_c->println("void %s_init(struct %s_s *actor, struct %s_s *__obj) {",
             m_gen->getNameMap()->getName(t).c_str(),
             m_gen->getActorName().c_str(),
             m_gen->getNameMap()->getName(t).c_str());
@@ -55,20 +80,18 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             (*it)->accept(m_this);
         }
 
-        const std::vector<arl::dm::ITypeExecUP> &init_down = 
-            t->getExecs(arl::dm::ExecKindT::InitDown);
         
         if (init_down.size()) {
-            // Invoke the init_down exec block
+            m_out_c->println("%s__init_down(__obj);", 
+                m_gen->getNameMap()->getName(t).c_str());
         }
 
         
 
-        const std::vector<arl::dm::ITypeExecUP> &init_up = 
-            t->getExecs(arl::dm::ExecKindT::InitUp);
         
         if (init_up.size()) {
-            // Invoke the init_up exec block
+            m_out_c->println("%s__init_up(__obj);", 
+                m_gen->getNameMap()->getName(t).c_str());
         }
 
         m_depth--;
@@ -77,7 +100,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
     } else {
         if (m_mode == Mode::SubCompInit) {
             // Call init for the compound field
-            m_out_c->println("%s_init(actor, (struct %s_s *)&obj->%s);",
+            m_out_c->println("%s_init(actor, (struct %s_s *)&__obj->%s);",
                 m_gen->getNameMap()->getName(t).c_str(),
                 m_gen->getNameMap()->getName(t).c_str(),
                 m_field->name().c_str());

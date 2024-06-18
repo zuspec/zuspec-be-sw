@@ -32,73 +32,18 @@ namespace sw {
 Output::Output(
     std::ostream            *out,
     bool                    owned,
-    const std::string       &ind) : m_out(out), m_owned(owned), m_ind(ind) {
+    const std::string       &ind) : OutputBase(ind), m_out(out), m_owned(owned) {
 
 }
 
 Output::~Output() {
-    if (m_owned) {
+    if (m_owned && m_out) {
         delete m_out;
     }
 }
 
-
-/**
- * @brief Writes indent, content, then a newline
- * 
- * @param fmt 
- * @param ... 
- */
-void Output::println(const char *fmt, ...) {
-    char tmp[1024];
-    va_list ap;
-    va_start(ap, fmt);
-
-    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
-    if (m_ind.size() > 0) {
-        m_out->write(m_ind.c_str(), m_ind.size());
-    }
-    m_out->write(tmp, len);
-    m_out->write("\n", 1);
-
-    va_end(ap);
-}
-
-/**
- * @brief Writes indent and content without a newline
- * 
- * @param fmt 
- * @param ... 
- */
-void Output::print(const char *fmt, ...) {
-    char tmp[1024];
-    va_list ap;
-    va_start(ap, fmt);
-
-    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
-    if (m_ind.size() > 0) {
-        m_out->write(m_ind.c_str(), m_ind.size());
-    }
-    m_out->write(tmp, len);
-
-    va_end(ap);
-}
-
-/**
- * @brief Writes content only
- * 
- * @param fmt 
- * @param ... 
- */
-void Output::write(const char *fmt, ...) {
-    char tmp[1024];
-    va_list ap;
-    va_start(ap, fmt);
-
-    int len = vsnprintf(tmp, sizeof(tmp), fmt, ap);
-    m_out->write(tmp, len);
-
-    va_end(ap);
+void Output::writes(const std::string &str) {
+    m_out->write(str.c_str(), str.size());
 }
 
 void Output::close() {
@@ -106,28 +51,7 @@ void Output::close() {
     if (dynamic_cast<std::fstream *>(m_out)) {
         dynamic_cast<std::fstream *>(m_out)->close();
     }
-}
-
-/**
- * @brief Writes the current indent
- * 
- */
-void Output::indent() {
-    if (m_ind.size() > 0) {
-        m_out->write(m_ind.c_str(), m_ind.size());
-    }
-}
-
-void Output::inc_ind() {
-    m_ind += "    ";
-}
-
-void Output::dec_ind() {
-    if (m_ind.size() > 4) {
-        m_ind = m_ind.substr(4);
-    } else {
-        m_ind = "";
-    }
+    m_out = 0;
 }
 
 }

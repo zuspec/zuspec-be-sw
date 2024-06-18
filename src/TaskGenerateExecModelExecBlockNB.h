@@ -19,10 +19,11 @@
  *     Author: 
  */
 #pragma once
+#include <string>
 #include <vector>
 #include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/arl/dm/ITypeExec.h"
-
 
 namespace zsp {
 namespace be {
@@ -30,25 +31,24 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExecBlockNB {
+class TaskGenerateExecModelExecBlockNB : 
+    public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModelExecBlockNB(
-        TaskGenerateExecModel *gen);
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out);
 
     virtual ~TaskGenerateExecModelExecBlockNB();
 
-    virtual void generate(
-        const std::string                       &fname,
-        arl::dm::ITypeExec                      *i);
-
-    virtual void generate(
-        const std::string                       &fname,
-        const std::vector<arl::dm::ITypeExecUP> &i);
+    void generate(
+        const std::string                           &fname,
+        const std::string                           &tname,
+        const std::vector<arl::dm::ITypeExecUP>     &execs);
 
 protected:
-    dmgr::IDebug                        *m_dbg;
-    TaskGenerateExecModel               *m_gen;
-
+    static dmgr::IDebug         *m_dbg;
+    TaskGenerateExecModel       *m_gen;
+    IOutput                     *m_out;
 };
 
 }

@@ -26,13 +26,16 @@ namespace be {
 namespace sw {
 
 
-OutputStr::OutputStr(
-    const std::string       &ind) : Output(&m_sstr, false, ind) {
+OutputStr::OutputStr(const std::string &ind) : OutputBase(ind) {
 
 }
 
 OutputStr::~OutputStr() {
 
+}
+
+void OutputStr::writes(const std::string &str) {
+    m_sstr.write(str.c_str(), str.size());
 }
 
 }

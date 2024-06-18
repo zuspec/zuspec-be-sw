@@ -9,6 +9,21 @@
 extern "C" {
 #endif
 
+typedef struct zsp_rt_obj_s {
+    int32_t                    size;
+    int32_t                    refcnt;
+    void (*dtor)(struct zsp_rt_obj_s *obj);
+} zsp_rt_obj_t;
+
+typedef struct addr_handle_s {
+    zsp_rt_obj_t                obj;
+} addr_handle_t;
+
+typedef struct addr_claim_s {
+    zsp_rt_obj_t                obj;
+    int32_t                     sz;
+} addr_claim_t;
+
 typedef struct zsp_rt_mblk_s {
     struct zsp_rt_mblk_s        *prev;
     uint32_t                    base;

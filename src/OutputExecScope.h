@@ -1,7 +1,7 @@
 /**
- * OutputStr.h
+ * OutputExecScope.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -19,39 +19,38 @@
  *     Author: 
  */
 #pragma once
-#include <sstream>
-#include "zsp/be/sw/IOutputStr.h"
+#include "zsp/be/sw/IOutput.h"
 #include "OutputBase.h"
+#include "OutputStr.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class OutputStr : 
-    public virtual IOutputStr, 
-    public virtual OutputBase {
+
+class OutputExecScope {
 public:
-    OutputStr(
-        const std::string       &ind=""
-    );
+    OutputExecScope(
+        bool                new_scope,
+        const std::string   &ind="");
 
-    OutputStr(const OutputStr &o) {
-        const std::string &ov = o.m_sstr.str();
-        m_sstr.write(ov.c_str(), ov.size());
-        m_ind = o.m_ind;
-    }
+    OutputExecScope(
+        bool                new_scope,
+        IOutput             *upper);
 
-    virtual ~OutputStr();
+    virtual ~OutputExecScope();
 
-    virtual std::string getValue() const override {
-        return m_sstr.str();
-    }
+    void apply(IOutput *out);
 
-    virtual void writes(const std::string &str) override;
+    IOutput *decl() { return &m_decl; }
+
+    IOutput *exec() { return &m_exec; }
 
 private:
-    std::stringstream           m_sstr;
+    bool            m_new_scope;
+    OutputStr       m_decl;
+    OutputStr       m_exec;
 
 };
 

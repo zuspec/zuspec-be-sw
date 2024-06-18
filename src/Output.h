@@ -22,13 +22,16 @@
 #include <iostream>
 #include <string>
 #include "zsp/be/sw/IOutput.h"
+#include "OutputBase.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-class Output : public virtual IOutput {
+class Output : 
+    public virtual IOutput,
+    public virtual OutputBase {
 public:
     Output(
         std::ostream            *out,
@@ -38,50 +41,13 @@ public:
 
     virtual ~Output();
 
-    /**
-     * @brief Writes indent, content, then a newline
-     * 
-     * @param fmt 
-     * @param ... 
-     */
-    virtual void println(const char *fmt, ...) override;
-
-    /**
-     * @brief Writes indent and content without a newline
-     * 
-     * @param fmt 
-     * @param ... 
-     */
-    virtual void print(const char *fmt, ...) override;
-
-    /**
-     * @brief Writes content only
-     * 
-     * @param fmt 
-     * @param ... 
-     */
-    virtual void write(const char *fmt, ...) override;
-
     virtual void close() override;
 
-    /**
-     * @brief Writes the current indent
-     * 
-     */
-    virtual void indent() override;
-
-    virtual void inc_ind() override;
-
-    virtual void dec_ind() override;
-
-    virtual const char *ind() const override {
-        return m_ind.c_str();
-    }
+    virtual void writes(const std::string &str) override;
 
 private:
     std::ostream                *m_out;
     bool                        m_owned;
-    std::string                 m_ind;
 
 };
 

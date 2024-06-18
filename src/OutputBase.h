@@ -1,7 +1,7 @@
 /**
- * IOutput.h
+ * OutputBase.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -19,19 +19,21 @@
  *     Author: 
  */
 #pragma once
-#include <memory>
 #include <string>
+#include <stdarg.h>
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
-class IOutput;
-using IOutputUP=std::unique_ptr<IOutput>;
-class IOutput {
-public:
 
-    virtual ~IOutput() { }
+
+class OutputBase : public virtual IOutput {
+public:
+    OutputBase(const std::string &ind="");
+
+    virtual ~OutputBase();
 
     /**
      * @brief Writes indent, content, then a newline
@@ -39,7 +41,7 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void println(const char *fmt, ...) = 0;
+    virtual void println(const char *fmt, ...) override;
 
     /**
      * @brief Writes indent and content without a newline
@@ -47,7 +49,7 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void print(const char *fmt, ...) = 0;
+    virtual void print(const char *fmt, ...) override;
 
     /**
      * @brief Writes content only
@@ -55,28 +57,31 @@ public:
      * @param fmt 
      * @param ... 
      */
-    virtual void write(const char *fmt, ...) = 0;
+    virtual void write(const char *fmt, ...) override;
 
-    virtual void writes(const std::string &str) = 0;
-
-    virtual void close() = 0;
+    virtual void close() override;
 
     /**
      * @brief Writes the current indent
      * 
      */
-    virtual void indent() = 0;
+    virtual void indent() override;
 
-    virtual void inc_ind() = 0;
+    virtual void inc_ind() override;
 
-    virtual void dec_ind() = 0;
+    virtual void dec_ind() override;
 
-    virtual const char *ind() const = 0;
+    virtual const char *ind() const override {
+        return m_ind.c_str();
+    }
+
+protected:
+    std::string                 m_ind;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace arl */
+}
+}
+}
 
 

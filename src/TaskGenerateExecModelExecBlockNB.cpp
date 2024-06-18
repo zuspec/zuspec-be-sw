@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecBlockNB.h"
+#include "TaskGenerateExecModelExecScopeNB.h"
 
 
 namespace zsp {
@@ -29,7 +30,8 @@ namespace sw {
 
 
 TaskGenerateExecModelExecBlockNB::TaskGenerateExecModelExecBlockNB(
-    TaskGenerateExecModel   *gen) : m_dbg(0), m_gen(gen) {
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out) : m_gen(gen), m_out(out) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecBlockNB", gen->getDebugMgr());
 }
 
@@ -38,16 +40,24 @@ TaskGenerateExecModelExecBlockNB::~TaskGenerateExecModelExecBlockNB() {
 }
 
 void TaskGenerateExecModelExecBlockNB::generate(
-        const std::string                       &fname,
-        arl::dm::ITypeExec                      *i) {
+        const std::string                           &fname,
+        const std::string                           &tname,
+        const std::vector<arl::dm::ITypeExecUP>     &execs) {
+    m_gen->getOutC()->println("void %s(%s *__obj) {",
+        fname.c_str(),
+        tname.c_str());
+    m_gen->getOutC()->inc_ind();
 
+    TaskGenerateExecModelExecScopeNB(m_gen, m_out).generate(
+        execs,
+        false
+    );
+
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
 }
 
-void TaskGenerateExecModelExecBlockNB::generate(
-        const std::string                       &fname,
-        const std::vector<arl::dm::ITypeExecUP> &i) {
-
-}
+dmgr::IDebug *TaskGenerateExecModelExecBlockNB::m_dbg = 0;
 
 }
 }

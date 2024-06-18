@@ -31,7 +31,8 @@ class TaskGenerateExecModel;
 class TaskGenerateExecModelFuncNB : public TaskGenerateExecModelExecBlockNB {
 public:
     TaskGenerateExecModelFuncNB(
-        TaskGenerateExecModel *gen);
+        TaskGenerateExecModel   *gen,
+        IOutput                 *out);
 
     virtual ~TaskGenerateExecModelFuncNB();
 

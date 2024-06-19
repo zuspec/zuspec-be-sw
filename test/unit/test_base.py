@@ -46,9 +46,13 @@ class TestBase(unittest.TestCase):
         ast_root = zsp_f.getAstFactory().mkGlobalScope(0)
         ast_builder.build(ast_root, io.StringIO(content))
 
+        for m in marker_c.markers():
+            print("Parse Marker: %s" % m.msg())
         self.assertFalse(marker_c.hasSeverity(zspp.MarkerSeverityE.Error))
 
         linked_root = ast_linker.link(marker_c, [ast_root])
+        for m in marker_c.markers():
+            print("Linker Marker: %s" % m.msg())
         self.assertFalse(marker_c.hasSeverity(zspp.MarkerSeverityE.Error))
 
         ast2arl_builder = zsp_fe_f.mkAst2ArlBuilder()

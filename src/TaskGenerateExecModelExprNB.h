@@ -33,11 +33,13 @@ class TaskGenerateExecModelExprNB : public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModelExprNB(
         TaskGenerateExecModel       *gen,
-        GenRefExprExecModel         *refgen,
+        IGenRefExpr                 *refgen,
         IOutput                     *out
     );
 
     virtual ~TaskGenerateExecModelExprNB();
+
+    void generate(vsc::dm::ITypeExpr *e);
 
 	virtual void visitTypeExprArrIndex(vsc::dm::ITypeExprArrIndex *e) override;
 
@@ -68,7 +70,7 @@ public:
 protected:
     static dmgr::IDebug             *m_dbg;
     TaskGenerateExecModel           *m_gen;
-    GenRefExprExecModel             *m_refgen;
+    IGenRefExpr                     *m_refgen;
     IOutput                         *m_out;
 
 };

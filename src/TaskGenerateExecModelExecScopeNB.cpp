@@ -51,6 +51,14 @@ void TaskGenerateExecModelExecScopeNB::generate(
 }
 
 void TaskGenerateExecModelExecScopeNB::generate(
+        arl::dm::ITypeProcStmt                  *i,
+        bool                                    new_scope) {
+    m_out_s.push_back(OutputExecScope(new_scope, m_out));
+    i->accept(m_this);
+    m_out_s.back().apply(m_out);
+}
+
+void TaskGenerateExecModelExecScopeNB::generate(
         const std::vector<arl::dm::ITypeExecUP> &i,
         bool                                    new_scope) {
 
@@ -66,16 +74,23 @@ void TaskGenerateExecModelExecScopeNB::generate(
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
     DEBUG_ENTER("visitTypeProcStmtAssign");
-    m_out_s.back().exec()->println("// assignment");
     m_out_s.back().exec()->indent();
     m_out_s.back().exec()->write("%s = ",
         m_refgen->genLval(s->getLhs()).c_str());
     TaskGenerateExecModelExprNB(
         m_gen, 
-        dynamic_cast<GenRefExprExecModel *>(m_refgen), 
-        m_out_s.back().exec());
+        m_refgen, 
+        m_out_s.back().exec()).generate(s->getRhs());
     m_out_s.back().exec()->write(";\n");
     DEBUG_LEAVE("visitTypeProcStmtAssign");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
+    DEBUG_ENTER("visitTypeProcStmtExpr");
+    m_out->indent();
+    TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate(s->getExpr());
+    m_out->write(";\n");
+    DEBUG_LEAVE("visitTypeProcStmtExpr");
 }
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
@@ -84,6 +99,45 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtScope(arl::dm::ITypeProc
     arl::dm::VisitorBase::visitTypeProcStmtScope(s);
     m_refgen->popScope();
     DEBUG_LEAVE("visitTypeScopeStmtScope");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtIfClause(arl::dm::ITypeProcStmtIfClause *s) {
+    DEBUG_ENTER("visitTypeProcStmtIfClause");
+    DEBUG_LEAVE("visitTypeProcStmtIfClause");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) {
+    DEBUG_ENTER("visitTypeProcStmtIfElse");
+    for (std::vector<arl::dm::ITypeProcStmtIfClauseUP>::const_iterator
+        it=s->getIfClauses().begin();
+        it!=s->getIfClauses().end(); it++) {
+        m_out->indent();
+        if (it != s->getIfClauses().begin()) {
+            m_out->write("} else ");
+        }
+
+        m_out->write("if (");
+        TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate((*it)->getCond());
+        m_out->write(") {\n");
+        m_out->inc_ind();
+        TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out).generate(
+            (*it)->getStmt(),
+            false
+        );
+        m_out->dec_ind();
+    }
+
+    if (s->getElseClause()) {
+        m_out->println("} else {");
+        m_out->inc_ind();
+        TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out).generate(
+            s->getElseClause(),
+            false
+        );
+        m_out->dec_ind();
+    }
+    m_out->println("}");
+    DEBUG_LEAVE("visitTypeProcStmtIfElse");
 }
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {

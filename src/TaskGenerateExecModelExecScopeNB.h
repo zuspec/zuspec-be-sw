@@ -47,12 +47,22 @@ public:
         bool                                    new_scope);
 
     virtual void generate(
+        arl::dm::ITypeProcStmt                  *i,
+        bool                                    new_scope);
+
+    virtual void generate(
         const std::vector<arl::dm::ITypeExecUP> &i,
         bool                                    new_scope);
 
 	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
 
 	virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
+
+	virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
+
+	virtual void visitTypeProcStmtIfClause(arl::dm::ITypeProcStmtIfClause *s) override;
+
+	virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
 
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 

@@ -53,7 +53,7 @@ void TaskGenerateExecModelStructInit::visitDataTypeEnum(vsc::dm::IDataTypeEnum *
 
 void TaskGenerateExecModelStructInit::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (m_depth) {
-        m_out_c->println("obj->%s = 0;", m_gen->getNameMap()->getName(m_field).c_str());
+        m_out_c->println("__obj->%s = 0;", m_gen->getNameMap()->getName(m_field).c_str());
     }
 }
 

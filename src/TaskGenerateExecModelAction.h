@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelCompStruct.h
+ * TaskGenerateExecModelAction.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,24 +19,37 @@
  *     Author: 
  */
 #pragma once
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "IGenRefExpr.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
+class TaskGenerateExecModel;
 
-
-class TaskGenerateExecModelCompStruct : 
-    public virtual TaskGenerateExecModelStruct {
+class TaskGenerateExecModelAction : public arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelCompStruct(
-        TaskGenerateExecModel   *gen,
-        IOutput                 *out);
+    TaskGenerateExecModelAction(
+        TaskGenerateExecModel       *gen,
+        bool                        is_root=false);
 
-    virtual ~TaskGenerateExecModelCompStruct();
+    virtual ~TaskGenerateExecModelAction();
 
+    void generate(arl::dm::IDataTypeAction *action);
+
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
+
+private:
+    
+private:
+    static dmgr::IDebug             *m_dbg;
+    TaskGenerateExecModel           *m_gen;
+    bool                            m_is_root;
+    int32_t                         m_depth;
 
 };
 

@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include <algorithm>
 #include "NameMap.h"
 
 
@@ -84,6 +85,7 @@ std::string NameMap::getName(
         m_name.clear();
         m_kind = kind;
         type->accept(m_this);
+        std::replace(m_name.begin(), m_name.end(), ':', '_');
         name_it = kind_it->second.insert({type, m_name}).first;
     }
 

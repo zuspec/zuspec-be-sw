@@ -45,7 +45,7 @@ void TaskGenerateExecModelExecBlockNB::generate(
         const std::string                           &fname,
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
-    m_gen->getOutC()->println("void %s(%s *__obj) {",
+    m_gen->getOutC()->println("static void %s(%s *__obj) {",
         fname.c_str(),
         tname.c_str());
     m_gen->getOutC()->inc_ind();

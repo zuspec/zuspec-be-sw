@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include <unordered_map>
 #include "zsp/arl/dm/impl/VisitorBase.h"
 
 namespace zsp {
@@ -29,7 +30,9 @@ class TaskGenerateExecModel;
 
 class TaskGenerateExecModelStruct : public arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelStruct(TaskGenerateExecModel *gen);
+    TaskGenerateExecModelStruct(
+        TaskGenerateExecModel   *gen,
+        IOutput                 *out);
 
     virtual ~TaskGenerateExecModelStruct();
 
@@ -51,6 +54,8 @@ public:
 
 	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 
+	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
 protected:
     using FieldM=std::unordered_map<std::string, int32_t>;
 
@@ -61,8 +66,7 @@ protected:
     uint32_t                        m_depth;
     uint32_t                        m_ptr;
     FieldM                          m_field_m;
-    IOutput                         *m_out_h;
-    IOutput                         *m_out_c;
+    IOutput                         *m_out;
 
 };
 

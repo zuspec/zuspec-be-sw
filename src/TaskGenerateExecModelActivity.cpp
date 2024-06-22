@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelCompStruct.cpp
+ * TaskGenerateExecModelActivity.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -18,9 +18,7 @@
  * Created on:
  *     Author:
  */
-#include "dmgr/impl/DebugMacros.h"
-#include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelCompStruct.h"
+#include "TaskGenerateExecModelActivity.h"
 
 
 namespace zsp {
@@ -28,14 +26,11 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelCompStruct::TaskGenerateExecModelCompStruct(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out) : 
-        TaskGenerateExecModelStruct(gen, out) {
+TaskGenerateExecModelActivity::TaskGenerateExecModelActivity() {
 
 }
 
-TaskGenerateExecModelCompStruct::~TaskGenerateExecModelCompStruct() {
+TaskGenerateExecModelActivity::~TaskGenerateExecModelActivity() {
 
 }
 

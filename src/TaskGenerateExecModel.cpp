@@ -18,11 +18,16 @@
  * Created on:
  *     Author:
  */
+#include <algorithm>
 #include "dmgr/impl/DebugMacros.h"
 #include "NameMap.h"
 #include "Output.h"
+#include "TaskBuildTypeCollection.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelComponent.h"
+#include "TaskGenerateExecModelFwdDecl.h"
+#include "TypeCollection.h"
 
 
 namespace zsp {
@@ -51,10 +56,14 @@ void TaskGenerateExecModel::generate(
     m_out_h = IOutputUP(new Output(out_h, false));
     m_out_h_prv = IOutputUP(new Output(out_h_prv, false));
 
+    m_action_t = action_t;
+
 
     m_actor_name = comp_t->name();
     m_actor_name += "_";
     m_actor_name += action_t->name();
+    std::replace(m_actor_name.begin(), m_actor_name.end(), ':', '_');
+
     m_out_h->println("#ifndef INCLUDED_%s_H", m_actor_name.c_str());
     m_out_h->println("#define INCLUDED_%s_H", m_actor_name.c_str());
     m_out_h->println("");
@@ -65,8 +74,35 @@ void TaskGenerateExecModel::generate(
     m_out_c->println("#include \"%s_prv.h\"", m_actor_name.c_str());
     m_out_h_prv->println("");
 
+    TypeCollectionUP type_c(TaskBuildTypeCollection(m_dmgr).build(
+        comp_t,
+        action_t
+    ));
+
+    std::vector<int32_t> sorted = type_c->sort();
+
+    // First, generate forward declarations for all types
+    getOutHPrv()->println("struct %s_s;", m_actor_name.c_str());
+    for (std::vector<int32_t>::const_iterator
+        it=sorted.begin();
+        it!=sorted.end(); it++) {
+        DEBUG("sorted: id=%d", *it);
+        TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(type_c->getType(*it));
+    }
+
+    // Next, visit each type and generate an implementation
+    for (std::vector<int32_t>::const_iterator
+        it=sorted.begin();
+        it!=sorted.end(); it++) {
+        type_c->getType(*it)->accept(m_this);
+    }
+
     // First, generate the component-tree data-types and 
+    /*
     TaskGenerateExecModelComponent(this).generate(comp_t);
+
+    TaskGenerateExecModelAction(this).generate(action_t);
+     */
 
     m_out_h->println("");
     m_out_h->println("#endif /* INCLUDED_%s_H */", m_actor_name.c_str());
@@ -87,6 +123,22 @@ bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
         return true;
     }
 }
+
+void TaskGenerateExecModel::visitDataTypeAction(arl::dm::IDataTypeAction *i) { 
+    DEBUG_ENTER("visitDataTypeAction");
+    TaskGenerateExecModelAction(this, (i==m_action_t)).generate(i);
+    DEBUG_LEAVE("visitDataTypeAction");
+}
+
+void TaskGenerateExecModel::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) { }
+
+void TaskGenerateExecModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
+    DEBUG_ENTER("visitDataTypeComponent");
+    TaskGenerateExecModelComponent(this).generate(t);
+    DEBUG_LEAVE("visitDataTypeComponent");
+}
+
+void TaskGenerateExecModel::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) { }
 
 dmgr::IDebug *TaskGenerateExecModel::m_dbg = 0;
 

@@ -22,7 +22,6 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelCompStruct.h"
-#include "TaskGenerateFwdDecl.h"
 #include "TaskGenerateExecModelCompInit.h"
 #include "TaskGenerateExecModelCompStruct.h"
 
@@ -44,13 +43,19 @@ TaskGenerateExecModelComponent::~TaskGenerateExecModelComponent() {
 void TaskGenerateExecModelComponent::generate(arl::dm::IDataTypeComponent *comp_t) {
     DEBUG_ENTER("generate");
 
+    // Generate the component struct
+    TaskGenerateExecModelCompStruct(m_gen, m_gen->getOutHPrv()).generate(comp_t);
 
+    TaskGenerateExecModelCompInit(m_gen).generate(comp_t);
+
+/*
     // First, handle forward declaration
     m_mode = Mode::FwdDecl;
     comp_t->accept(m_this);
 
     m_mode = Mode::Decl;
     comp_t->accept(m_this);
+ */
 
     DEBUG_LEAVE("generate");
 }
@@ -62,10 +67,12 @@ void TaskGenerateExecModelComponent::visitDataTypeComponent(arl::dm::IDataTypeCo
         case Mode::FwdDecl: {
             if (!m_gen->fwdDecl(t)) {
                 // Go ahead and forward-declare 
+                /*
                 TaskGenerateFwdDecl(
                     m_gen->getDebugMgr(),
                     m_gen->getNameMap(),
                     m_gen->getOutHPrv()).generate(t);
+                 */
                 m_gen->getOutHPrv()->println("static void %s_init(struct %s_s *actor, struct %s_s *obj);",
                     m_gen->getNameMap()->getName(t).c_str(),
                     m_gen->getActorName().c_str(),
@@ -93,7 +100,7 @@ void TaskGenerateExecModelComponent::visitDataTypeComponent(arl::dm::IDataTypeCo
                     (*it)->accept(m_this);
                 }
 
-                TaskGenerateExecModelCompStruct(m_gen).generate(t);
+//                TaskGenerateExecModelCompStruct(m_gen).generate(t);
 
                 TaskGenerateExecModelCompInit(m_gen).generate(t);
 

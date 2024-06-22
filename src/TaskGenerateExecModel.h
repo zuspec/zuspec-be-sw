@@ -24,6 +24,7 @@
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/arl/dm/IDataTypeComponent.h"
 #include "zsp/arl/dm/IDataTypeAction.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/INameMap.h"
 
 namespace zsp {
@@ -32,7 +33,8 @@ namespace sw {
 
 
 
-class TaskGenerateExecModel {
+class TaskGenerateExecModel : 
+    public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModel(
         dmgr::IDebugMgr                 *dmgr);
@@ -64,9 +66,18 @@ public:
 
     IOutput *getOutHPrv() { return m_out_h_prv.get(); }
 
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
+
+    virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
+
+	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
+
 private:
     static dmgr::IDebug                         *m_dbg;
     dmgr::IDebugMgr                             *m_dmgr;
+    arl::dm::IDataTypeAction                    *m_action_t;
     IOutputUP                                   m_out_c;
     IOutputUP                                   m_out_h;
     IOutputUP                                   m_out_h_prv;

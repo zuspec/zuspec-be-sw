@@ -1,5 +1,5 @@
 /**
- * TaskGenerateFwdDecl.h
+ * TaskGenerateExecModelFwdDecl.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -27,24 +27,27 @@ namespace zsp {
 namespace be {
 namespace sw {
 
+class TaskGenerateExecModel;
 
-
-class TaskGenerateFwdDecl : public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModelFwdDecl : public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateFwdDecl(
-        dmgr::IDebugMgr     *dmgr,
-        INameMap            *name_m,
-        IOutput             *out);
+    TaskGenerateExecModelFwdDecl(
+        TaskGenerateExecModel   *gen,
+        IOutput                 *out);
 
-    virtual ~TaskGenerateFwdDecl();
+    virtual ~TaskGenerateExecModelFwdDecl();
 
     void generate(vsc::dm::IAccept *item);
 
+    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
+
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 private:
     static dmgr::IDebug             *m_dbg;
-    INameMap                        *m_name_m;
+    TaskGenerateExecModel           *m_gen;
     IOutput                         *m_out;
 
 

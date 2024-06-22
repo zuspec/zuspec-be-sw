@@ -1,5 +1,5 @@
 /*
- * TaskGenerateFwdDecl.cpp
+ * TaskGenerateExecModelActivityStruct.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,8 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
-#include "zsp/be/sw/INameMap.h"
-#include "TaskGenerateFwdDecl.h"
+#include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelActivityStruct.h"
 
 
 namespace zsp {
@@ -28,28 +28,23 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateFwdDecl::TaskGenerateFwdDecl(
-    dmgr::IDebugMgr     *dmgr,
-    INameMap            *name_m,
-    IOutput             *out) : m_out(out), m_name_m(name_m) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateFwdDecl", dmgr);
+TaskGenerateExecModelActivityStruct::TaskGenerateExecModelActivityStruct(
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out,
+        const std::string           &struct_t) : 
+        m_gen(gen), m_out(out), m_struct_t(struct_t) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActivityStruct", gen->getDebugMgr());
 }
 
-TaskGenerateFwdDecl::~TaskGenerateFwdDecl() {
+TaskGenerateExecModelActivityStruct::~TaskGenerateExecModelActivityStruct() {
 
 }
 
-void TaskGenerateFwdDecl::generate(vsc::dm::IAccept *item) {
-    item->accept(m_this);
+void TaskGenerateExecModelActivityStruct::generate(arl::dm::IDataTypeActivity *activity) {
+
 }
 
-void TaskGenerateFwdDecl::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
-    DEBUG_ENTER("visitDataTypeComponent");
-    m_out->println("struct %s_s;", m_name_m->getName(t).c_str());
-    DEBUG_LEAVE("visitDataTypeComponent");
-}
-
-dmgr::IDebug *TaskGenerateFwdDecl::m_dbg = 0;
+dmgr::IDebug *TaskGenerateExecModelActivityStruct::m_dbg = 0;
 
 }
 }

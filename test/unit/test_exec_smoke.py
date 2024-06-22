@@ -20,6 +20,7 @@ class TestExecSmoke(TestBase):
                 print("Hello");
             }
         }
+
         component pss_top : base_t {
             int         a;
             int         b;

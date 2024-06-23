@@ -64,14 +64,10 @@ void TaskGenerateExecModel::generate(
     m_actor_name += action_t->name();
     std::replace(m_actor_name.begin(), m_actor_name.end(), ':', '_');
 
-    m_out_h->println("#ifndef INCLUDED_%s_H", m_actor_name.c_str());
-    m_out_h->println("#define INCLUDED_%s_H", m_actor_name.c_str());
     m_out_h->println("");
 
-    m_out_h_prv->println("#ifndef INCLUDED_%s_PRV_H", m_actor_name.c_str());
-    m_out_h_prv->println("#define INCLUDED_%s_PRV_H", m_actor_name.c_str());
-    m_out_c->println("#include \"%s.h\"", m_actor_name.c_str());
-    m_out_c->println("#include \"%s_prv.h\"", m_actor_name.c_str());
+    m_out_h->println("");
+
     m_out_h_prv->println("");
 
     TypeCollectionUP type_c(TaskBuildTypeCollection(m_dmgr).build(
@@ -97,17 +93,96 @@ void TaskGenerateExecModel::generate(
         type_c->getType(*it)->accept(m_this);
     }
 
-    // First, generate the component-tree data-types and 
-    /*
-    TaskGenerateExecModelComponent(this).generate(comp_t);
+    // Define top-level actor data-struct
+    m_out_h_prv->println("typedef struct %s_s {", getActorName().c_str());
+    m_out_h_prv->inc_ind();
+    m_out_h_prv->println("zsp_rt_actor_t actor;");
+    // public-interface functions go here
+    m_out_h_prv->println("%s_t comp;", comp_t->name().c_str());
+    m_out_h_prv->dec_ind();
+    m_out_h_prv->println("} %s_t;", getActorName().c_str());
 
-    TaskGenerateExecModelAction(this).generate(action_t);
-     */
+    // Declare init function
+    m_out_h->println("zsp_rt_actor_t *%s_new();", getActorName().c_str());
+
+    // Define a task for the actor to run
+    m_out_c->println("zsp_rt_task_t *%s_actor__run(%s_t *actor, zsp_rt_task_t *task) {",
+        getActorName().c_str(),
+        getActorName().c_str());
+    m_out_c->inc_ind();
+    m_out_c->println("zsp_rt_task_t *ret = 0;");
+    m_out_c->println("fprintf(stdout, \"actor run %%d\\n\", task->idx);");
+    m_out_c->println("switch (task->idx) {");
+    m_out_c->inc_ind();
+    m_out_c->println("case 0: {");
+    m_out_c->inc_ind();
+    m_out_c->println("task->idx++;");
+    m_out_c->println("ret = task;");
+    m_out_c->println("break;");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+    m_out_c->println("case 1: { // initialize comp-tree and start action");
+    m_out_c->inc_ind();
+    m_out_c->println("task->idx++;");
+    m_out_c->println("%s__init(actor, &actor->comp);", comp_t->name().c_str());
+    m_out_c->println("ret = task;");
+    m_out_c->println("break;");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+    m_out_c->println("case 2: { // done");
+    m_out_c->inc_ind();
+    m_out_c->println("task->idx++;");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+    m_out_c->println("fprintf(stdout, \"return %%p\\n\", ret);");
+    m_out_c->println("return ret;");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+
+    // Define a task initialization for the actor task
+    m_out_c->println("void %s_actor__init(zsp_rt_actor_t *actor, zsp_rt_task_t *task) {",
+        getActorName().c_str());
+    m_out_c->inc_ind();
+    m_out_c->println("fprintf(stdout, \"actor init\\n\");");
+    m_out_c->println("task->func = (zsp_rt_task_f)&%s_actor__run;", getActorName().c_str());
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+
+    // Define init function
+    m_out_c->println("zsp_rt_actor_t *%s_new() {", getActorName().c_str());
+    m_out_c->inc_ind();
+    m_out_c->println("zsp_rt_task_t *task;");
+    m_out_c->println("%s_t *actor = (%s_t *)malloc(sizeof(%s_t));",
+        getActorName().c_str(),
+        getActorName().c_str(),
+        getActorName().c_str());
+    m_out_c->println("zsp_rt_actor_init(&actor->actor);");
+
+    // Now, create a task that will initialize the component tree
+    // and run the root action
+    m_out_c->println("task = zsp_rt_task_enter(");
+    m_out_c->inc_ind();
+    m_out_c->println("&actor->actor,");
+    m_out_c->println("sizeof(zsp_rt_task_t),");
+    m_out_c->println("&%s_actor__init);", getActorName().c_str());
+    m_out_c->dec_ind();
+    m_out_c->println("");
+    m_out_c->println("task = zsp_rt_task_run(");
+    m_out_c->inc_ind();
+    m_out_c->println("&actor->actor,");
+    m_out_c->println("task);");
+    m_out_c->dec_ind();
+    m_out_c->println("zsp_rt_queue_task(&actor->actor, task);");
+    m_out_c->println("");
+    m_out_c->println("return (zsp_rt_actor_t *)actor;");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+
 
     m_out_h->println("");
-    m_out_h->println("#endif /* INCLUDED_%s_H */", m_actor_name.c_str());
     m_out_h_prv->println("");
-    m_out_h_prv->println("#endif /* INCLUDED_%s_PRV_H */", m_actor_name.c_str());
     DEBUG_LEAVE("generate");
 }
 

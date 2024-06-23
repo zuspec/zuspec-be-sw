@@ -1,4 +1,5 @@
 import io
+import os
 from .test_base import TestBase
 
 class TestExecSmoke(TestBase):
@@ -54,25 +55,15 @@ class TestExecSmoke(TestBase):
         }
         """
 
-        arl_ctxt, comp_t, action_t = self.buildModelGetRoots(
+        self.genBuildRun(
             content,
             "pss_top",
-            "pss_top::Entry"
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
         )
 
-        c_out = io.StringIO()
-        h_out = io.StringIO()
-        h_prv_out = io.StringIO()
-
-        self.be_sw_f.generateExecModel(
-            arl_ctxt,
-            comp_t,
-            action_t,
-            c_out,
-            h_out,
-            h_prv_out
-        )
-
-        print("c_out:\n%s" % c_out.getvalue())
-        print("h_out:\n%s" % h_out.getvalue())
-        print("h_prv_out:\n%s" % h_prv_out.getvalue())

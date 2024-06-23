@@ -114,6 +114,10 @@ void zsp_rt_actor_init(zsp_rt_actor_t *actor) {
     actor->task_q = 0;
 }
 
+void zsp_rt_actor_mgr_init(zsp_rt_actor_mgr_t *mgr) {
+
+}
+
 void *zsp_rt_mblk_alloc(
     zsp_rt_mblk_t       **blk,
     uint32_t            sz) {

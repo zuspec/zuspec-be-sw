@@ -54,8 +54,18 @@ typedef struct zsp_rt_actor_s {
     zsp_rt_mblk_t           *stack_s;
     struct zsp_rt_task_s    *task_q;
     struct zsp_rt_task_s    *task;
-
 } zsp_rt_actor_t;
+
+/**
+ * Actor manager provides memory for all actors, and
+ * coordinates their execution
+ * 
+ */
+typedef struct zsp_rt_actor_mgr_s {
+
+} zsp_rt_actor_mgr_t;
+
+void zsp_rt_actor_mgr_init(zsp_rt_actor_mgr_t *mgr);
 
 typedef void (*zsp_rt_init_f)(
     struct zsp_rt_actor_s *, 

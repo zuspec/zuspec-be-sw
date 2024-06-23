@@ -120,7 +120,7 @@ void TaskGenerateExecModelStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *
         }
         m_depth--;
     } else {
-        m_out->write("%s_t%s",
+        m_out->write("struct %s_s%s",
             m_gen->getNameMap()->getName(t).c_str(),
             (m_depth==1)?" ":"");
     }

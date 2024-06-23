@@ -74,7 +74,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             );
         }
 
-        m_out_c->println("void %s_init(struct %s_s *actor, struct %s_s *__obj) {",
+        m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *__obj) {",
             m_gen->getNameMap()->getName(t).c_str(),
             m_gen->getActorName().c_str(),
             m_gen->getNameMap()->getName(t).c_str());
@@ -85,7 +85,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             it!=t->getFields().end(); it++) {
             (*it)->accept(m_this);
         }
-
+        m_depth--;
         
         if (init_down.size()) {
             m_out_c->println("%s__init_down(__obj);", 
@@ -93,24 +93,19 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         }
 
         
-
-        
         if (init_up.size()) {
             m_out_c->println("%s__init_up(__obj);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
 
-        m_depth--;
         m_out_c->dec_ind();
         m_out_c->println("}");
     } else {
-        if (m_mode == Mode::SubCompInit) {
-            // Call init for the compound field
-            m_out_c->println("%s_init(actor, (struct %s_s *)&__obj->%s);",
-                m_gen->getNameMap()->getName(t).c_str(),
-                m_gen->getNameMap()->getName(t).c_str(),
-                m_field->name().c_str());
-        }
+        // Call init for the compound field
+        m_out_c->println("%s__init(actor, (struct %s_s *)&__obj->%s);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_field->name().c_str());
     }
 
     DEBUG_LEAVE("visitDataTypeComponent");

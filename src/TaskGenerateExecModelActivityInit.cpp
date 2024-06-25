@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelActivity.cpp
+ * TaskGenerateExecModelActivityInit.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,10 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelActivityInit.h"
-#include "TaskGenerateExecModelActivityRun.h"
-#include "TaskGenerateExecModelActivityStruct.h"
 
 
 namespace zsp {
@@ -31,30 +28,30 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActivity::TaskGenerateExecModelActivity(
-    TaskGenerateExecModel       *gen) : m_gen(gen) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActivity",
-        gen->getDebugMgr());
+TaskGenerateExecModelActivityInit::TaskGenerateExecModelActivityInit(
+    TaskGenerateExecModel       *gen,
+    IOutput                     *out) : m_gen(gen), m_out(out) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActivityInit", gen->getDebugMgr());        
 }
 
-TaskGenerateExecModelActivity::~TaskGenerateExecModelActivity() {
+TaskGenerateExecModelActivityInit::~TaskGenerateExecModelActivityInit() {
 
 }
 
-void TaskGenerateExecModelActivity::generate(arl::dm::IDataTypeActivity *activity) {
+void TaskGenerateExecModelActivityInit::generate(arl::dm::IDataTypeActivity *activity) {
     DEBUG_ENTER("generate");
-    TaskGenerateExecModelActivityStruct(
-        m_gen,
-        m_gen->getOutHPrv()).generate(activity);
-
-    TaskGenerateExecModelActivityInit(
-        m_gen,
-        m_gen->getOutHPrv()).generate(activity);
+    m_out->println("void %s__init(struct %s_s *this_p) {",
+        m_gen->getNameMap()->getName(activity).c_str(),
+        m_gen->getNameMap()->getName(activity).c_str());
+    m_out->inc_ind();
+    activity->accept(m_this);
+    m_out->dec_ind();
+    m_out->println("}");
 
     DEBUG_LEAVE("generate");
 }
 
-dmgr::IDebug *TaskGenerateExecModelActivity::m_dbg = 0;
+dmgr::IDebug *TaskGenerateExecModelActivityInit::m_dbg = 0;
 
 }
 }

@@ -41,9 +41,39 @@ TaskGenerateExecModelAction::~TaskGenerateExecModelAction() {
 
 void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
 
-    // Visit the tree of actions to pre-declare all types
-    // Use a depth-first traversal
-    action->accept(m_this);
+    // Declare the action struct
+    TaskGenerateExecModelActionStruct(m_gen, m_gen->getOutHPrv()).generate(action);
+
+    // Declare the action-init function
+    m_gen->getOutC()->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
+        m_gen->getNameMap()->getName(action).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(action).c_str());
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
+        m_gen->getNameMap()->getName(action).c_str());
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
+
+    // Now, declare the action-run function
+    m_gen->getOutC()->println("zsp_rt_task_t *%s__run(struct %s_s *actor, struct %s_s *this_p) {",
+        m_gen->getNameMap()->getName(action).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(action).c_str());
+    m_gen->getOutC()->println("zsp_rt_task_t *ret = 0;");
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("switch (this_p->task.idx) {");
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("case 0: {");
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("fprintf(stdout, \"Hello from action run\\n\");");
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
+    m_gen->getOutC()->println("return ret;");
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
 
     // Forward declaration
     /*
@@ -67,7 +97,6 @@ void TaskGenerateExecModelAction::visitDataTypeAction(arl::dm::IDataTypeAction *
         VisitorBase::visitDataTypeAction(i);
 
         // Now, declare the type and implement the methods
-        TaskGenerateExecModelActionStruct(m_gen, m_gen->getOutHPrv()).generate(i);
 
         m_depth--;
     } else if (!m_gen->fwdDecl(i)) {

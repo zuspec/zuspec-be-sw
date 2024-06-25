@@ -1,7 +1,7 @@
-/*
- * OutputStr.cpp
+/**
+ * TaskGenerateExecModelActivityRun.h
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -16,33 +16,26 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "OutputStr.h"
-
+#pragma once
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-OutputStr::OutputStr(const std::string &ind) : OutputBase(ind) {
 
-}
+class TaskGenerateExecModelActivityRun {
+public:
+    TaskGenerateExecModelActivityRun();
 
-OutputStr::~OutputStr() {
+    virtual ~TaskGenerateExecModelActivityRun();
 
-}
-
-void OutputStr::writes(const std::string &str) {
-    m_sstr.write(str.c_str(), str.size());
-}
-
-void OutputStr::clear() {
-    m_sstr.clear();
-    m_ind = "";
-}
+};
 
 }
 }
 }
+
+

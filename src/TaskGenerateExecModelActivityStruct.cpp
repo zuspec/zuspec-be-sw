@@ -30,9 +30,8 @@ namespace sw {
 
 TaskGenerateExecModelActivityStruct::TaskGenerateExecModelActivityStruct(
         TaskGenerateExecModel       *gen,
-        IOutput                     *out,
-        const std::string           &struct_t) : 
-        m_gen(gen), m_out(out), m_struct_t(struct_t) {
+        IOutput                     *out) :
+        m_gen(gen), m_out(out) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActivityStruct", gen->getDebugMgr());
 }
 
@@ -41,6 +40,7 @@ TaskGenerateExecModelActivityStruct::~TaskGenerateExecModelActivityStruct() {
 }
 
 void TaskGenerateExecModelActivityStruct::generate(arl::dm::IDataTypeActivity *activity) {
+    m_struct_t = m_gen->getNameMap()->getName(activity);
 
 }
 

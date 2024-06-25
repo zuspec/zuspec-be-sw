@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActivity.h
+ * TaskGenerateExecModelExecBlockB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,13 @@
  *     Author: 
  */
 #pragma once
+#include <string>
+#include <vector>
 #include "dmgr/IDebugMgr.h"
-#include "zsp/arl/dm/IDataTypeActivity.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/arl/dm/ITypeExec.h"
+#include "zsp/be/sw/IOutput.h"
+#include "IGenRefExpr.h"
 
 namespace zsp {
 namespace be {
@@ -28,19 +33,19 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelActivity {
+class TaskGenerateExecModelExecBlockB {
 public:
-    TaskGenerateExecModelActivity(
-        TaskGenerateExecModel   *gen
-    );
+    TaskGenerateExecModelExecBlockB(
+        TaskGenerateExecModel       *gen,
+        IGenRefExpr                 *refgen,
+        IOutput                     *out);
 
-    virtual ~TaskGenerateExecModelActivity();
+    virtual ~TaskGenerateExecModelExecBlockB();
 
-    void generate(arl::dm::IDataTypeActivity *activity);
-
-private:
-    static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    void generate(
+        const std::string                           &fname,
+        const std::string                           &tname,
+        const std::vector<arl::dm::ITypeExecUP>     &execs);
 
 };
 

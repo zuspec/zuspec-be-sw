@@ -1,7 +1,7 @@
 /*
- * OutputStr.cpp
+ * TaskGenerateExecModelExecBlockB.cpp
  *
- * Copyright 2022 Matthew Ballance and Contributors
+ * Copyright 2023 Matthew Ballance and Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may 
  * not use this file except in compliance with the License.  
@@ -18,7 +18,7 @@
  * Created on:
  *     Author:
  */
-#include "OutputStr.h"
+#include "TaskGenerateExecModelExecBlockB.h"
 
 
 namespace zsp {
@@ -26,21 +26,22 @@ namespace be {
 namespace sw {
 
 
-OutputStr::OutputStr(const std::string &ind) : OutputBase(ind) {
+TaskGenerateExecModelExecBlockB::TaskGenerateExecModelExecBlockB(
+    TaskGenerateExecModel           *gen,
+    IGenRefExpr                     *refgen,
+    IOutput                         *out) {
 
 }
 
-OutputStr::~OutputStr() {
+TaskGenerateExecModelExecBlockB::~TaskGenerateExecModelExecBlockB() {
 
 }
 
-void OutputStr::writes(const std::string &str) {
-    m_sstr.write(str.c_str(), str.size());
-}
+void TaskGenerateExecModelExecBlockB::generate(
+        const std::string                           &fname,
+        const std::string                           &tname,
+        const std::vector<arl::dm::ITypeExecUP>     &execs) {
 
-void OutputStr::clear() {
-    m_sstr.clear();
-    m_ind = "";
 }
 
 }

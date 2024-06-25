@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActivity.h
+ * TaskGenerateExecModelActivityInit.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,8 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
-#include "zsp/arl/dm/IDataTypeActivity.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -28,20 +29,21 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelActivity {
+class TaskGenerateExecModelActivityInit :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelActivity(
-        TaskGenerateExecModel   *gen
-    );
+    TaskGenerateExecModelActivityInit(
+        TaskGenerateExecModel   *gen,
+        IOutput                 *out);
 
-    virtual ~TaskGenerateExecModelActivity();
+    virtual ~TaskGenerateExecModelActivityInit();
 
     void generate(arl::dm::IDataTypeActivity *activity);
 
 private:
     static dmgr::IDebug             *m_dbg;
     TaskGenerateExecModel           *m_gen;
-
+    IOutput                         *m_out;
 };
 
 }

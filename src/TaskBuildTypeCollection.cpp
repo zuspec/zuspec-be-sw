@@ -50,13 +50,15 @@ TypeCollectionUP TaskBuildTypeCollection::build(
 }
 
 void TaskBuildTypeCollection::visitDataTypeAction(arl::dm::IDataTypeAction *t) { 
-    DEBUG_ENTER("visitDataTypeAction");
+    DEBUG_ENTER("visitDataTypeAction %s", t->name().c_str());
     m_type_c->addType(t);
 
     for (int32_t i=m_type_s.size()-1; i>=0; i--) {
-        m_type_c->addDep(
-            t,
-            m_dtype_s.at(i));
+        if (m_type_s.at(i) != Type::Field) {
+            m_type_c->addDep(
+                t,
+                m_dtype_s.at(i));
+        }
     }
 
     m_dtype_s.push_back(t);
@@ -65,6 +67,12 @@ void TaskBuildTypeCollection::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
         it=t->getFields().begin();
         it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+        it=t->activities().begin();
+        it!=t->activities().end(); it++) {
         (*it)->accept(m_this);
     }
 
@@ -77,15 +85,44 @@ void TaskBuildTypeCollection::visitDataTypeActivityParallel(arl::dm::IDataTypeAc
 
 }
 
+void TaskBuildTypeCollection::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) {
+    DEBUG_ENTER("visitDataTypeActivitySequence");
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=t->getFields().begin();
+        it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+        it=t->getActivities().begin();
+        it!=t->getActivities().end(); it++) {
+        (*it)->getDataType()->accept(m_this);
+    }
+    DEBUG_LEAVE("visitDataTypeActivitySequence");
+}
+
+void TaskBuildTypeCollection::visitDataTypeActivityTraverse(arl::dm::IDataTypeActivityTraverse *t) {
+    DEBUG_ENTER("visitDataTypeActivityTraverse");
+
+    DEBUG_LEAVE("visitDataTypeActivityTraverse");
+}
+
+void TaskBuildTypeCollection::visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) {
+    DEBUG_ENTER("visitDataTypeActivityTraverseType");
+    t->getTarget()->accept(m_this);
+    DEBUG_LEAVE("visitDataTypeActivityTraverseType");
+}
+
 void TaskBuildTypeCollection::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
     DEBUG_ENTER("visitDataTypeComponent");
 
     m_type_c->addType(t);
 
     for (int32_t i=m_type_s.size()-1; i>=0; i--) {
-        m_type_c->addDep(
-            t,
-            m_dtype_s.at(i));
+        if (m_type_s.at(i) != Type::Field) {
+            m_type_c->addDep(
+                t,
+                m_dtype_s.at(i));
+        }
     }
 
     m_dtype_s.push_back(t);
@@ -113,9 +150,11 @@ void TaskBuildTypeCollection::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     m_type_c->addType(t);
 
     for (int32_t i=m_type_s.size()-1; i>=0; i--) {
-        m_type_c->addDep(
-            t,
-            m_dtype_s.at(i));
+        if (m_type_s.at(i) != Type::Field) {
+            m_type_c->addDep(
+                t,
+                m_dtype_s.at(i));
+        }
     }
 
     m_dtype_s.push_back(t);
@@ -135,7 +174,9 @@ void TaskBuildTypeCollection::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
 void TaskBuildTypeCollection::visitTypeField(vsc::dm::ITypeField *t) {
     DEBUG_ENTER("visitTypeField");
     m_type_s.push_back(Type::Field);
+    m_dtype_s.push_back(0);
     t->getDataType()->accept(m_this);
+    m_dtype_s.pop_back();
     m_type_s.pop_back();
     DEBUG_LEAVE("visitTypeField");
 }

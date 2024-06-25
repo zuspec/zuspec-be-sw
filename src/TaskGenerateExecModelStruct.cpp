@@ -78,7 +78,8 @@ void TaskGenerateExecModelStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
         tname = (t->isSigned())?"int8_t":"uint8_t";
     }
 
-    m_out->write("%s%s", tname, (m_depth==1)?" ":"");
+//    m_out->write("%s%s", tname, (m_depth==1)?" ":"");
+    m_out->write("%s ", tname);
 }
 
 void TaskGenerateExecModelStruct::visitDataTypePtr(vsc::dm::IDataTypePtr *t) {

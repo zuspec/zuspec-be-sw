@@ -80,17 +80,22 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             m_gen->getNameMap()->getName(t).c_str());
         m_out_c->inc_ind();
         m_depth++;
+        m_subcomp_init.clear();
+        m_subcomp_init.inc_ind();
         for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
             it=t->getFields().begin();
             it!=t->getFields().end(); it++) {
             (*it)->accept(m_this);
         }
+        m_subcomp_init.dec_ind();
         m_depth--;
         
         if (init_down.size()) {
             m_out_c->println("%s__init_down(__obj);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
+
+        m_out_c->writes(m_subcomp_init.getValue());
 
         
         if (init_up.size()) {
@@ -102,7 +107,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         m_out_c->println("}");
     } else {
         // Call init for the compound field
-        m_out_c->println("%s__init(actor, (struct %s_s *)&__obj->%s);",
+        m_subcomp_init.println("%s__init(actor, (struct %s_s *)&__obj->%s);",
             m_gen->getNameMap()->getName(t).c_str(),
             m_gen->getNameMap()->getName(t).c_str(),
             m_field->name().c_str());

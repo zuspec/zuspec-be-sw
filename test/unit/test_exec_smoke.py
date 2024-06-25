@@ -12,7 +12,7 @@ class TestExecSmoke(TestBase):
 
         component base_t {
             int a;
-
+            /*
             exec init_down {
                 print("Hello");
             }
@@ -20,6 +20,7 @@ class TestExecSmoke(TestBase):
             exec init_up {
                 print("Hello");
             }
+             */
         }
 
         component pss_top : base_t {
@@ -27,6 +28,7 @@ class TestExecSmoke(TestBase):
             int         b;
             base_t      c;
 
+            /*
             exec init_down {
                 int i;
                 i = 1;
@@ -46,10 +48,21 @@ class TestExecSmoke(TestBase):
 
             exec init_up {
             }
+             */
+
+            action Sub {
+                exec body {
+                    // TODO:
+                }
+            }
 
             action Entry {
+                int a;
                 exec pre_solve {
-//                    print("Hello from Smoke Test");
+                    print("Hello from Smoke Test");
+                }
+                activity {
+                    do Sub;
                 }
             }
         }

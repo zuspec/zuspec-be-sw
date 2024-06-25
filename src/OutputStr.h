@@ -50,6 +50,8 @@ public:
 
     virtual void writes(const std::string &str) override;
 
+    void clear();
+
 private:
     std::stringstream           m_sstr;
 

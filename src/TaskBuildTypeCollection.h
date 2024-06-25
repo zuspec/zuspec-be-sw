@@ -47,6 +47,12 @@ public:
         
 	virtual void visitDataTypeActivityParallel(arl::dm::IDataTypeActivityParallel *t) override;
 
+	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+
+	virtual void visitDataTypeActivityTraverse(arl::dm::IDataTypeActivityTraverse *t) override;
+
+	virtual void visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) override;
+
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
 	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;

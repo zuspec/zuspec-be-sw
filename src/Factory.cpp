@@ -87,7 +87,7 @@ void Factory::generateExecModel(
         std::ostream                                    *out_c,
         std::ostream                                    *out_h,
         std::ostream                                    *out_h_prv) {
-    TaskGenerateExecModel(m_dmgr).generate(
+    TaskGenerateExecModel(ctxt).generate(
         comp_t,
         action_t,
         out_c,

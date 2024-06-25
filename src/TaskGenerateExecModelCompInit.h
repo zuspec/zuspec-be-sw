@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "TaskGenerateExecModelStructInit.h"
+#include "OutputStr.h"
 
 namespace zsp {
 namespace be {
@@ -42,6 +43,7 @@ private:
     };
 
 private:
+    OutputStr           m_subcomp_init;
     Mode                m_mode;
 
 };

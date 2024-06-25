@@ -92,6 +92,17 @@ std::string NameMap::getName(
     return name_it->second;
 }
 
+void NameMap::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
+    m_name = t->name();
+}
+
+void NameMap::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) {
+    char tmp[128];
+    sprintf(tmp, "_%08p", t);
+    m_name = "activity";
+    m_name += tmp;
+}
+
 void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     m_name = t->name();
 }

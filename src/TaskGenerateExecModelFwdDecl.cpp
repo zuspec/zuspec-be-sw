@@ -50,11 +50,16 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
         m_gen->getNameMap()->getName(t).c_str(),
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
-    m_out->println("static void %s__run(struct %s_s *actor, struct %s_s *this_p);",
+    m_out->println("static zsp_rt_task_t *%s__run(struct %s_s *actor, struct %s_s *this_p);",
         m_gen->getNameMap()->getName(t).c_str(),
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
-
+    if (t->getExecs(arl::dm::ExecKindT::Body).size()) {
+        m_out->println("static zsp_rt_task_t *%s__body(struct %s_s *actor, struct %s_s *this_p);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getActorName().c_str(),
+            m_gen->getNameMap()->getName(t).c_str());
+    }
 
     DEBUG_LEAVE("visitDataTypeAction %s", t->name().c_str());
 }

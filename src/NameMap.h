@@ -59,6 +59,10 @@ public:
         vsc::dm::IAccept    *type,
         INameMap::Kind      kind=Kind::Mangled) override;
 
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
+
+	virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
+
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;

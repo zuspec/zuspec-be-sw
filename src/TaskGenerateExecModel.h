@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/be/sw/IOutput.h"
+#include "zsp/arl/dm/IContext.h"
 #include "zsp/arl/dm/IDataTypeComponent.h"
 #include "zsp/arl/dm/IDataTypeAction.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
@@ -37,7 +38,7 @@ class TaskGenerateExecModel :
     public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModel(
-        dmgr::IDebugMgr                 *dmgr);
+        arl::dm::IContext               *ctxt);
 
     virtual ~TaskGenerateExecModel();
 
@@ -58,6 +59,8 @@ public:
      */
     bool fwdDecl(vsc::dm::IDataType *dt, bool add=true);
 
+    arl::dm::IContext *getContext() { return m_ctxt; }
+
     INameMap *getNameMap() { return m_name_m.get(); }
 
     IOutput *getOutC() { return m_out_c.get(); }
@@ -75,8 +78,13 @@ public:
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 private:
+    void generate_actor_entry();
+
+private:
     static dmgr::IDebug                         *m_dbg;
+    arl::dm::IContext                           *m_ctxt;
     dmgr::IDebugMgr                             *m_dmgr;
+    arl::dm::IDataTypeComponent                 *m_comp_t;
     arl::dm::IDataTypeAction                    *m_action_t;
     IOutputUP                                   m_out_c;
     IOutputUP                                   m_out_h;

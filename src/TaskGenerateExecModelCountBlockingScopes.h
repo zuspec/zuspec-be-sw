@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActivityStruct.h
+ * TaskGenerateExecModelCountBlockingScopes.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,7 +21,6 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
-#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -29,26 +28,29 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelActivityStruct 
-    : public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModelCountBlockingScopes :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelActivityStruct(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out);
+    TaskGenerateExecModelCountBlockingScopes(
+        TaskGenerateExecModel *gen
+    );
 
-    virtual ~TaskGenerateExecModelActivityStruct();
+    virtual ~TaskGenerateExecModelCountBlockingScopes();
 
-    /*
-     activity is a task
-     */
-    void generate(arl::dm::IDataTypeActivity *activity);
+    int32_t count(arl::dm::IDataTypeActivity *t);
+
+	virtual void visitDataTypeActivityParallel(arl::dm::IDataTypeActivityParallel *t) override;
+
+	virtual void visitDataTypeActivityReplicate(arl::dm::IDataTypeActivityReplicate *t) override;
+
+	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+
+	virtual void visitDataTypeActivityTraverse(arl::dm::IDataTypeActivityTraverse *t) override;
 
 private:
-    static dmgr::IDebug         *m_dbg;
+    static dmgr::IDebug         *m_dbg; 
     TaskGenerateExecModel       *m_gen;
-    IOutput                     *m_out;
-    std::string                 m_struct_t;
-
+    int32_t                     m_count;
 };
 
 }

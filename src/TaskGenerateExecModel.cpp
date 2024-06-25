@@ -25,6 +25,7 @@
 #include "TaskBuildTypeCollection.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAction.h"
+#include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelFwdDecl.h"
 #include "TypeCollection.h"
@@ -36,8 +37,8 @@ namespace sw {
 
 
 TaskGenerateExecModel::TaskGenerateExecModel(
-    dmgr::IDebugMgr         *dmgr) : m_dmgr(dmgr) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModel", dmgr);
+    arl::dm::IContext       *ctxt) : m_dmgr(ctxt->getDebugMgr()) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModel", m_dmgr);
 }
 
 TaskGenerateExecModel::~TaskGenerateExecModel() {
@@ -56,6 +57,7 @@ void TaskGenerateExecModel::generate(
     m_out_h = IOutputUP(new Output(out_h, false));
     m_out_h_prv = IOutputUP(new Output(out_h_prv, false));
 
+    m_comp_t = comp_t;
     m_action_t = action_t;
 
 
@@ -93,12 +95,54 @@ void TaskGenerateExecModel::generate(
         type_c->getType(*it)->accept(m_this);
     }
 
+    generate_actor_entry();
+
+    m_out_h->println("");
+    m_out_h_prv->println("");
+    DEBUG_LEAVE("generate");
+}
+
+bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
+    std::unordered_set<vsc::dm::IDataType *>::const_iterator it;
+
+    if ((it=m_dt_fwd_decl.find(dt)) == m_dt_fwd_decl.end()) {
+        if (add) {
+            m_dt_fwd_decl.insert(dt);
+        }
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void TaskGenerateExecModel::visitDataTypeAction(arl::dm::IDataTypeAction *i) { 
+    DEBUG_ENTER("visitDataTypeAction %s", i->name().c_str());
+    TaskGenerateExecModelAction(this, (i==m_action_t)).generate(i);
+    DEBUG_LEAVE("visitDataTypeAction");
+}
+
+void TaskGenerateExecModel::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) { 
+    DEBUG_ENTER("visitDataTypeActivity");
+    TaskGenerateExecModelActivity(this).generate(t);
+    DEBUG_LEAVE("visitDataTypeActivity");
+}
+
+void TaskGenerateExecModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
+    DEBUG_ENTER("visitDataTypeComponent");
+    TaskGenerateExecModelComponent(this).generate(t);
+    DEBUG_LEAVE("visitDataTypeComponent");
+}
+
+void TaskGenerateExecModel::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) { }
+
+void TaskGenerateExecModel::generate_actor_entry() {
+    DEBUG_ENTER("generate_actor_entry");
     // Define top-level actor data-struct
     m_out_h_prv->println("typedef struct %s_s {", getActorName().c_str());
     m_out_h_prv->inc_ind();
     m_out_h_prv->println("zsp_rt_actor_t actor;");
     // public-interface functions go here
-    m_out_h_prv->println("%s_t comp;", comp_t->name().c_str());
+    m_out_h_prv->println("%s_t comp;", m_comp_t->name().c_str());
     m_out_h_prv->dec_ind();
     m_out_h_prv->println("} %s_t;", getActorName().c_str());
 
@@ -123,9 +167,23 @@ void TaskGenerateExecModel::generate(
     m_out_c->println("}");
     m_out_c->println("case 1: { // initialize comp-tree and start action");
     m_out_c->inc_ind();
+    m_out_c->println("%s_t *action_t = (%s_t *)zsp_rt_task_enter(",
+        getNameMap()->getName(m_action_t).c_str(),
+        getNameMap()->getName(m_action_t).c_str());
+    m_out_c->inc_ind();
+    m_out_c->println("&actor->actor,");
+    m_out_c->println("sizeof(%s_t),", getNameMap()->getName(m_action_t).c_str());
+    m_out_c->println("(zsp_rt_init_f)&%s__init);",
+        getNameMap()->getName(m_action_t).c_str());
+    m_out_c->dec_ind();
     m_out_c->println("task->idx++;");
-    m_out_c->println("%s__init(actor, &actor->comp);", comp_t->name().c_str());
-    m_out_c->println("ret = task;");
+    m_out_c->println("%s__init(actor, &actor->comp);", m_comp_t->name().c_str());
+    m_out_c->println("ret = zsp_rt_task_run(&actor->actor, &action_t->task);");
+    m_out_c->println("if (ret) {");
+    m_out_c->inc_ind();
+    m_out_c->println("zsp_rt_queue_task(&actor->actor, ret);");
+    m_out_c->dec_ind();
+    m_out_c->println("}");
     m_out_c->println("break;");
     m_out_c->dec_ind();
     m_out_c->println("}");
@@ -180,40 +238,8 @@ void TaskGenerateExecModel::generate(
     m_out_c->dec_ind();
     m_out_c->println("}");
 
-
-    m_out_h->println("");
-    m_out_h_prv->println("");
-    DEBUG_LEAVE("generate");
+    DEBUG_LEAVE("generate_actor_entry");
 }
-
-bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
-    std::unordered_set<vsc::dm::IDataType *>::const_iterator it;
-
-    if ((it=m_dt_fwd_decl.find(dt)) == m_dt_fwd_decl.end()) {
-        if (add) {
-            m_dt_fwd_decl.insert(dt);
-        }
-        return false;
-    } else {
-        return true;
-    }
-}
-
-void TaskGenerateExecModel::visitDataTypeAction(arl::dm::IDataTypeAction *i) { 
-    DEBUG_ENTER("visitDataTypeAction");
-    TaskGenerateExecModelAction(this, (i==m_action_t)).generate(i);
-    DEBUG_LEAVE("visitDataTypeAction");
-}
-
-void TaskGenerateExecModel::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) { }
-
-void TaskGenerateExecModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
-    DEBUG_ENTER("visitDataTypeComponent");
-    TaskGenerateExecModelComponent(this).generate(t);
-    DEBUG_LEAVE("visitDataTypeComponent");
-}
-
-void TaskGenerateExecModel::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) { }
 
 dmgr::IDebug *TaskGenerateExecModel::m_dbg = 0;
 

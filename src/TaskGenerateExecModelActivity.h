@@ -39,8 +39,8 @@ public:
     void generate(arl::dm::IDataTypeActivity *activity);
 
 private:
-    static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    static dmgr::IDebug                                 *m_dbg;
+    TaskGenerateExecModel                               *m_gen;
 
 };
 

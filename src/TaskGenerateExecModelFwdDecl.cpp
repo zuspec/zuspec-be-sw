@@ -60,6 +60,19 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
             m_gen->getActorName().c_str(),
             m_gen->getNameMap()->getName(t).c_str());
     }
+    if (t->getExecs(arl::dm::ExecKindT::PreSolve).size()) {
+        m_out->println("static void %s__pre_solve(struct %s_s *actor, struct %s_s *this_p);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getActorName().c_str(),
+            m_gen->getNameMap()->getName(t).c_str());
+    }
+    if (t->getExecs(arl::dm::ExecKindT::PostSolve).size()) {
+        m_out->println("static void %s__post_solve(struct %s_s *actor, struct %s_s *this_p);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getActorName().c_str(),
+            m_gen->getNameMap()->getName(t).c_str());
+    }
+
 
     DEBUG_LEAVE("visitDataTypeAction %s", t->name().c_str());
 }

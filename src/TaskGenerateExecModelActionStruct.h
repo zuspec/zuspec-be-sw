@@ -41,6 +41,8 @@ public:
 
     void generate(arl::dm::IDataTypeAction *action_t);
 
+    virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
 protected:
 
 

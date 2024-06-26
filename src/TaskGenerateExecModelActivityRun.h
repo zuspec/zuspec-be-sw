@@ -19,18 +19,40 @@
  *     Author: 
  */
 #pragma once
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
+#include "OutputExecScope.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
+class TaskGenerateExecModel;
 
-
-class TaskGenerateExecModelActivityRun {
+class TaskGenerateExecModelActivityRun :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelActivityRun();
+    TaskGenerateExecModelActivityRun(
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out
+    );
 
     virtual ~TaskGenerateExecModelActivityRun();
+
+    void generate(arl::dm::IDataTypeActivity *activity);
+
+	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+
+	virtual void visitDataTypeActivityTraverse(arl::dm::IDataTypeActivityTraverse *t) override;
+
+	virtual void visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) override;
+
+private:
+    static dmgr::IDebug                                 *m_dbg;
+    TaskGenerateExecModel                               *m_gen;
+    IOutput                                             *m_out;
+    std::vector<arl::dm::IDataTypeActivityScope *>      m_scope_s;
+    std::vector<OutputExecScope>                        m_out_s;
 
 };
 

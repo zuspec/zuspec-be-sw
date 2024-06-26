@@ -18,6 +18,8 @@
  * Created on:
  *     Author:
  */
+#include "dmgr/impl/DebugMacros.h"
+#include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelActivityRun.h"
 
 
@@ -26,13 +28,30 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActivityRun::TaskGenerateExecModelActivityRun() {
-
+TaskGenerateExecModelActivityRun::TaskGenerateExecModelActivityRun(
+    TaskGenerateExecModel       *gen,
+    IOutput                     *out) : m_gen(gen), m_out(out) {
+    DEBUG_INIT("zsp::be::Sw::TaskGenerateExecModelActivityRun", gen->getDebugMgr());
 }
 
 TaskGenerateExecModelActivityRun::~TaskGenerateExecModelActivityRun() {
 
 }
+
+void TaskGenerateExecModelActivityRun::generate(
+    arl::dm::IDataTypeActivity *activity) {
+    DEBUG_ENTER("generate");
+    activity->accept(m_this);
+    DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateExecModelActivityRun::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) { }
+
+void TaskGenerateExecModelActivityRun::visitDataTypeActivityTraverse(arl::dm::IDataTypeActivityTraverse *t) { }
+
+void TaskGenerateExecModelActivityRun::visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) { }
+
+dmgr::IDebug *TaskGenerateExecModelActivityRun::m_dbg = 0;
 
 }
 }

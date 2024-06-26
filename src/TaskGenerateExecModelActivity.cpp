@@ -49,7 +49,11 @@ void TaskGenerateExecModelActivity::generate(arl::dm::IDataTypeActivity *activit
 
     TaskGenerateExecModelActivityInit(
         m_gen,
-        m_gen->getOutHPrv()).generate(activity);
+        m_gen->getOutC()).generate(activity);
+
+    TaskGenerateExecModelActivityRun(
+        m_gen,
+        m_gen->getOutC()).generate(activity);
 
     DEBUG_LEAVE("generate");
 }

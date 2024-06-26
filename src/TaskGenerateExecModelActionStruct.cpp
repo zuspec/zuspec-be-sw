@@ -43,6 +43,11 @@ TaskGenerateExecModelActionStruct::~TaskGenerateExecModelActionStruct() {
 void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
     DEBUG_ENTER("generate");
 
+    m_depth = 0;
+    m_ptr = 0;
+    m_field = 0;
+    m_field_m.clear();
+
     m_out->println("typedef struct %s_s {", 
         m_gen->getNameMap()->getName(action_t).c_str());
     m_out->inc_ind();
@@ -74,6 +79,14 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
         m_gen->getNameMap()->getName(action_t).c_str());
 
     DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateExecModelActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
+    DEBUG_ENTER("visitTypeFieldRef");
+    if (f->name() != "comp") {
+        TaskGenerateExecModelStruct::visitTypeField(f);
+    }
+    DEBUG_LEAVE("visitTypeFieldRef");
 }
 
 }

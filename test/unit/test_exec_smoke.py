@@ -51,6 +51,9 @@ class TestExecSmoke(TestBase):
              */
 
             action Sub {
+                exec pre_solve {
+                    print("Hello from Sub");
+                }
                 exec body {
                     // TODO:
                 }

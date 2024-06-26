@@ -47,6 +47,12 @@ public:
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs);
 
+private:
+    static dmgr::IDebug                 *m_dbg;
+    TaskGenerateExecModel               *m_gen;
+    IGenRefExpr                         *m_refgen;
+    IOutput                             *m_out;
+
 };
 
 }

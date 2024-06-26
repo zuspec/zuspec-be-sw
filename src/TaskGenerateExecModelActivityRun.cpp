@@ -39,9 +39,18 @@ TaskGenerateExecModelActivityRun::~TaskGenerateExecModelActivityRun() {
 }
 
 void TaskGenerateExecModelActivityRun::generate(
-    arl::dm::IDataTypeActivity *activity) {
+    vsc::dm::IDataType *activity) {
     DEBUG_ENTER("generate");
+    m_out->println("zsp_rt_task_t *%s_run(struct %s_s *actor, struct %s_s *this_p) {",
+        m_gen->getNameMap()->getName(activity).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(activity).c_str());
+    m_out->inc_ind();
+    m_out->println("zsp_rt_task_t *ret = 0;");
     activity->accept(m_this);
+    m_out->dec_ind();
+    m_out->println("return ret;");
+    m_out->println("}");
     DEBUG_LEAVE("generate");
 }
 

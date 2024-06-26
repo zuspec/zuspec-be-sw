@@ -36,7 +36,7 @@ public:
 
     virtual ~TaskGenerateExecModelActivity();
 
-    void generate(arl::dm::IDataTypeActivity *activity);
+    void generate(vsc::dm::IDataType *activity);
 
 private:
     static dmgr::IDebug                                 *m_dbg;

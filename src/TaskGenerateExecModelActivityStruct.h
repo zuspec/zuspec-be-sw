@@ -41,12 +41,13 @@ public:
     /*
      activity is a task
      */
-    void generate(arl::dm::IDataTypeActivity *activity);
+    void generate(vsc::dm::IDataType *activity);
 
 private:
     static dmgr::IDebug         *m_dbg;
     TaskGenerateExecModel       *m_gen;
     IOutput                     *m_out;
+    int32_t                     m_depth;
     std::string                 m_struct_t;
 
 };

@@ -63,6 +63,8 @@ zsp_rt_task_t *zsp_rt_task_enter(
     task->idx = 0;
 
     init_f(actor, task);
+
+    return task;
 }
 
 /*

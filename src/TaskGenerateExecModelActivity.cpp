@@ -41,7 +41,7 @@ TaskGenerateExecModelActivity::~TaskGenerateExecModelActivity() {
 
 }
 
-void TaskGenerateExecModelActivity::generate(arl::dm::IDataTypeActivity *activity) {
+void TaskGenerateExecModelActivity::generate(vsc::dm::IDataType *activity) {
     DEBUG_ENTER("generate");
     TaskGenerateExecModelActivityStruct(
         m_gen,

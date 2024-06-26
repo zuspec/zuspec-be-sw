@@ -93,7 +93,7 @@ class TestBase(unittest.TestCase):
             fp.write("    while (zsp_rt_run_one_task(actor)) { ; }\n")
             fp.write("}\n")
 
-        cmd = ['gcc', '-o', os.path.join(self.test_dir, 'test.exe')]
+        cmd = ['gcc', '-g', '-o', os.path.join(self.test_dir, 'test.exe')]
 
         cmd.append(os.path.join(self.proj_dir, 'runtime/zsp_rt_posix.c'))
         cmd.append(os.path.join(self.test_dir, 'model.c'))

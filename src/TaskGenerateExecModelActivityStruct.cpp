@@ -39,9 +39,17 @@ TaskGenerateExecModelActivityStruct::~TaskGenerateExecModelActivityStruct() {
 
 }
 
-void TaskGenerateExecModelActivityStruct::generate(arl::dm::IDataTypeActivity *activity) {
+void TaskGenerateExecModelActivityStruct::generate(vsc::dm::IDataType *activity) {
+    DEBUG_ENTER("generate");
     m_struct_t = m_gen->getNameMap()->getName(activity);
-
+    m_out->println("typedef struct %s_s {", m_struct_t.c_str());
+    m_out->inc_ind();
+    m_out->println("zsp_rt_task_t task;");
+    m_depth = 0;
+    activity->accept(m_this);
+    m_out->dec_ind();
+    m_out->println("} %s_t;", m_struct_t.c_str());
+    DEBUG_LEAVE("generate");
 }
 
 dmgr::IDebug *TaskGenerateExecModelActivityStruct::m_dbg = 0;

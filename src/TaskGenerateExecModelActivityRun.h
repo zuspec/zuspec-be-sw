@@ -39,7 +39,7 @@ public:
 
     virtual ~TaskGenerateExecModelActivityRun();
 
-    void generate(arl::dm::IDataTypeActivity *activity);
+    void generate(vsc::dm::IDataType *activity);
 
 	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
 

@@ -38,12 +38,15 @@ TaskGenerateExecModelActivityInit::~TaskGenerateExecModelActivityInit() {
 
 }
 
-void TaskGenerateExecModelActivityInit::generate(arl::dm::IDataTypeActivity *activity) {
+void TaskGenerateExecModelActivityInit::generate(vsc::dm::IDataType *activity) {
     DEBUG_ENTER("generate");
-    m_out->println("void %s__init(struct %s_s *this_p) {",
+    m_out->println("void %s_init(struct %s_s *actor, struct %s_s *this_p) {",
         m_gen->getNameMap()->getName(activity).c_str(),
+        m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(activity).c_str());
     m_out->inc_ind();
+    m_out->println("this_p->task.func = (zsp_rt_task_f)&%s_run;",
+        m_gen->getNameMap()->getName(activity).c_str());
     activity->accept(m_this);
     m_out->dec_ind();
     m_out->println("}");

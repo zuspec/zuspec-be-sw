@@ -158,7 +158,7 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->println("fprintf(stdout, \"actor run %%d\\n\", task->idx);");
     m_out_c->println("switch (task->idx) {");
     m_out_c->inc_ind();
-    m_out_c->println("case 0: {");
+    m_out_c->println("case 0: { // Always yield");
     m_out_c->inc_ind();
     m_out_c->println("task->idx++;");
     m_out_c->println("ret = task;");

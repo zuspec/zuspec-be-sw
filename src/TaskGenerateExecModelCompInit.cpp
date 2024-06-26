@@ -48,7 +48,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         GenRefExprExecModel refgen(
             m_gen, 
             t,
-            "__obj",
+            "this_p",
             true);
         const std::vector<arl::dm::ITypeExecUP> &init_down = 
             t->getExecs(arl::dm::ExecKindT::InitDown);
@@ -74,7 +74,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             );
         }
 
-        m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *__obj) {",
+        m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
             m_gen->getNameMap()->getName(t).c_str(),
             m_gen->getActorName().c_str(),
             m_gen->getNameMap()->getName(t).c_str());
@@ -91,7 +91,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         m_depth--;
         
         if (init_down.size()) {
-            m_out_c->println("%s__init_down(__obj);", 
+            m_out_c->println("%s__init_down(this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
 
@@ -99,7 +99,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
 
         
         if (init_up.size()) {
-            m_out_c->println("%s__init_up(__obj);", 
+            m_out_c->println("%s__init_up(this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
 
@@ -107,7 +107,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         m_out_c->println("}");
     } else {
         // Call init for the compound field
-        m_subcomp_init.println("%s__init(actor, (struct %s_s *)&__obj->%s);",
+        m_subcomp_init.println("%s__init(actor, (struct %s_s *)&this_p->%s);",
             m_gen->getNameMap()->getName(t).c_str(),
             m_gen->getNameMap()->getName(t).c_str(),
             m_field->name().c_str());

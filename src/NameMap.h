@@ -63,6 +63,10 @@ public:
 
 	virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
 
+	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override {
+        visitDataTypeActivity(t);
+    }
+
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;

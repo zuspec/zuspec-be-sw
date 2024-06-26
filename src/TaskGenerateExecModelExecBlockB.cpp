@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecBlockB.h"
 
 
@@ -29,7 +30,8 @@ namespace sw {
 TaskGenerateExecModelExecBlockB::TaskGenerateExecModelExecBlockB(
     TaskGenerateExecModel           *gen,
     IGenRefExpr                     *refgen,
-    IOutput                         *out) {
+    IOutput                         *out) :
+    m_gen(gen), m_refgen(refgen), m_out(out) {
 
 }
 
@@ -42,6 +44,27 @@ void TaskGenerateExecModelExecBlockB::generate(
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
 
+    m_gen->getOutC()->println("static void %s_init(struct %s_s *actor, %s *this_p) {",
+        fname.c_str(),
+        m_gen->getActorName().c_str(),
+        tname.c_str());
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s_run;",
+        fname.c_str());
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
+
+    m_gen->getOutC()->println("static zsp_rt_task_t *%s_run(struct %s_s *actor, %s *this_p) {",
+        fname.c_str(),
+        m_gen->getActorName().c_str(),
+        tname.c_str());
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("return 0;");
+
+    // TODO:
+
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
 }
 
 }

@@ -24,6 +24,7 @@
 #include "Output.h"
 #include "TaskBuildTypeCollection.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelComponent.h"
@@ -37,7 +38,7 @@ namespace sw {
 
 
 TaskGenerateExecModel::TaskGenerateExecModel(
-    arl::dm::IContext       *ctxt) : m_dmgr(ctxt->getDebugMgr()) {
+    arl::dm::IContext       *ctxt) : m_ctxt(ctxt), m_dmgr(ctxt->getDebugMgr()) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModel", m_dmgr);
 }
 
@@ -56,6 +57,8 @@ void TaskGenerateExecModel::generate(
     m_out_c = IOutputUP(new Output(out_c, false));
     m_out_h = IOutputUP(new Output(out_h, false));
     m_out_h_prv = IOutputUP(new Output(out_h_prv, false));
+
+    attach_custom_gen();
 
     m_comp_t = comp_t;
     m_action_t = action_t;
@@ -134,6 +137,18 @@ void TaskGenerateExecModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *
 }
 
 void TaskGenerateExecModel::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) { }
+
+void TaskGenerateExecModel::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
+    DEBUG_ENTER("visitDataTypePackedStruct");
+
+    DEBUG_LEAVE("visitDataTypePackedStruct");
+}
+
+void TaskGenerateExecModel::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+    DEBUG_ENTER("visitDataTypeStruct");
+
+    DEBUG_LEAVE("visitDataTypeStruct");
+}
 
 void TaskGenerateExecModel::generate_actor_entry() {
     DEBUG_ENTER("generate_actor_entry");
@@ -239,6 +254,26 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->println("}");
 
     DEBUG_LEAVE("generate_actor_entry");
+}
+
+void TaskGenerateExecModel::attach_custom_gen() {
+    DEBUG_ENTER("attach_custom_gen");
+
+    for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
+        it=m_ctxt->getDataTypeFunctions().begin();
+        it!=m_ctxt->getDataTypeFunctions().end(); it++) {
+        std::string name = (*it)->name();
+        DEBUG("name: %s", name.c_str());
+        if (name.find("addr_reg_pkg::") == 0) {
+            if (name.find("::reg_c") != -1) {
+                DEBUG("Attach reg-access generator");
+                (*it)->setAssociatedData(
+                    new TaskGenerateExecModelRegRwCall(m_dmgr));
+            }
+        }
+    }
+
+    DEBUG_LEAVE("attach_custom_gen");
 }
 
 dmgr::IDebug *TaskGenerateExecModel::m_dbg = 0;

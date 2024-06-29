@@ -91,7 +91,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         m_depth--;
         
         if (init_down.size()) {
-            m_out_c->println("%s__init_down(this_p);", 
+            m_out_c->println("%s__init_down(actor, this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
 
@@ -99,7 +99,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
 
         
         if (init_up.size()) {
-            m_out_c->println("%s__init_up(this_p);", 
+            m_out_c->println("%s__init_up(actor, this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
 

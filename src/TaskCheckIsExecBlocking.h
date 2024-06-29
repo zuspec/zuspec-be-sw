@@ -1,5 +1,5 @@
 /**
- * IGenRefExpr.h
+ * TaskCheckIsExecBlocking.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,8 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/ITypeExprRef.h"
-#include "zsp/arl/dm/ITypeProcStmtScope.h"
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 
 namespace zsp {
 namespace be {
@@ -28,23 +28,30 @@ namespace sw {
 
 
 
-class IGenRefExpr {
+class TaskCheckIsExecBlocking :
+    public virtual arl::dm::VisitorBase {
 public:
+    TaskCheckIsExecBlocking(
+        dmgr::IDebugMgr     *dmgr,
+        bool                imp_target_blocking
+    );
 
-    virtual ~IGenRefExpr() { }
+    virtual ~TaskCheckIsExecBlocking();
 
-    virtual std::string genLval(vsc::dm::ITypeExpr *ref) = 0;
+    bool check(arl::dm::ITypeExec *exec);
 
-    virtual std::string genRval(vsc::dm::ITypeExpr *ref) = 0;
+    bool check(const std::vector<arl::dm::ITypeExecUP> &execs);
 
-    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
 
-    virtual void popScope() = 0;
+private:
+    static dmgr::IDebug         *m_dbg;
+    bool                        m_imp_target_blocking;
+    bool                        m_blocking;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

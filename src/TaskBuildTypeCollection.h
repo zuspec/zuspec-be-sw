@@ -57,6 +57,8 @@ public:
 
 	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;
 
+	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
+
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
     virtual void visitTypeField(vsc::dm::ITypeField *t) override;

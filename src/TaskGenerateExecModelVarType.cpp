@@ -61,11 +61,11 @@ void TaskGenerateExecModelVarType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     DEBUG_ENTER("visitDataTypeInt");
     const char *tname = 0;
 
-    if (t->getByteSize() > 32) {
+    if (t->getByteSize() > 4) {
         tname = (t->isSigned())?"int64_t":"uint64_t";
-    } else if (t->getByteSize() > 16) {
+    } else if (t->getByteSize() > 2) {
         tname = (t->isSigned())?"int32_t":"uint32_t";
-    } else if (t->getByteSize() > 8) {
+    } else if (t->getByteSize() > 1) {
         tname = (t->isSigned())?"int16_t":"uint16_t";
     } else {
         tname = (t->isSigned())?"int8_t":"uint8_t";

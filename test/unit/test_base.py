@@ -141,14 +141,20 @@ class TestBase(unittest.TestCase):
         ast_linker = zsp_f.mkAstLinker()
         zsp_fe_f = zsp_fe.Factory.inst()
 
-        ast_root = zsp_f.getAstFactory().mkGlobalScope(0)
+        core_lib = zsp_f.getAstFactory().mkGlobalScope(0)
+        zsp_f.loadStandardLibrary(ast_builder, core_lib)
+
+        ast_root = zsp_f.getAstFactory().mkGlobalScope(1)
         ast_builder.build(ast_root, io.StringIO(content))
 
         for m in marker_c.markers():
             print("Parse Marker: %s" % m.msg())
         self.assertFalse(marker_c.hasSeverity(zspp.MarkerSeverityE.Error))
 
-        linked_root = ast_linker.link(marker_c, [ast_root])
+        linked_root = ast_linker.link(marker_c, [
+            core_lib,
+            ast_root
+            ])
         for m in marker_c.markers():
             print("Linker Marker: %s" % m.msg())
         self.assertFalse(marker_c.hasSeverity(zspp.MarkerSeverityE.Error))

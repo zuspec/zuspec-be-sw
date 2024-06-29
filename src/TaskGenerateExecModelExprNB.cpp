@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "GenRefExprExecModel.h"
+#include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExprNB.h"
 #include "TaskGenerateExecModelExprVal.h"
@@ -88,21 +89,34 @@ void TaskGenerateExecModelExprNB::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldR
 }
 
 void TaskGenerateExecModelExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) { 
-    DEBUG_ENTER("VisitTypeExprMethodCallContext");
-    m_out->write("%s(", 
-        m_gen->getNameMap()->getName(e->getTarget()).c_str()
-    );
-    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
-        it=e->getParameters().begin();
-        it!=e->getParameters().end(); it++) {
-        if (it != e->getParameters().begin()) {
-            m_out->write(", ");
-        }
-        TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate(
-            it->get()
+    DEBUG_ENTER("VisitTypeExprMethodCallContext %s",
+        e->getTarget()->name().c_str());
+    ITaskGenerateExecModelCustomGen *custom_gen = 
+        dynamic_cast<ITaskGenerateExecModelCustomGen *>(e->getTarget()->getAssociatedData());
+
+    DEBUG("custom_gen: %p (%p)", custom_gen, e->getTarget()->getAssociatedData());
+    if (custom_gen) {
+        custom_gen->genExprMethodCallContextNB(
+            m_gen,
+            m_out,
+            m_refgen,
+            e);
+    } else {
+        m_out->write("%s(", 
+            m_gen->getNameMap()->getName(e->getTarget()).c_str()
         );
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+            it=e->getParameters().begin();
+            it!=e->getParameters().end(); it++) {
+            if (it != e->getParameters().begin()) {
+                m_out->write(", ");
+            }
+            TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate(
+                it->get()
+            );
+        }
+        m_out->write(")");
     }
-    m_out->write(")");
     DEBUG_LEAVE("VisitTypeExprMethodCallContext");
 }
 

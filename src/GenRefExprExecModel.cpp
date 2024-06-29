@@ -19,6 +19,8 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "vsc/dm/impl/TaskIsTypeFieldRef.h"
+#include "zsp/arl/dm/impl/TaskGetSubField.h"
 #include "GenRefExprExecModel.h"
 #include "TaskGenerateExecModel.h"
 
@@ -45,6 +47,7 @@ GenRefExprExecModel::~GenRefExprExecModel() {
 std::string GenRefExprExecModel::genLval(vsc::dm::ITypeExpr *ref) {
     m_ret.clear();
     m_depth = 0;
+    m_isRef = m_ctxtPtr;
     ref->accept(m_this);
     return m_ret;
 }
@@ -52,6 +55,7 @@ std::string GenRefExprExecModel::genLval(vsc::dm::ITypeExpr *ref) {
 std::string GenRefExprExecModel::genRval(vsc::dm::ITypeExpr *ref) {
     m_ret.clear();
     m_depth = 0;
+    m_isRef = m_ctxtPtr;
     ref->accept(m_this);
     return m_ret;
 }
@@ -90,14 +94,19 @@ void GenRefExprExecModel::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) {
     e->getRootExpr()->accept(m_this);
     m_depth--;
 
-    vsc::dm::ITypeField *field = dynamic_cast<vsc::dm::IDataTypeStruct *>(m_type)->getField(e->getSubFieldIndex());
+    vsc::dm::ITypeField *field = arl::dm::TaskGetSubField().get(
+        m_type, 
+        e->getSubFieldIndex());
     m_ret.append(field->name());
     m_type = field->getDataType();
 
     if (m_depth) {
         // TODO: should determine based on field type
-        m_ret.append(".");
+        m_ret.append((m_isRef)?"->":".");
     }
+
+    // Track whether the next deref will be a pointer
+    m_isRef = vsc::dm::TaskIsTypeFieldRef().eval(field);
 
 
     DEBUG_LEAVE("visitTypeExprSubField");

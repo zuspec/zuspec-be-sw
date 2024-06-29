@@ -66,6 +66,12 @@ void TaskGenerateExecModelStructInit::visitTypeField(vsc::dm::ITypeField *f) {
     f->getDataType()->accept(m_this);
 }
 
+void TaskGenerateExecModelStructInit::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {
+    DEBUG_ENTER("visitTypeFieldRegGroup");
+    DEBUG("TODO: visitTypeFieldRegGroup");
+    DEBUG_LEAVE("visitTypeFieldRegGroup");
+}
+
 
 }
 }

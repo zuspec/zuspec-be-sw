@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "zsp/be/sw/INameMap.h"
+#include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelFwdDecl.h"
 
@@ -55,16 +56,24 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
     if (t->getExecs(arl::dm::ExecKindT::Body).size()) {
-        m_out->println("struct %s__body_s;",
-            m_gen->getNameMap()->getName(t).c_str());
-        m_out->println("static void %s__body_init(struct %s_s *actor, struct %s__body_s *this_p);",
-            m_gen->getNameMap()->getName(t).c_str(),
-            m_gen->getActorName().c_str(),
-            m_gen->getNameMap()->getName(t).c_str());
-        m_out->println("static zsp_rt_task_t *%s__body_run(struct %s_s *actor, struct %s__body_s *this_p);",
-            m_gen->getNameMap()->getName(t).c_str(),
-            m_gen->getActorName().c_str(),
-            m_gen->getNameMap()->getName(t).c_str());
+        if (TaskCheckIsExecBlocking(m_gen->getDebugMgr(), false).check(
+            t->getExecs(arl::dm::ExecKindT::Body))) {
+            m_out->println("struct %s__body_s;",
+                m_gen->getNameMap()->getName(t).c_str());
+            m_out->println("static void %s__body_init(struct %s_s *actor, struct %s__body_s *this_p);",
+                m_gen->getNameMap()->getName(t).c_str(),
+                m_gen->getActorName().c_str(),
+                m_gen->getNameMap()->getName(t).c_str());
+            m_out->println("static zsp_rt_task_t *%s__body_run(struct %s_s *actor, struct %s__body_s *this_p);",
+                m_gen->getNameMap()->getName(t).c_str(),
+                m_gen->getActorName().c_str(),
+                m_gen->getNameMap()->getName(t).c_str());
+        } else {
+            m_out->println("static void %s__body(struct %s_s *actor, struct %s_s *this_p);",
+                m_gen->getNameMap()->getName(t).c_str(),
+                m_gen->getActorName().c_str(),
+                m_gen->getNameMap()->getName(t).c_str());
+        }
     }
     if (t->activities().size()) {
         m_out->println("struct %s__activity_s;",

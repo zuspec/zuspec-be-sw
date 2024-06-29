@@ -53,6 +53,8 @@ private:
     IOutput                                             *m_out;
     std::vector<arl::dm::IDataTypeActivityScope *>      m_scope_s;
     std::vector<OutputExecScope>                        m_out_s;
+    int32_t                                             m_depth;
+    int32_t                                             m_idx;
 
 };
 

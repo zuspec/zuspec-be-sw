@@ -63,6 +63,7 @@ public:
 
 	virtual void visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) override;
 
+
 private:
     static dmgr::IDebug                             *m_dbg;
     TaskGenerateExecModel                           *m_gen;
@@ -72,6 +73,7 @@ private:
     std::string                                     m_ret;
     vsc::dm::IDataType                              *m_type;
     int32_t                                         m_depth;
+    bool                                            m_isRef;
     std::vector<arl::dm::ITypeProcStmtScope *>      m_scope_s;
 
 };

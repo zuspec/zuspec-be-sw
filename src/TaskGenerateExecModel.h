@@ -77,8 +77,14 @@ public:
 
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
+	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
+
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
 private:
     void generate_actor_entry();
+
+    void attach_custom_gen();
 
 private:
     static dmgr::IDebug                         *m_dbg;

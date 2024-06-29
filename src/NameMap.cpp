@@ -96,6 +96,14 @@ void NameMap::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
     m_name = t->name();
 }
 
+void NameMap::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
+    m_name = t->name();
+}
+
+void NameMap::visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) {
+    m_name = t->name();
+}
+
 void NameMap::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) {
     char tmp[128];
     sprintf(tmp, "_%08p", t);
@@ -109,6 +117,10 @@ void NameMap::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
 
 void NameMap::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     m_name = t->name();
+}
+
+void NameMap::visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) {
+    t->getDataTypeVirt()->accept(m_this);
 }
 
 void NameMap::visitTypeField(vsc::dm::ITypeField *t) {

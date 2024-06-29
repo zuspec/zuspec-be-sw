@@ -56,6 +56,7 @@ class TestExecSmoke(TestBase):
                 }
                 exec body {
                     // TODO:
+                    print("Hello from body");
                 }
             }
 
@@ -83,3 +84,41 @@ class TestExecSmoke(TestBase):
             ]
         )
 
+    def test_reg_smoke(self):
+        content = """
+        import addr_reg_pkg::*;
+        import function void print(string msg);
+
+        pure component my_regs : reg_group_c {
+            reg_c<bit[32]>      r1;
+            reg_c<bit[32]>      r2;
+        }
+
+        component pss_top {
+            my_regs     regs;
+            ref my_regs     regs_p;
+
+            exec init_down {
+            }
+
+            action Entry {
+                int a;
+                exec body {
+                    print("Hello from Smoke Test");
+                    comp.regs.r1.write_val(0);
+                }
+            }
+        }
+        """
+
+        self.genBuildRun(
+            content,
+            "pss_top",
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
+        )

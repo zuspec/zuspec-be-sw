@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "GenRefExprExecModel.h"
+#include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActionStruct.h"
@@ -67,28 +68,43 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
     m_gen->getOutC()->println("}");
 
     // Define the exec blocks (if present)
+    bool body_blocking = false;
     if (action->getExecs(arl::dm::ExecKindT::Body).size()) {
         DEBUG("generate body function");
         std::string fname = m_gen->getNameMap()->getName(action) + "__body";
-        std::string tname = "struct " + m_gen->getNameMap()->getName(action) + "__body_s";
+        std::string tname;
+        if ((body_blocking=TaskCheckIsExecBlocking(m_gen->getDebugMgr(), false).check(
+            action->getExecs(arl::dm::ExecKindT::Body)))) {
+            DEBUG("Body is blocking");
+            tname = "struct " + m_gen->getNameMap()->getName(action) + "__body_s";
+            m_gen->getOutHPrv()->println("typedef struct %s__body_s {",
+                m_gen->getNameMap()->getName(action).c_str());
+            m_gen->getOutHPrv()->inc_ind();
+            m_gen->getOutHPrv()->println("zsp_rt_task_t task;");
+            m_gen->getOutHPrv()->println("%s_t *action;",
+                m_gen->getNameMap()->getName(action).c_str());
+            m_gen->getOutHPrv()->dec_ind();
+            m_gen->getOutHPrv()->println("} %s__body_t;",
+                m_gen->getNameMap()->getName(action).c_str());
 
-        m_gen->getOutHPrv()->println("typedef struct %s__body_s {",
-            m_gen->getNameMap()->getName(action).c_str());
-        m_gen->getOutHPrv()->inc_ind();
-        m_gen->getOutHPrv()->println("zsp_rt_task_t task;");
-        m_gen->getOutHPrv()->println("%s_t *action;",
-            m_gen->getNameMap()->getName(action).c_str());
-        m_gen->getOutHPrv()->dec_ind();
-        m_gen->getOutHPrv()->println("} %s__body_t;",
-            m_gen->getNameMap()->getName(action).c_str());
-
-        TaskGenerateExecModelExecBlockB(
-            m_gen, 
-            &refgen,
-            m_gen->getOutC()).generate(
-                fname,
-                tname,
-                action->getExecs(arl::dm::ExecKindT::Body));
+            TaskGenerateExecModelExecBlockB(
+                m_gen, 
+                &refgen,
+                m_gen->getOutC()).generate(
+                    fname,
+                    tname,
+                    action->getExecs(arl::dm::ExecKindT::Body));
+        } else {
+            DEBUG("Body is non-blocking");
+            tname = "struct " + m_gen->getNameMap()->getName(action) + "_s";
+            TaskGenerateExecModelExecBlockNB(
+                m_gen, 
+                &refgen,
+                m_gen->getOutC()).generate(
+                    fname,
+                    tname,
+                    action->getExecs(arl::dm::ExecKindT::Body));
+        }
     }
     if (action->getExecs(arl::dm::ExecKindT::PreSolve).size()) {
         DEBUG("generate pre_solve function");
@@ -136,8 +152,10 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
     m_gen->getOutC()->inc_ind();
     // Declare
     if (action->getExecs(arl::dm::ExecKindT::Body).size()) {
-        m_gen->getOutC()->println("struct %s__body_s *body = 0;",
-            m_gen->getNameMap()->getName(action).c_str());
+        if (body_blocking) {
+            m_gen->getOutC()->println("struct %s__body_s *body = 0;",
+                m_gen->getNameMap()->getName(action).c_str());
+        }
     } else if (action->activities().size()) {
         m_gen->getOutC()->println("struct activity_%p_s *activity = 0;",
             action->activities().at(0)->getDataType());
@@ -152,20 +170,25 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
             m_gen->getNameMap()->getName(action).c_str());
     }
     if (action->getExecs(arl::dm::ExecKindT::Body).size()) {
-        m_gen->getOutC()->println("body = (struct %s__body_s *)zsp_rt_task_enter(",
-            m_gen->getNameMap()->getName(action).c_str());
-        m_gen->getOutC()->inc_ind();
-        m_gen->getOutC()->println("&actor->actor,");
-        m_gen->getOutC()->println("sizeof(%s__body_t),",
-            m_gen->getNameMap()->getName(action).c_str());
-        m_gen->getOutC()->println("(zsp_rt_init_f)&%s__body_init);",
-            m_gen->getNameMap()->getName(action).c_str());
-        m_gen->getOutC()->dec_ind();
-        m_gen->getOutC()->println("if ((ret=zsp_rt_task_run(&actor->actor, &body->task))) {");
-        m_gen->getOutC()->inc_ind();
-        m_gen->getOutC()->println("break;");
-        m_gen->getOutC()->dec_ind();
-        m_gen->getOutC()->println("}");
+        if (body_blocking) {
+            m_gen->getOutC()->println("body = (struct %s__body_s *)zsp_rt_task_enter(",
+                m_gen->getNameMap()->getName(action).c_str());
+            m_gen->getOutC()->inc_ind();
+                m_gen->getOutC()->println("&actor->actor,");
+            m_gen->getOutC()->println("sizeof(%s__body_t),",
+                m_gen->getNameMap()->getName(action).c_str());
+            m_gen->getOutC()->println("(zsp_rt_init_f)&%s__body_init);",
+                m_gen->getNameMap()->getName(action).c_str());
+            m_gen->getOutC()->dec_ind();
+            m_gen->getOutC()->println("if ((ret=zsp_rt_task_run(&actor->actor, &body->task))) {");
+            m_gen->getOutC()->inc_ind();
+            m_gen->getOutC()->println("break;");
+            m_gen->getOutC()->dec_ind();
+            m_gen->getOutC()->println("}");
+        } else {
+            m_gen->getOutC()->println("%s__body(actor, this_p);",
+                m_gen->getNameMap()->getName(action).c_str());
+        }
     } else if (action->activities().size()) {
         m_gen->getOutC()->println("activity = (struct activity_%p_s *)zsp_rt_task_enter(",
             action->activities().at(0)->getDataType());
@@ -183,7 +206,6 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         m_gen->getOutC()->println("}");
 
     }
-    m_gen->getOutC()->println("fprintf(stdout, \"Hello from action run\\n\");");
     m_gen->getOutC()->dec_ind();
     m_gen->getOutC()->println("}");
     m_gen->getOutC()->println("case 1: {");

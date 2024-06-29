@@ -145,6 +145,32 @@ void TaskBuildTypeCollection::visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t)
     m_type_c->addType(t);
 }
 
+void TaskBuildTypeCollection::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
+    DEBUG_ENTER("visitDataTypePackedStruct");
+    m_type_c->addType(t);
+
+    for (int32_t i=m_type_s.size()-1; i>=0; i--) {
+        if (m_type_s.at(i) != Type::Field) {
+            m_type_c->addDep(
+                t,
+                m_dtype_s.at(i));
+        }
+    }
+
+    m_dtype_s.push_back(t);
+    m_type_s.push_back(Type::Struct);
+
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=t->getFields().begin();
+        it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+
+    m_type_s.pop_back();
+    m_dtype_s.pop_back();
+    DEBUG_LEAVE("visitDataTypePackedStruct");
+}
+
 void TaskBuildTypeCollection::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) { 
     DEBUG_ENTER("visitDataTypeStruct");
     m_type_c->addType(t);

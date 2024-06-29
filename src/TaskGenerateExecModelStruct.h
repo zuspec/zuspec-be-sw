@@ -52,9 +52,13 @@ public:
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
+	virtual void visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) override;
+
 	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 
 	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
+	virtual void visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) override;
 
 protected:
     using FieldM=std::unordered_map<std::string, int32_t>;

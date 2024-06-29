@@ -61,6 +61,10 @@ public:
 
 	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
 
+	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;
+
 	virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
 
 	virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override {
@@ -70,6 +74,8 @@ public:
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
+	virtual void visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) override;
 
 	virtual void visitTypeField(vsc::dm::ITypeField *t) override;
 

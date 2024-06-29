@@ -68,11 +68,11 @@ void TaskGenerateExecModelStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
 void TaskGenerateExecModelStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     const char *tname = 0;
 
-    if (t->getByteSize() > 32) {
+    if (t->getByteSize() > 4) {
         tname = (t->isSigned())?"int64_t":"uint64_t";
-    } else if (t->getByteSize() > 16) {
+    } else if (t->getByteSize() > 2) {
         tname = (t->isSigned())?"int32_t":"uint32_t";
-    } else if (t->getByteSize() > 8) {
+    } else if (t->getByteSize() > 1) {
         tname = (t->isSigned())?"int16_t":"uint16_t";
     } else {
         tname = (t->isSigned())?"int8_t":"uint8_t";
@@ -129,6 +129,12 @@ void TaskGenerateExecModelStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 
+void TaskGenerateExecModelStruct::visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) {
+    DEBUG_ENTER("visitDataTypeWrapper");
+    t->getDataTypeVirt()->accept(m_this);
+    DEBUG_LEAVE("visitDataTypeWrapper");
+}
+
 void TaskGenerateExecModelStruct::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_ENTER("visitField");
     m_field = f;
@@ -158,11 +164,13 @@ void TaskGenerateExecModelStruct::visitTypeField(vsc::dm::ITypeField *f) {
 }
 
 void TaskGenerateExecModelStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
-    DEBUG_ENTER("visitTypeFieldRef");
+    DEBUG_ENTER("visitTypeFieldRef %s", f->name().c_str());
     m_field = f;
     m_out->indent();
     // First print the datatype
+    m_depth++;
     f->getDataType()->accept(m_this);
+    m_depth--;
 
     FieldM::iterator fit = m_field_m.find(m_field->name());
 
@@ -183,6 +191,16 @@ void TaskGenerateExecModelStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
 
     m_out->write(";\n");
     DEBUG_LEAVE("visitTypeFieldRef");
+}
+
+void TaskGenerateExecModelStruct::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {
+    DEBUG_ENTER("visitTypeFieldRegGroup");
+    m_out->indent();
+    m_depth++;
+    f->getDataType()->accept(m_this);
+    m_depth--;
+    m_out->write(" *%s;\n", f->name().c_str());
+    DEBUG_LEAVE("visitTypeFieldRegGroup");
 }
 
 dmgr::IDebug *TaskGenerateExecModelStruct::m_dbg = 0;

@@ -105,7 +105,7 @@ class TestExecSmoke(TestBase):
                 int a;
                 exec body {
                     print("Hello from Smoke Test");
-                    comp.regs.r1.write_val(0);
+                    comp.regs.r2.write_val(0);
                 }
             }
         }

@@ -193,6 +193,7 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->dec_ind();
     m_out_c->println("task->idx++;");
     m_out_c->println("%s__init(actor, &actor->comp);", m_comp_t->name().c_str());
+    m_out_c->println("action_t->comp = &actor->comp;");
     m_out_c->println("ret = zsp_rt_task_run(&actor->actor, &action_t->task);");
     m_out_c->println("if (ret) {");
     m_out_c->inc_ind();
@@ -218,7 +219,7 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->println("void %s_actor__init(zsp_rt_actor_t *actor, zsp_rt_task_t *task) {",
         getActorName().c_str());
     m_out_c->inc_ind();
-    m_out_c->println("fprintf(stdout, \"actor init\\n\");");
+//    m_out_c->println("fprintf(stdout, \"actor init\\n\");");
     m_out_c->println("task->func = (zsp_rt_task_f)&%s_actor__run;", getActorName().c_str());
     m_out_c->dec_ind();
     m_out_c->println("}");

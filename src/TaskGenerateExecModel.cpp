@@ -20,15 +20,18 @@
  */
 #include <algorithm>
 #include "dmgr/impl/DebugMacros.h"
+#include "ITaskGenerateExecModelCustomGen.h"
 #include "NameMap.h"
 #include "Output.h"
 #include "TaskBuildTypeCollection.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelCoreMethodCall.h"
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelFwdDecl.h"
+#include "TaskGenerateExecModelStruct.h"
 #include "TypeCollection.h"
 
 
@@ -87,8 +90,15 @@ void TaskGenerateExecModel::generate(
     for (std::vector<int32_t>::const_iterator
         it=sorted.begin();
         it!=sorted.end(); it++) {
+        ITaskGenerateExecModelCustomGen *custom_gen =
+            dynamic_cast<ITaskGenerateExecModelCustomGen *>(
+                type_c->getType(*it)->getAssociatedData());
         DEBUG("sorted: id=%d", *it);
-        TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(type_c->getType(*it));
+        if (custom_gen) {
+            custom_gen->genFwdDecl(this, getOutHPrv(), type_c->getType(*it));
+        } else {
+            TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(type_c->getType(*it));
+        }
     }
 
     // Next, visit each type and generate an implementation
@@ -145,8 +155,8 @@ void TaskGenerateExecModel::visitDataTypePackedStruct(arl::dm::IDataTypePackedSt
 }
 
 void TaskGenerateExecModel::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
-    DEBUG_ENTER("visitDataTypeStruct");
-
+    DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
+    TaskGenerateExecModelStruct(this, m_out_h_prv.get()).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 
@@ -240,7 +250,7 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->inc_ind();
     m_out_c->println("&actor->actor,");
     m_out_c->println("sizeof(zsp_rt_task_t),");
-    m_out_c->println("&%s_actor__init);", getActorName().c_str());
+    m_out_c->println("(zsp_rt_init_f)&%s_actor__init);", getActorName().c_str());
     m_out_c->dec_ind();
     m_out_c->println("");
     m_out_c->println("task = zsp_rt_task_run(");
@@ -260,13 +270,43 @@ void TaskGenerateExecModel::generate_actor_entry() {
 void TaskGenerateExecModel::attach_custom_gen() {
     DEBUG_ENTER("attach_custom_gen");
 
+    vsc::dm::IDataTypeStruct *addr_handle_t = m_ctxt->findDataTypeStruct(
+        "addr_reg_pkg::addr_handle_t");
+    m_name_m->setName(addr_handle_t, "zsp_rt_addr_handle");
+
     for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
         it=m_ctxt->getDataTypeFunctions().begin();
         it!=m_ctxt->getDataTypeFunctions().end(); it++) {
         std::string name = (*it)->name();
         DEBUG("name: %s", name.c_str());
         if (name.find("addr_reg_pkg::") == 0) {
-            if (name.find("::reg_c") != -1) {
+            if (name.find("::addr_handle_t") != -1) {
+
+            } else if (name.find("::contiguous_addr_space_c") != -1 
+                || name.find("::transparent_addr_space_c") != -1) {
+                std::string rt_name = (name.find("add_region") != -1)?
+                    "zsp_rt_addr_space_add_region":
+                    "zsp_rt_addr_space_add_nonallocatable_region";
+
+                (*it)->setAssociatedData(
+                    new TaskGenerateExecModelCoreMethodCall(
+                        m_dmgr,
+                        rt_name,
+                        0,
+                        {"zsp_rt_addr_space_t *", "zsp_rt_addr_region_t *"}));
+            } else if (name.find("::reg_group_c") != -1) {
+                if (name.find("set_handle") != -1) {
+                    (*it)->setAssociatedData(
+                        new TaskGenerateExecModelCoreMethodCall(
+                            m_dmgr,
+                            "zsp_rt_reg_group_set_handle",
+                            1,
+                            {"zsp_rt_addr_space_t *", "zsp_rt_addr_region_t *"}));
+                }
+                std::string rt_name = (name.find("add_region") != -1)?
+                    "zsp_rt_addr_space_add_region":
+                    "zsp_rt_addr_space_add_nonallocatable_region";
+            } else if (name.find("::reg_c") != -1) {
                 DEBUG("Attach reg-access generator");
                 (*it)->setAssociatedData(
                     new TaskGenerateExecModelRegRwCall(m_dmgr));

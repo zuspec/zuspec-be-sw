@@ -61,6 +61,17 @@ public:
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) override;
 
+    virtual void genFwdDecl(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out,
+        vsc::dm::IDataType                  *type) override;
+
+    virtual void genDefinition(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out_h,
+        IOutput                             *out_c,
+        vsc::dm::IDataType                  *type) override;
+
 protected:
     dmgr::IDebug                *m_dbg;
 

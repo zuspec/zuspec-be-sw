@@ -9,15 +9,52 @@
 extern "C" {
 #endif
 
+typedef enum {
+    false,
+    true
+} zsp_rt_bool_t;
+
+struct zsp_rt_actor_s;
+
+struct zsp_rt_rc_s;
+
+typedef void (*zsp_rt_init_f)(
+    struct zsp_rt_actor_s *, 
+    struct zsp_rt_rc_s *);
+
+typedef void (*zsp_rt_dtor_f)(
+    struct zsp_rt_actor_s *,
+    struct zsp_rt_rc_s *);
+
+typedef struct zsp_rt_rc_s {
+    zsp_rt_dtor_f           dtor;
+    uint32_t                count;
+    struct zsp_rt_actor_s   *actor;
+    uint8_t                 store[1];
+} zsp_rt_rc_t;
+
+zsp_rt_rc_t *zsp_rt_rc_new(
+    struct zsp_rt_actor_s   *actor,
+    uint32_t                sz,
+    zsp_rt_init_f           init);
+
+void zsp_rt_rc_dtor(
+    struct zsp_rt_actor_s   *actor,
+    zsp_rt_rc_t             *rc);
+
+#define zsp_rt_rc_dec(rc) \
+    if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))))) { \
+        (((zsp_rt_rc_t *)(rc))->dtor( \
+            ((zsp_rt_rc_t *)(tc))->actor, \
+            ((zsp_rt_rc_t *)(tc))); \
+    }
+#define zsp_rt_rc_inc(rc) ((zsp_rt_rc_t *)(rc))->count++;
+
 typedef struct zsp_rt_obj_s {
     int32_t                    size;
     int32_t                    refcnt;
     void (*dtor)(struct zsp_rt_obj_s *obj);
 } zsp_rt_obj_t;
-
-typedef struct addr_handle_s {
-    zsp_rt_obj_t                obj;
-} addr_handle_t;
 
 typedef struct addr_claim_s {
     zsp_rt_obj_t                obj;
@@ -67,9 +104,6 @@ typedef struct zsp_rt_actor_mgr_s {
 
 void zsp_rt_actor_mgr_init(zsp_rt_actor_mgr_t *mgr);
 
-typedef void (*zsp_rt_init_f)(
-    struct zsp_rt_actor_s *, 
-    struct zsp_rt_task_s *);
 
 void zsp_rt_actor_init(zsp_rt_actor_t *actor);
 
@@ -80,6 +114,7 @@ typedef struct zsp_rt_task_s *(*zsp_rt_task_f)(
     struct zsp_rt_task_s        *task);
 
 typedef struct zsp_rt_task_s {
+    zsp_rt_rc_t             rc;
     struct zsp_rt_task_s    *upper;
     zsp_rt_task_f           func;
     uint32_t                idx;
@@ -126,6 +161,37 @@ typedef struct zsp_rt_task_list_s {
 typedef struct zsp_rt_action_s {
     zsp_rt_task_t           task;
 } zsp_rt_action_t;
+
+typedef struct zsp_rt_addr_claim_s {
+    zsp_rt_rc_t     store;
+    void            *hndl;
+} zsp_rt_addr_claim_t;
+
+typedef struct zsp_rt_addr_handle_s {
+    zsp_rt_rc_t     *store;
+    uint64_t        offset;
+} zsp_rt_addr_handle_t;
+
+struct zsp_rt_addr_handle_s make_handle_from_handle(
+    zsp_rt_addr_handle_t    *handle,
+    uint64_t                offset);
+
+
+struct zsp_rt_addr_space_impl_s;
+typedef struct zsp_rt_addr_space_s {
+    struct zsp_rt_addr_space_impl_s     *impl;
+} zsp_rt_addr_space_t;
+
+typedef struct zsp_rt_addr_region_s {
+    zsp_rt_rc_t         base;
+} zsp_rt_addr_region_t;
+
+struct zsp_rt_addr_handle_s zsp_rt_addr_space_add_nonallocatable_region(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    zsp_rt_addr_region_t    *region);
+
+
 
 #ifdef __cplusplus
 }

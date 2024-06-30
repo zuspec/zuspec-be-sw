@@ -67,6 +67,11 @@ public:
 
     virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *t) override;
 
+	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
+
+protected:
+    void process_exec_blocks(arl::dm::IDataTypeArlStruct *t);
+
 protected:
     enum class Type {
         Action,

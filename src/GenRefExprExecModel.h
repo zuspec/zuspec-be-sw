@@ -46,6 +46,10 @@ public:
     virtual std::string genLval(vsc::dm::ITypeExpr *ref) override;
 
     virtual std::string genRval(vsc::dm::ITypeExpr *ref) override;
+
+    virtual bool isFieldRefExpr(vsc::dm::ITypeExpr *ref) override;
+
+    virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) override;
     
     virtual void pushScope(arl::dm::ITypeProcStmtScope *s) override {
         m_scope_s.push_back(s);
@@ -63,6 +67,12 @@ public:
 
 	virtual void visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) override;
 
+	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
+
+	virtual void visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) override;
+
+	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
 
 private:
     static dmgr::IDebug                             *m_dbg;
@@ -74,6 +84,8 @@ private:
     vsc::dm::IDataType                              *m_type;
     int32_t                                         m_depth;
     bool                                            m_isRef;
+    bool                                            m_isFieldRef;
+    bool                                            m_isRefFieldRef;
     std::vector<arl::dm::ITypeProcStmtScope *>      m_scope_s;
 
 };

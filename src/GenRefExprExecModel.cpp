@@ -60,6 +60,28 @@ std::string GenRefExprExecModel::genRval(vsc::dm::ITypeExpr *ref) {
     return m_ret;
 }
 
+bool GenRefExprExecModel::isFieldRefExpr(vsc::dm::ITypeExpr *ref) {
+    DEBUG_ENTER("isFieldRefExpr");
+    m_ret.clear();
+    m_depth = 0;
+    m_isFieldRef = false;
+    m_isRefFieldRef = false;
+    ref->accept(m_this);
+    DEBUG_LEAVE("isFieldRefExpr %d", m_isFieldRef);
+    return m_isFieldRef;
+}
+
+bool GenRefExprExecModel::isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) {
+    DEBUG_ENTER("isRefFieldRefExpr");
+    m_ret.clear();
+    m_depth = 0;
+    m_isFieldRef = false;
+    m_isRefFieldRef = false;
+    ref->accept(m_this);
+    DEBUG_LEAVE("isRefFieldRefExpr %d", m_isRefFieldRef);
+    return m_isRefFieldRef;
+}
+
 void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) {
     DEBUG_ENTER("visitTypeExprRefBottomUp");
     arl::dm::ITypeProcStmtScope *scope = m_scope_s.at(
@@ -67,6 +89,9 @@ void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp
     );
     arl::dm::ITypeProcStmtVarDecl *var = scope->getVariables().at(e->getSubFieldIndex()).get();
     m_ret.append(var->name());
+    m_isFieldRef = true;
+    m_isRefFieldRef = false;
+    m_type = var->getDataType();
 
     DEBUG_LEAVE("visitTypeExprRefBottomUp");
 }
@@ -81,6 +106,9 @@ void GenRefExprExecModel::visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *
     DEBUG_ENTER("visitTypeExprRefTopDown");
     m_ret.append(m_ctxtRef);
     m_type = m_ctxt;
+
+    m_isFieldRef = true;
+    m_isRefFieldRef = false;
 
     if (m_depth) {
         m_ret.append(m_ctxtPtr?"->":".");
@@ -97,6 +125,7 @@ void GenRefExprExecModel::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) {
     vsc::dm::ITypeField *field = arl::dm::TaskGetSubField().get(
         m_type, 
         e->getSubFieldIndex());
+    field->accept(m_this);
     m_ret.append(field->name());
     m_type = field->getDataType();
 
@@ -108,8 +137,26 @@ void GenRefExprExecModel::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) {
     // Track whether the next deref will be a pointer
     m_isRef = vsc::dm::TaskIsTypeFieldRef().eval(field);
 
-
     DEBUG_LEAVE("visitTypeExprSubField");
+}
+
+void GenRefExprExecModel::visitTypeField(vsc::dm::ITypeField *f) {
+    DEBUG_ENTER("visitTypeField");
+    m_isFieldRef = true;
+    DEBUG_LEAVE("visitTypeField");
+}
+
+void GenRefExprExecModel::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) {
+    DEBUG_ENTER("visitTypeFieldPhy");
+    m_isFieldRef = true;
+    DEBUG_LEAVE("visitTypeFieldPhy");
+}
+
+void GenRefExprExecModel::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
+    DEBUG_ENTER("visitTypeFieldRef");
+    m_isFieldRef = true;
+    m_isRefFieldRef = true;
+    DEBUG_LEAVE("visitTypeFieldRef");
 }
 
 dmgr::IDebug *GenRefExprExecModel::m_dbg = 0;

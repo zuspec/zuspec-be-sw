@@ -122,3 +122,47 @@ class TestExecSmoke(TestBase):
                 os.path.join(self.data_dir, "support/support.h")
             ]
         )
+
+    def test_reg_set_handle(self):
+        content = """
+        import addr_reg_pkg::*;
+        import function void print(string msg);
+
+        pure component my_regs : reg_group_c {
+            reg_c<bit[32]>      r1;
+            reg_c<bit[32]>      r2;
+        }
+
+        component pss_top {
+            transparent_addr_space_c<>  aspace;
+            my_regs                     regs;
+
+            exec init_down {
+                transparent_addr_region_s<> region;
+                addr_handle_t hndl;
+
+                hndl = aspace.add_nonallocatable_region(region);
+                regs.set_handle(hndl);
+            }
+
+            action Entry {
+                int a;
+                exec body {
+                    print("Hello from Smoke Test");
+                    comp.regs.r2.write_val(0);
+                }
+            }
+        }
+        """
+
+        self.genBuildRun(
+            content,
+            "pss_top",
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
+        )

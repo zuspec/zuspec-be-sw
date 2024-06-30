@@ -34,8 +34,8 @@ namespace sw {
 TaskGenerateExecModelExprNB::TaskGenerateExecModelExprNB(
         TaskGenerateExecModel       *gen,
         IGenRefExpr                 *refgen,
-        IOutput                     *out) :
-        m_gen(gen), m_refgen(refgen), m_out(out) {
+        IOutput                     *out) : m_dbg(0),
+        m_gen(gen), m_refgen(refgen), m_out(out), m_depth(0) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExprNB", gen->getDebugMgr());
 }
 
@@ -45,6 +45,7 @@ TaskGenerateExecModelExprNB::~TaskGenerateExecModelExprNB() {
 
 void TaskGenerateExecModelExprNB::generate(vsc::dm::ITypeExpr *e) {
     DEBUG_ENTER("generate");
+    m_depth = 0;
     e->accept(m_this);
     DEBUG_LEAVE("generate");
 }
@@ -77,11 +78,13 @@ static const char *op_m[] = {
 };
 
 void TaskGenerateExecModelExprNB::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
+    m_depth++;
     e->lhs()->accept(m_this);
 
     m_out->write(" %s ", op_m[(int)e->op()]);
 
     e->rhs()->accept(m_this);
+    m_depth--;
 }
 
 void TaskGenerateExecModelExprNB::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldRef *e) { 
@@ -91,6 +94,7 @@ void TaskGenerateExecModelExprNB::visitTypeExprFieldRef(vsc::dm::ITypeExprFieldR
 void TaskGenerateExecModelExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) { 
     DEBUG_ENTER("VisitTypeExprMethodCallContext %s",
         e->getTarget()->name().c_str());
+    m_depth++;
     ITaskGenerateExecModelCustomGen *custom_gen = 
         dynamic_cast<ITaskGenerateExecModelCustomGen *>(e->getTarget()->getAssociatedData());
 
@@ -117,11 +121,13 @@ void TaskGenerateExecModelExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeE
         }
         m_out->write(")");
     }
+    m_depth--;
     DEBUG_LEAVE("VisitTypeExprMethodCallContext");
 }
 
 void TaskGenerateExecModelExprNB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) { 
     DEBUG_ENTER("VisitTypeExprMethodCallStatic");
+    m_depth++;
     m_out->write("%s(", 
         m_gen->getNameMap()->getName(e->getTarget()).c_str()
     );
@@ -136,6 +142,7 @@ void TaskGenerateExecModelExprNB::visitTypeExprMethodCallStatic(arl::dm::ITypeEx
         );
     }
     m_out->write(")");
+    m_depth--;
     DEBUG_LEAVE("VisitTypeExprMethodCallStatic");
 }
 
@@ -149,7 +156,9 @@ void TaskGenerateExecModelExprNB::visitTypeExprRangelist(vsc::dm::ITypeExprRange
 
 void TaskGenerateExecModelExprNB::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) {
     DEBUG_ENTER("visitTypeExprRefBottomUp");
+    m_depth++;
     m_out->write("%s", m_refgen->genRval(e).c_str());
+    m_depth--;
     DEBUG_LEAVE("visitTypeExprRefBottomUp");
 }
 
@@ -159,13 +168,17 @@ void TaskGenerateExecModelExprNB::visitTypeExprRefPath(vsc::dm::ITypeExprRefPath
 
 void TaskGenerateExecModelExprNB::visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *e) { 
     DEBUG_ENTER("visitTypeExprRefTopDown");
+    m_depth++;
     m_out->write("%s", m_refgen->genRval(e).c_str());
+    m_depth--;
     DEBUG_LEAVE("visitTypeExprRefTopDown");
 }
 
 void TaskGenerateExecModelExprNB::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) { 
     DEBUG_ENTER("visitTypeExprSubField");
+    m_depth++;
     m_out->write("%s", m_refgen->genRval(e).c_str());
+    m_depth--;
     DEBUG_LEAVE("visitTypeExprSubField");
 }
 
@@ -175,11 +188,12 @@ void TaskGenerateExecModelExprNB::visitTypeExprUnary(vsc::dm::ITypeExprUnary *e)
 
 void TaskGenerateExecModelExprNB::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {
     DEBUG_ENTER("visitTypeExprVal");
+    m_depth++;
     TaskGenerateExecModelExprVal(m_gen, m_out).generate(e);
+    m_depth--;
     DEBUG_LEAVE("visitTypeExprVal");
 }
 
-dmgr::IDebug *TaskGenerateExecModelExprNB::m_dbg = 0;
 
 }
 }

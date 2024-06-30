@@ -70,6 +70,8 @@ void TaskBuildTypeCollection::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
         (*it)->accept(m_this);
     }
 
+    process_exec_blocks(t);
+
     for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
         it=t->activities().begin();
         it!=t->activities().end(); it++) {
@@ -134,6 +136,8 @@ void TaskBuildTypeCollection::visitDataTypeComponent(arl::dm::IDataTypeComponent
         (*it)->accept(m_this);
     }
 
+    process_exec_blocks(t);
+
     m_type_s.pop_back();
     m_dtype_s.pop_back();
     DEBUG_LEAVE("visitDataTypeComponent");
@@ -165,6 +169,8 @@ void TaskBuildTypeCollection::visitDataTypePackedStruct(arl::dm::IDataTypePacked
         it!=t->getFields().end(); it++) {
         (*it)->accept(m_this);
     }
+
+//    process_exec_blocks(t);
 
     m_type_s.pop_back();
     m_dtype_s.pop_back();
@@ -222,6 +228,31 @@ void TaskBuildTypeCollection::visitTypeFieldRef(vsc::dm::ITypeFieldRef *t) {
     }
 
     DEBUG_LEAVE("visitTypeFieldRef");
+}
+
+void TaskBuildTypeCollection::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {
+    DEBUG_ENTER("visitTypeProcStmtVarDecl");
+    s->getDataType()->accept(m_this);
+    DEBUG_LEAVE("visitTypeProcStmtVarDecl");
+}
+
+void TaskBuildTypeCollection::process_exec_blocks(arl::dm::IDataTypeArlStruct *t) {
+    static const arl::dm::ExecKindT kinds[] = {
+        arl::dm::ExecKindT::Body,
+        arl::dm::ExecKindT::InitDown,
+        arl::dm::ExecKindT::InitUp,
+        arl::dm::ExecKindT::PostSolve,
+        arl::dm::ExecKindT::PreSolve };
+    
+    for (uint32_t ki=0; ki<sizeof(kinds)/sizeof(arl::dm::ExecKindT); ki++) {
+        const std::vector<arl::dm::ITypeExecUP> &execs = t->getExecs(kinds[ki]);
+        for (std::vector<arl::dm::ITypeExecUP>::const_iterator 
+            it=execs.begin();
+            it!=execs.end(); it++) {
+            (*it)->accept(m_this);
+        }
+    }
+
 }
 
 dmgr::IDebug *TaskBuildTypeCollection::m_dbg = 0;

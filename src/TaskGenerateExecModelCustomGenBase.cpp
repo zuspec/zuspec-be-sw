@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "TaskGenerateExecModelFwdDecl.h"
 #include "TaskGenerateExecModelCustomGenBase.h"
 
 
@@ -58,6 +59,21 @@ void TaskGenerateExecModelCustomGenBase::genExprMethodCallContextNB(
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) { }
+        
+void TaskGenerateExecModelCustomGenBase::genFwdDecl(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out,
+        vsc::dm::IDataType                  *type) {
+    TaskGenerateExecModelFwdDecl(gen, out).generate(type);
+}
+
+void TaskGenerateExecModelCustomGenBase::genDefinition(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out_h,
+        IOutput                             *out_c,
+        vsc::dm::IDataType                  *type) {
+
+}
 
 }
 }

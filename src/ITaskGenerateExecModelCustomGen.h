@@ -61,6 +61,17 @@ public:
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) = 0;
 
+    virtual void genFwdDecl(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out,
+        vsc::dm::IDataType                  *type) = 0;
+
+    virtual void genDefinition(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out_h,
+        IOutput                             *out_c,
+        vsc::dm::IDataType                  *type) = 0;
+
 };
 
 } /* namespace sw */

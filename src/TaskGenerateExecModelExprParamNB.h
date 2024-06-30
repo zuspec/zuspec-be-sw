@@ -1,5 +1,5 @@
 /**
- * IGenRefExpr.h
+ * TaskGenerateExecModelExprParamNB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/ITypeExprRef.h"
-#include "zsp/arl/dm/ITypeProcStmtScope.h"
+#include "TaskGenerateExecModelExprNB.h"
 
 namespace zsp {
 namespace be {
@@ -28,27 +27,26 @@ namespace sw {
 
 
 
-class IGenRefExpr {
+class TaskGenerateExecModelExprParamNB :
+    public virtual TaskGenerateExecModelExprNB{
 public:
+    TaskGenerateExecModelExprParamNB(
+    TaskGenerateExecModel       *gen,
+    IGenRefExpr                 *refgen,
+    IOutput                     *out);
 
-    virtual ~IGenRefExpr() { }
+    virtual ~TaskGenerateExecModelExprParamNB();
 
-    virtual std::string genLval(vsc::dm::ITypeExpr *ref) = 0;
+	virtual void visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) override;
 
-    virtual std::string genRval(vsc::dm::ITypeExpr *ref) = 0;
+	virtual void visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *e) override;
 
-    virtual bool isFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
-
-    virtual void popScope() = 0;
+    virtual void visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) override;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

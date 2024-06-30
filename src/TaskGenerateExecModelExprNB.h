@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
@@ -68,10 +69,11 @@ public:
 	virtual void visitTypeExprVal(vsc::dm::ITypeExprVal *e) override;
 
 protected:
-    static dmgr::IDebug             *m_dbg;
+    dmgr::IDebug                    *m_dbg;
     TaskGenerateExecModel           *m_gen;
     IGenRefExpr                     *m_refgen;
     IOutput                         *m_out;
+    int32_t                         m_depth;
 
 };
 

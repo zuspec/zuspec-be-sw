@@ -160,7 +160,7 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypePr
         m_gen, 
         m_out_s.back().decl(),
         false).generate(s->getDataType());
-    m_out_s.back().decl()->write("%s;", s->name().c_str());
+    m_out_s.back().decl()->write("%s;\n", s->name().c_str());
     DEBUG_LEAVE("visitTypeProcStmtVarDecl");
 }
 

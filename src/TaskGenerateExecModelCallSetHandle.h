@@ -1,5 +1,5 @@
 /**
- * IGenRefExpr.h
+ * TaskGenerateExecModelCallSetHandle.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/ITypeExprRef.h"
-#include "zsp/arl/dm/ITypeProcStmtScope.h"
+#include "TaskGenerateExecModelCustomGenBase.h"
 
 namespace zsp {
 namespace be {
@@ -28,27 +27,25 @@ namespace sw {
 
 
 
-class IGenRefExpr {
+class TaskGenerateExecModelCallSetHandle :
+    public virtual TaskGenerateExecModelCustomGenBase {
 public:
+    TaskGenerateExecModelCallSetHandle(
+        dmgr::IDebugMgr         *dmgr
+    );
 
-    virtual ~IGenRefExpr() { }
+    virtual ~TaskGenerateExecModelCallSetHandle();
 
-    virtual std::string genLval(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual std::string genRval(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual bool isFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
-
-    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
-
-    virtual void popScope() = 0;
+    virtual void genExprMethodCallContextNB(
+        TaskGenerateExecModel               *gen,
+        IOutput                             *out,
+        IGenRefExpr                         *refgen,
+        arl::dm::ITypeExprMethodCallContext *call) override;
 
 };
 
-} /* namespace sw */
-} /* namespace be */
-} /* namespace zsp */
+}
+}
+}
 
 

@@ -34,8 +34,7 @@ namespace sw {
 
 
 
-class TaskGenerateExecModel : 
-    public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModel {
 public:
     TaskGenerateExecModel(
         arl::dm::IContext               *ctxt);
@@ -68,18 +67,6 @@ public:
     IOutput *getOutH() { return m_out_h.get(); }
 
     IOutput *getOutHPrv() { return m_out_h_prv.get(); }
-
-	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
-
-    virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
-
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
-
-	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
-
-	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
-
-    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 private:
     void generate_actor_entry();

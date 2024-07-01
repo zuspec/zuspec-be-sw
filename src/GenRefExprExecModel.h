@@ -38,7 +38,9 @@ public:
         TaskGenerateExecModel       *gen,
         vsc::dm::IDataTypeStruct    *ctxt,
         const std::string           &ctxtRef,
-        bool                        ctxtPtr
+        bool                        ctxtPtr,
+        const std::string           &bupRef="",
+        bool                        bupPtr=false
     );
 
     virtual ~GenRefExprExecModel();
@@ -80,6 +82,8 @@ private:
     vsc::dm::IDataTypeStruct                        *m_ctxt;
     std::string                                     m_ctxtRef;
     bool                                            m_ctxtPtr;
+    std::string                                     m_bupRef;
+    bool                                            m_bupPtr;
     std::string                                     m_ret;
     vsc::dm::IDataType                              *m_type;
     int32_t                                         m_depth;

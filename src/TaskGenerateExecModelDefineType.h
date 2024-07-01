@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelFwdDecl.h
+ * TaskGenerateExecModelDefineType.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -29,31 +29,40 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelFwdDecl : public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModelDefineType :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelFwdDecl(
-        TaskGenerateExecModel   *gen,
-        IOutput                 *out);
+    TaskGenerateExecModelDefineType(
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out_h,
+        IOutput                     *out_c
+    );
 
-    virtual ~TaskGenerateExecModelFwdDecl();
+    virtual ~TaskGenerateExecModelDefineType();
 
-    void generate(vsc::dm::IAccept *item);
+    virtual void generate(vsc::dm::IDataType *item);
 
-    void generate_dflt(vsc::dm::IAccept *item);
+    virtual void generate_dflt(vsc::dm::IDataType *item);
 
-    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
 
-    virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+    virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
 
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
+
+	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
+
+    virtual void visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) override;
 
     virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 private:
     static dmgr::IDebug             *m_dbg;
     TaskGenerateExecModel           *m_gen;
-    IOutput                         *m_out;
-
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
 
 };
 

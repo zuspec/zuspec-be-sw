@@ -25,11 +25,13 @@
 #include "Output.h"
 #include "TaskBuildTypeCollection.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelAddrHandle.h"
 #include "TaskGenerateExecModelCoreMethodCall.h"
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelComponent.h"
+#include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
 #include "TaskGenerateExecModelStruct.h"
 #include "TypeCollection.h"
@@ -90,22 +92,16 @@ void TaskGenerateExecModel::generate(
     for (std::vector<int32_t>::const_iterator
         it=sorted.begin();
         it!=sorted.end(); it++) {
-        ITaskGenerateExecModelCustomGen *custom_gen =
-            dynamic_cast<ITaskGenerateExecModelCustomGen *>(
-                type_c->getType(*it)->getAssociatedData());
-        DEBUG("sorted: id=%d", *it);
-        if (custom_gen) {
-            custom_gen->genFwdDecl(this, getOutHPrv(), type_c->getType(*it));
-        } else {
-            TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(type_c->getType(*it));
-        }
+        TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(
+            type_c->getType(*it));
     }
 
     // Next, visit each type and generate an implementation
     for (std::vector<int32_t>::const_iterator
         it=sorted.begin();
         it!=sorted.end(); it++) {
-        type_c->getType(*it)->accept(m_this);
+        TaskGenerateExecModelDefineType(this, getOutHPrv(), getOutC()).generate(
+            type_c->getType(*it));
     }
 
     generate_actor_entry();
@@ -128,37 +124,7 @@ bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
     }
 }
 
-void TaskGenerateExecModel::visitDataTypeAction(arl::dm::IDataTypeAction *i) { 
-    DEBUG_ENTER("visitDataTypeAction %s", i->name().c_str());
-    TaskGenerateExecModelAction(this, (i==m_action_t)).generate(i);
-    DEBUG_LEAVE("visitDataTypeAction");
-}
 
-void TaskGenerateExecModel::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) { 
-    DEBUG_ENTER("visitDataTypeActivity");
-    TaskGenerateExecModelActivity(this).generate(t);
-    DEBUG_LEAVE("visitDataTypeActivity");
-}
-
-void TaskGenerateExecModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
-    DEBUG_ENTER("visitDataTypeComponent");
-    TaskGenerateExecModelComponent(this).generate(t);
-    DEBUG_LEAVE("visitDataTypeComponent");
-}
-
-void TaskGenerateExecModel::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) { }
-
-void TaskGenerateExecModel::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
-    DEBUG_ENTER("visitDataTypePackedStruct");
-
-    DEBUG_LEAVE("visitDataTypePackedStruct");
-}
-
-void TaskGenerateExecModel::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
-    DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
-    TaskGenerateExecModelStruct(this, m_out_h_prv.get()).generate(t);
-    DEBUG_LEAVE("visitDataTypeStruct");
-}
 
 void TaskGenerateExecModel::generate_actor_entry() {
     DEBUG_ENTER("generate_actor_entry");
@@ -273,6 +239,18 @@ void TaskGenerateExecModel::attach_custom_gen() {
     vsc::dm::IDataTypeStruct *addr_handle_t = m_ctxt->findDataTypeStruct(
         "addr_reg_pkg::addr_handle_t");
     m_name_m->setName(addr_handle_t, "zsp_rt_addr_handle");
+    addr_handle_t->setAssociatedData(new TaskGenerateExecModelAddrHandle(getDebugMgr()));
+
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->getDataTypeStructs().begin();
+        it!=m_ctxt->getDataTypeStructs().end(); it++) {
+        const std::string &name = (*it)->name();
+
+        if (name.find("::contiguous_addr_space_c") != -1 
+            || name.find("::transparent_addr_space_c") != -1) {
+//            m_name_m->setName(it->get(), "zsp_rt_addr_space");
+        }
+    }
 
     for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
         it=m_ctxt->getDataTypeFunctions().begin();
@@ -300,8 +278,8 @@ void TaskGenerateExecModel::attach_custom_gen() {
                         new TaskGenerateExecModelCoreMethodCall(
                             m_dmgr,
                             "zsp_rt_reg_group_set_handle",
-                            1,
-                            {"zsp_rt_addr_space_t *", "zsp_rt_addr_region_t *"}));
+                            0,
+                            {"void **"}));
                 }
                 std::string rt_name = (name.find("add_region") != -1)?
                     "zsp_rt_addr_space_add_region":

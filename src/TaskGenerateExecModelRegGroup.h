@@ -1,5 +1,5 @@
-/*
- * TaskGenerateExecModelAddrHandle.cpp
+/**
+ * TaskGenerateExecModelRegGroup.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,32 +16,35 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "TaskGenerateExecModelAddrHandle.h"
-
+#pragma once
+#include "zsp/be/sw/IOutput.h"
+#include "TaskGenerateExecModelStruct.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelAddrHandle::TaskGenerateExecModelAddrHandle(
-    dmgr::IDebugMgr *dmgr) : TaskGenerateExecModelCustomGenBase(dmgr) {
+
+class TaskGenerateExecModelRegGroup :
+    public virtual TaskGenerateExecModelStruct {
+public:
+    TaskGenerateExecModelRegGroup(
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out_h,
+        IOutput                     *out_c
+    );
+
+    virtual ~TaskGenerateExecModelRegGroup();
+
+    virtual void generate(vsc::dm::IDataType *t);
+
+};
 
 }
-
-TaskGenerateExecModelAddrHandle::~TaskGenerateExecModelAddrHandle() {
-
+}
 }
 
-void TaskGenerateExecModelAddrHandle::genFwdDecl(
-        TaskGenerateExecModel               *gen,
-        IOutput                             *out,
-        vsc::dm::IDataType                  *type) {
-    // Do nothing
-}
 
-}
-}
-}

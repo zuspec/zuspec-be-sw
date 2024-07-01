@@ -34,8 +34,11 @@ GenRefExprExecModel::GenRefExprExecModel(
         TaskGenerateExecModel       *gen,
         vsc::dm::IDataTypeStruct    *ctxt,
         const std::string           &ctxtRef,
-        bool                        ctxtPtr) :
-        m_gen(gen), m_ctxt(ctxt), m_ctxtRef(ctxtRef), m_ctxtPtr(ctxtPtr) {
+        bool                        ctxtPtr,
+        const std::string           &bupRef,
+        bool                        bupPtr) :
+        m_gen(gen), m_ctxt(ctxt), m_ctxtRef(ctxtRef), m_ctxtPtr(ctxtPtr),
+        m_bupRef(bupRef), m_bupPtr(bupPtr) {
     DEBUG_INIT("zsp::be::sw::GenRefExprExecModel", gen->getDebugMgr());
 
 }
@@ -83,17 +86,28 @@ bool GenRefExprExecModel::isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) {
 }
 
 void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) {
-    DEBUG_ENTER("visitTypeExprRefBottomUp");
+    DEBUG_ENTER("visitTypeExprRefBottomUp (%d)", m_depth);
     arl::dm::ITypeProcStmtScope *scope = m_scope_s.at(
         m_scope_s.size()-e->getScopeOffset()-1
     );
     arl::dm::ITypeProcStmtVarDecl *var = scope->getVariables().at(e->getSubFieldIndex()).get();
+    DEBUG("var: %s", var->name().c_str());
+    if (m_bupRef.size()) {
+        m_ret.append(m_bupRef);
+        m_ret.append(m_bupPtr?"->":".");
+    }
     m_ret.append(var->name());
     m_isFieldRef = true;
     m_isRefFieldRef = false;
     m_type = var->getDataType();
 
-    DEBUG_LEAVE("visitTypeExprRefBottomUp");
+    if (m_depth) {
+        // TODO: this depends on whether the reference is scalar or
+        // composite, and whether it's scope local or a parameter
+        m_ret.append(".");
+    }
+
+    DEBUG_LEAVE("visitTypeExprRefBottomUp (%d)", m_depth);
 }
 
 void GenRefExprExecModel::visitTypeExprRefPath(vsc::dm::ITypeExprRefPath *e) { 
@@ -117,7 +131,7 @@ void GenRefExprExecModel::visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *
 }
 
 void GenRefExprExecModel::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) { 
-    DEBUG_ENTER("visitTypeExprSubField");
+    DEBUG_ENTER("visitTypeExprSubField (%d)", m_depth);
     m_depth++;
     e->getRootExpr()->accept(m_this);
     m_depth--;
@@ -127,6 +141,7 @@ void GenRefExprExecModel::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) {
         e->getSubFieldIndex());
     field->accept(m_this);
     m_ret.append(field->name());
+    DEBUG("field: %s", field->name().c_str());
     m_type = field->getDataType();
 
     if (m_depth) {

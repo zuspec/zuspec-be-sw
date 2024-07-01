@@ -42,6 +42,7 @@ void TaskGenerateExecModelStruct::generate(vsc::dm::IAccept *i) {
     DEBUG_ENTER("generate");
     m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
     m_out->inc_ind();
+    m_out->println("zsp_rt_rc_t base;");
     m_depth = 0;
     m_ptr = 0;
     m_field = 0;

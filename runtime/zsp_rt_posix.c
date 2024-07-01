@@ -138,3 +138,31 @@ void *zsp_rt_mblk_alloc(
 
     return ret;
 }
+
+zsp_rt_addr_handle_t zsp_rt_addr_space_add_nonallocatable_region(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    zsp_rt_addr_region_t    *region) {
+    zsp_rt_addr_handle_t ret;
+    // TODO: aspace must know
+    // - sizeof(trait)
+    // - whether opaque or transparent
+    uint32_t sizeof_trait = sizeof(zsp_rt_rc_t);
+    uint64_t addr = *((uint64_t *)((uint8_t *)region+sizeof(zsp_rt_addr_region_t)+sizeof_trait));
+    zsp_rt_addr_claim_t *claim = (zsp_rt_addr_claim_t *)malloc(sizeof(zsp_rt_addr_claim_t));
+    claim->hndl = (void *)addr;
+    claim->store.actor = actor;
+    claim->store.count = 0;
+    fprintf(stdout, "addr: 0x%08llx\n", addr);
+    ret.store = claim;
+    ret.offset = 0;
+
+    fprintf(stdout, "return hndl: 0x%p\n", ret.store->hndl);
+
+    return ret;
+}
+
+void zsp_rt_reg_group_set_handle(zsp_rt_actor_t *actor, void **reg_h, zsp_rt_addr_handle_t *hndl) {
+    fprintf(stdout, "get hndl: 0x%p\n", hndl->store->hndl);
+    *reg_h = (void *)hndl->store->hndl;
+}

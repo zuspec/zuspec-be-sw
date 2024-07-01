@@ -64,7 +64,7 @@ void TaskGenerateExecModelCustomGenBase::genFwdDecl(
         TaskGenerateExecModel               *gen,
         IOutput                             *out,
         vsc::dm::IDataType                  *type) {
-    TaskGenerateExecModelFwdDecl(gen, out).generate(type);
+    TaskGenerateExecModelFwdDecl(gen, out).generate_dflt(type);
 }
 
 void TaskGenerateExecModelCustomGenBase::genDefinition(

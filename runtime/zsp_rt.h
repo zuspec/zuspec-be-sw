@@ -42,6 +42,9 @@ void zsp_rt_rc_dtor(
     struct zsp_rt_actor_s   *actor,
     zsp_rt_rc_t             *rc);
 
+#define zsp_rt_addr_handle_acq(hndl) \
+    ((hndl).store && (hndl).store->count++)?hndl:hndl;
+
 #define zsp_rt_rc_dec(rc) \
     if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))))) { \
         (((zsp_rt_rc_t *)(rc))->dtor( \
@@ -164,12 +167,12 @@ typedef struct zsp_rt_action_s {
 
 typedef struct zsp_rt_addr_claim_s {
     zsp_rt_rc_t     store;
-    void            *hndl;
+    uint8_t         *hndl;
 } zsp_rt_addr_claim_t;
 
 typedef struct zsp_rt_addr_handle_s {
-    zsp_rt_rc_t     *store;
-    uint64_t        offset;
+    zsp_rt_addr_claim_t     *store;
+    uint64_t                offset;
 } zsp_rt_addr_handle_t;
 
 struct zsp_rt_addr_handle_s make_handle_from_handle(
@@ -184,12 +187,15 @@ typedef struct zsp_rt_addr_space_s {
 
 typedef struct zsp_rt_addr_region_s {
     zsp_rt_rc_t         base;
+    uint64_t            size;
 } zsp_rt_addr_region_t;
 
-struct zsp_rt_addr_handle_s zsp_rt_addr_space_add_nonallocatable_region(
+zsp_rt_addr_handle_t zsp_rt_addr_space_add_nonallocatable_region(
     zsp_rt_actor_t          *actor,
     zsp_rt_addr_space_t     *aspace,
     zsp_rt_addr_region_t    *region);
+
+void zsp_rt_reg_group_set_handle(zsp_rt_actor_t *actor, void **reg_h, zsp_rt_addr_handle_t *hndl);
 
 
 

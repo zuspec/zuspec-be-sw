@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "zsp/be/sw/INameMap.h"
+#include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelFwdDecl.h"
@@ -41,6 +42,24 @@ TaskGenerateExecModelFwdDecl::~TaskGenerateExecModelFwdDecl() {
 }
 
 void TaskGenerateExecModelFwdDecl::generate(vsc::dm::IAccept *item) {
+    ITaskGenerateExecModelCustomGen *custom_gen = 0;
+    if (dynamic_cast<vsc::dm::IDataType *>(item)) {
+        custom_gen = dynamic_cast<ITaskGenerateExecModelCustomGen *>(
+            dynamic_cast<vsc::dm::IDataType *>(item)->getAssociatedData());
+    }
+
+    if (custom_gen) {
+        custom_gen->genFwdDecl(
+            m_gen,
+            m_out,
+            dynamic_cast<vsc::dm::IDataType *>(item)
+        );
+    } else {
+        generate_dflt(item);
+    }
+}
+
+void TaskGenerateExecModelFwdDecl::generate_dflt(vsc::dm::IAccept *item) {
     item->accept(m_this);
 }
 

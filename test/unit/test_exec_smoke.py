@@ -141,6 +141,8 @@ class TestExecSmoke(TestBase):
                 transparent_addr_region_s<> region;
                 addr_handle_t hndl;
 
+                region.addr = 0x80000000;
+
                 hndl = aspace.add_nonallocatable_region(region);
                 regs.set_handle(hndl);
             }

@@ -41,6 +41,8 @@ public:
 
     virtual void generate(vsc::dm::IDataType *t);
 
+private:
+
 };
 
 }

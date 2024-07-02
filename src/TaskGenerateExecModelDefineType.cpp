@@ -25,6 +25,7 @@
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelDefineType.h"
+#include "TaskGenerateExecModelPackedStruct.h"
 #include "TaskGenerateExecModelRegGroup.h"
 #include "TaskGenerateExecModelStruct.h"
 
@@ -81,7 +82,7 @@ void TaskGenerateExecModelDefineType::visitDataTypeFunction(arl::dm::IDataTypeFu
 
 void TaskGenerateExecModelDefineType::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
     DEBUG_ENTER("visitDataTypePackedStruct");
-
+    TaskGenerateExecModelPackedStruct(m_gen, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypePackedStruct");
 }
 

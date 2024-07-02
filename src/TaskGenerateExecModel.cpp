@@ -94,6 +94,7 @@ void TaskGenerateExecModel::generate(
         it!=sorted.end(); it++) {
         TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(
             type_c->getType(*it));
+        getOutHPrv()->println("");
     }
 
     // Next, visit each type and generate an implementation
@@ -102,6 +103,7 @@ void TaskGenerateExecModel::generate(
         it!=sorted.end(); it++) {
         TaskGenerateExecModelDefineType(this, getOutHPrv(), getOutC()).generate(
             type_c->getType(*it));
+        getOutHPrv()->println("");
     }
 
     generate_actor_entry();

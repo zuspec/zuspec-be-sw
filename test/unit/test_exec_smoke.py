@@ -126,9 +126,18 @@ class TestExecSmoke(TestBase):
     def test_reg_set_handle(self):
         content = """
         import addr_reg_pkg::*;
+        import std_pkg::*;
         import function void print(string msg);
 
+        struct my_reg : packed_s<> {
+            bit[1]          a;
+            bit[1]          b;
+            bit[1]          c;
+            bit[1]          d;
+        }
+
         pure component my_regs : reg_group_c {
+            reg_c<my_reg>       r0;
             reg_c<bit[32]>      r1;
             reg_c<bit[32]>      r2;
         }
@@ -150,8 +159,11 @@ class TestExecSmoke(TestBase):
             action Entry {
                 int a;
                 exec body {
+                    my_reg r;
+
                     print("Hello from Smoke Test");
                     comp.regs.r2.write_val(0);
+                    r = comp.regs.r0.read();
                 }
             }
         }

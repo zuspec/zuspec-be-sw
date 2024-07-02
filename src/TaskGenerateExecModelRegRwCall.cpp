@@ -56,8 +56,14 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
     const std::string &name = call->getTarget()->name();
 
     // Determine register width
-    int32_t width = arl::dm::TaskGetTypeBitWidth().width(
-        call->getTarget()->getParameters().at(0)->getDataType());
+    int32_t width;
+    if (call->getTarget()->getParameters().size()) {
+        width = arl::dm::TaskGetTypeBitWidth().width(
+            call->getTarget()->getParameters().at(0)->getDataType());
+    } else {
+        width = arl::dm::TaskGetTypeBitWidth().width(
+            call->getTarget()->getReturnType());
+    }
     bool write = false;
     bool sval = false;
     char func[256];

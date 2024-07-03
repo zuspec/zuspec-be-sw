@@ -20,6 +20,8 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "zsp/arl/dm/impl/TaskGetTypeBitWidth.h"
+#include "zsp/arl/dm/impl/TaskIsPackedStruct.h"
+#include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelExprNB.h"
 
@@ -56,14 +58,14 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
     const std::string &name = call->getTarget()->name();
 
     // Determine register width
-    int32_t width;
+    vsc::dm::IDataType *reg_t;
     if (call->getTarget()->getParameters().size()) {
-        width = arl::dm::TaskGetTypeBitWidth().width(
-            call->getTarget()->getParameters().at(0)->getDataType());
+        reg_t = call->getTarget()->getParameters().at(0)->getDataType();
     } else {
-        width = arl::dm::TaskGetTypeBitWidth().width(
-            call->getTarget()->getReturnType());
+        reg_t = call->getTarget()->getReturnType();
     }
+    int32_t width = arl::dm::TaskGetTypeBitWidth().width(reg_t);
+    arl::dm::IDataTypePackedStruct *is_packed = arl::dm::TaskIsPackedStruct().check(reg_t);
     bool write = false;
     bool sval = false;
     char func[256];
@@ -90,6 +92,9 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
         write = true;
         sval = true;
     } else if (name.find("read") != -1) {
+        if (is_packed) {
+            out->write("((%s_u){.v=", gen->getNameMap()->getName(reg_t).c_str());
+        }
         snprintf(func, sizeof(func), "zsp_rt_read%d", width);
     }
 
@@ -114,6 +119,13 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
         }
     }
     out->write(")");
+
+    if (!write) {
+        if (is_packed) {
+            out->write("}).s");
+        }
+    }
+    
     DEBUG_LEAVE("genExprMethodCallContextNB");
 }
 

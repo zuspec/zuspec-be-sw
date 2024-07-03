@@ -23,6 +23,7 @@
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExprNB.h"
+#include "TaskGenerateExecModelExprParamNB.h"
 #include "TaskGenerateExecModelExprVal.h"
 
 
@@ -115,7 +116,7 @@ void TaskGenerateExecModelExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeE
             if (it != e->getParameters().begin()) {
                 m_out->write(", ");
             }
-            TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate(
+            TaskGenerateExecModelExprParamNB(m_gen, m_refgen, m_out).generate(
                 it->get()
             );
         }
@@ -128,20 +129,29 @@ void TaskGenerateExecModelExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeE
 void TaskGenerateExecModelExprNB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) { 
     DEBUG_ENTER("VisitTypeExprMethodCallStatic");
     m_depth++;
-    m_out->write("%s(", 
-        m_gen->getNameMap()->getName(e->getTarget()).c_str()
-    );
-    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
-        it=e->getParameters().begin();
-        it!=e->getParameters().end(); it++) {
-        if (it != e->getParameters().begin()) {
-            m_out->write(", ");
-        }
-        TaskGenerateExecModelExprNB(m_gen, m_refgen, m_out).generate(
-            it->get()
+    ITaskGenerateExecModelCustomGen *custom_gen = 
+        dynamic_cast<ITaskGenerateExecModelCustomGen *>(e->getTarget()->getAssociatedData());
+
+    if (custom_gen) {
+        custom_gen->genExprMethodCallStaticNB(
+            m_gen,
+            m_out,
+            m_refgen,
+            e);
+    } else {
+        m_out->write("%s(", 
+            m_gen->getNameMap()->getName(e->getTarget()).c_str()
         );
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+            it=e->getParameters().begin();
+            it!=e->getParameters().end(); it++) {
+            if (it != e->getParameters().begin()) {
+                m_out->write(", ");
+            }
+            TaskGenerateExecModelExprParamNB(m_gen, m_refgen, m_out).generate(it->get());
+        }
+        m_out->write(")");
     }
-    m_out->write(")");
     m_depth--;
     DEBUG_LEAVE("VisitTypeExprMethodCallStatic");
 }

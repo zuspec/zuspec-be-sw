@@ -175,8 +175,14 @@ typedef struct zsp_rt_addr_handle_s {
     uint64_t                offset;
 } zsp_rt_addr_handle_t;
 
-struct zsp_rt_addr_handle_s make_handle_from_handle(
+struct zsp_rt_addr_handle_s zsp_rt_make_handle_from_handle(
+    zsp_rt_actor_t          *actor,
     zsp_rt_addr_handle_t    *handle,
+    uint64_t                offset);
+
+struct zsp_rt_addr_handle_s zsp_rt_make_handle_from_claim(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_claim_t     *claim,
     uint64_t                offset);
 
 
@@ -191,6 +197,11 @@ typedef struct zsp_rt_addr_region_s {
 } zsp_rt_addr_region_t;
 
 zsp_rt_addr_handle_t zsp_rt_addr_space_add_nonallocatable_region(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    zsp_rt_addr_region_t    *region);
+
+zsp_rt_addr_handle_t zsp_rt_addr_space_add_region(
     zsp_rt_actor_t          *actor,
     zsp_rt_addr_space_t     *aspace,
     zsp_rt_addr_region_t    *region);

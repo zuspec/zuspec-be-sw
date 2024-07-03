@@ -27,6 +27,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAddrHandle.h"
 #include "TaskGenerateExecModelCoreMethodCall.h"
+#include "TaskGenerateExecModelMemRwCall.h"
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
@@ -242,6 +243,43 @@ void TaskGenerateExecModel::attach_custom_gen() {
         "addr_reg_pkg::addr_handle_t");
     m_name_m->setName(addr_handle_t, "zsp_rt_addr_handle");
     addr_handle_t->setAssociatedData(new TaskGenerateExecModelAddrHandle(getDebugMgr()));
+    m_addr_handle_t = addr_handle_t;
+
+    arl::dm::IDataTypeFunction *f_t;
+    f_t = m_ctxt->findDataTypeFunction("addr_reg_pkg::make_handle_from_handle");
+    m_name_m->setName(f_t, "zsp_rt_make_handle_from_handle");
+    // f_t->setAssociatedData(
+    //     new TaskGenerateExecModelCoreMethodCall(
+    //         m_dmgr,
+    //         "zsp_rt_make_handle_from_handle",
+    //         0,
+    //         {"zsp_rt_addr_claim_t *"}));
+
+    f_t = m_ctxt->findDataTypeFunction("addr_reg_pkg::make_handle_from_claim");
+    m_name_m->setName(f_t, "zsp_rt_make_handle_from_claim");
+    f_t->setAssociatedData(
+        new TaskGenerateExecModelCoreMethodCall(
+            m_dmgr,
+            "zsp_rt_make_handle_from_claim",
+            0,
+            {"zsp_rt_addr_claim_t *"}));
+
+    std::vector<std::string> rw_funcs = {
+        "addr_reg_pkg::write64",
+        "addr_reg_pkg::write32",
+        "addr_reg_pkg::write16",
+        "addr_reg_pkg::write8",
+        "addr_reg_pkg::read64",
+        "addr_reg_pkg::read32",
+        "addr_reg_pkg::read16",
+        "addr_reg_pkg::read8"
+    };
+    for (std::vector<std::string>::const_iterator
+        it=rw_funcs.begin();
+        it!=rw_funcs.end(); it++) {
+        f_t = m_ctxt->findDataTypeFunction(*it);
+        f_t->setAssociatedData(new TaskGenerateExecModelMemRwCall(m_dmgr));
+    }
 
     for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
         it=m_ctxt->getDataTypeStructs().begin();

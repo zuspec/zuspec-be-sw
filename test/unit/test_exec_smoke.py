@@ -145,12 +145,15 @@ class TestExecSmoke(TestBase):
         component pss_top {
             transparent_addr_space_c<>  aspace;
             my_regs                     regs;
+            ref my_regs                 regs_p;
 
             exec init_down {
                 transparent_addr_region_s<> region;
                 addr_handle_t hndl;
 
                 region.addr = 0x80000000;
+
+                regs_p = regs;
 
                 hndl = aspace.add_nonallocatable_region(region);
                 regs.set_handle(hndl);
@@ -164,6 +167,55 @@ class TestExecSmoke(TestBase):
                     print("Hello from Smoke Test");
                     comp.regs.r2.write_val(0);
                     r = comp.regs.r0.read();
+
+                    comp.regs_p.r1.write_val(23);
+                }
+            }
+        }
+        """
+
+        self.genBuildRun(
+            content,
+            "pss_top",
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
+        )
+
+    def test_aspace_alloc(self):
+        content = """
+        import addr_reg_pkg::*;
+        import std_pkg::*;
+        import function void print(string msg);
+
+        component pss_top {
+            transparent_addr_space_c<>  aspace;
+
+            exec init_down {
+                transparent_addr_region_s<> region;
+                addr_handle_t hndl;
+
+                region.addr = 0x80000000;
+                region.size = 0x10000000;
+
+                hndl = aspace.add_region(region);
+            }
+
+            action Entry {
+                rand addr_claim_s<>   claim;
+
+                exec post_solve {
+                    print("post-solve");
+                    claim.size = 512;
+                }
+
+                exec body {
+                    addr_handle_t addr = make_handle_from_claim(claim, 0);
+                    write32(addr, 0x01020304);
                 }
             }
         }

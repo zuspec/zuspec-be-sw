@@ -38,7 +38,7 @@ TaskGenerateExecModelStruct::~TaskGenerateExecModelStruct() {
 
 }
 
-void TaskGenerateExecModelStruct::generate(vsc::dm::IAccept *i) {
+void TaskGenerateExecModelStruct::generate(vsc::dm::IDataTypeStruct *i) {
     DEBUG_ENTER("generate");
     m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
     m_out->inc_ind();
@@ -47,7 +47,31 @@ void TaskGenerateExecModelStruct::generate(vsc::dm::IAccept *i) {
     m_ptr = 0;
     m_field = 0;
     m_field_m.clear();
-    i->accept(m_this);
+    // We're processing the root type
+
+    // Might benefit from a breadcrumb about inheritance
+
+    // Setup to handle shadowed variables
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_reverse_iterator
+        it=i->getFields().rbegin();
+        it!=i->getFields().rend(); it++) {
+        FieldM::iterator fit;
+         
+        if ((fit=m_field_m.find((*it)->name())) != m_field_m.end()) {
+            fit->second++;
+        } else {
+            m_field_m.insert({(*it)->name(), 0});
+        }
+    }
+
+    // Now, go generate the fields
+    m_depth++;
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=i->getFields().begin();
+        it!=i->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    m_depth--;
     m_out->dec_ind();
     m_out->println("} %s_t;", m_gen->getNameMap()->getName(i).c_str());
     DEBUG_LEAVE("generate");
@@ -95,38 +119,9 @@ void TaskGenerateExecModelStruct::visitDataTypeString(vsc::dm::IDataTypeString *
 
 void TaskGenerateExecModelStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct");
-    if (m_depth == 0) {
-        // We're processing the root type
-
-        // Might benefit from a breadcrumb about inheritance
-
-        // Setup to handle shadowed variables
-        for (std::vector<vsc::dm::ITypeFieldUP>::const_reverse_iterator
-            it=t->getFields().rbegin();
-            it!=t->getFields().rend(); it++) {
-            FieldM::iterator fit;
-            
-            if ((fit=m_field_m.find((*it)->name())) != m_field_m.end()) {
-                fit->second++;
-            } else {
-                m_field_m.insert({(*it)->name(), 0});
-            }
-        }
-
-        // Now, go generate the fields
-        m_depth++;
-        for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
-            it=t->getFields().begin();
-            it!=t->getFields().end(); it++) {
-            (*it)->accept(m_this);
-        }
-        m_depth--;
-    } else {
-        m_out->write("struct %s_s%s",
-            m_gen->getNameMap()->getName(t).c_str(),
-            (m_depth==1)?" ":"");
-    }
-
+    m_out->write("struct %s_s%s",
+        m_gen->getNameMap()->getName(t).c_str(), " ");
+//        (m_depth==1)?" ":"");
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 

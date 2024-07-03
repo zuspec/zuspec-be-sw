@@ -101,6 +101,9 @@ void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp
     m_isRefFieldRef = false;
     m_type = var->getDataType();
 
+    // Track whether the next deref will be a pointer
+    m_isRef = false;
+
     if (m_depth) {
         // TODO: this depends on whether the reference is scalar or
         // composite, and whether it's scope local or a parameter
@@ -123,6 +126,8 @@ void GenRefExprExecModel::visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *
 
     m_isFieldRef = true;
     m_isRefFieldRef = false;
+    // Track whether the next deref will be a pointer
+    m_isRef = false;
 
     if (m_depth) {
         m_ret.append(m_ctxtPtr?"->":".");

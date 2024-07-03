@@ -154,13 +154,21 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtIfElse(arl::dm::ITypePro
 }
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {
-    DEBUG_ENTER("visitTypeProcStmtVarDecl");
+    DEBUG_ENTER("visitTypeProcStmtVarDecl %s", s->name().c_str());
     m_out_s.back().decl()->indent();
     TaskGenerateExecModelVarType(
         m_gen, 
         m_out_s.back().decl(),
         false).generate(s->getDataType());
-    m_out_s.back().decl()->write("%s;\n", s->name().c_str());
+    m_out_s.back().decl()->write("%s", s->name().c_str());
+    if (s->getInit()) {
+        m_out_s.back().decl()->write(" = "); 
+        TaskGenerateExecModelExprNB(
+            m_gen, 
+            m_refgen, 
+            m_out_s.back().decl()).generate(s->getInit());
+    }
+    m_out_s.back().decl()->write(";\n"); 
     DEBUG_LEAVE("visitTypeProcStmtVarDecl");
 }
 

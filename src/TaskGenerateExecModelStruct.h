@@ -36,7 +36,7 @@ public:
 
     virtual ~TaskGenerateExecModelStruct();
 
-    virtual void generate(vsc::dm::IAccept *i);
+    virtual void generate(vsc::dm::IDataTypeStruct *i);
 
 	virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
 
@@ -53,6 +53,8 @@ public:
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 	virtual void visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) override;
+
+	virtual void visitTypeConstraintBlock(vsc::dm::ITypeConstraintBlock *c) override { }
 
 	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 

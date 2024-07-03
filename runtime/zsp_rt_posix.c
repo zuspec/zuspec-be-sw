@@ -162,7 +162,28 @@ zsp_rt_addr_handle_t zsp_rt_addr_space_add_nonallocatable_region(
     return ret;
 }
 
+zsp_rt_addr_handle_t zsp_rt_addr_space_add_region(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    zsp_rt_addr_region_t    *region) {
+
+}
+
 void zsp_rt_reg_group_set_handle(zsp_rt_actor_t *actor, void **reg_h, zsp_rt_addr_handle_t *hndl) {
     fprintf(stdout, "get hndl: 0x%p\n", hndl->store->hndl);
     *reg_h = (void *)hndl->store->hndl;
+}
+
+zsp_rt_addr_handle_t zsp_rt_make_handle_from_claim(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_claim_t     *claim, 
+    uint64_t                offset) {
+
+}
+
+zsp_rt_addr_handle_t zsp_rt_make_handle_from_handle(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_handle_t    *hndl, 
+    uint64_t                offset) {
+
 }

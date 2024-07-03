@@ -68,6 +68,10 @@ public:
 
     IOutput *getOutHPrv() { return m_out_h_prv.get(); }
 
+    vsc::dm::IDataTypeStruct *getAddrHandleT() {
+        return m_addr_handle_t;
+    }
+
 private:
     void generate_actor_entry();
 
@@ -79,6 +83,7 @@ private:
     dmgr::IDebugMgr                             *m_dmgr;
     arl::dm::IDataTypeComponent                 *m_comp_t;
     arl::dm::IDataTypeAction                    *m_action_t;
+    vsc::dm::IDataTypeStruct                    *m_addr_handle_t;
     IOutputUP                                   m_out_c;
     IOutputUP                                   m_out_h;
     IOutputUP                                   m_out_h_prv;

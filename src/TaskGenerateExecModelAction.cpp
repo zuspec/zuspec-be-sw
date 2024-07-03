@@ -144,8 +144,9 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         m_gen->getNameMap()->getName(action).c_str(),
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(action).c_str());
-    m_gen->getOutC()->println("zsp_rt_task_t *ret = 0;");
     m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("zsp_rt_task_t *ret = 0;");
+    m_gen->getOutC()->println("");
     m_gen->getOutC()->println("switch (this_p->task.idx) {");
     m_gen->getOutC()->inc_ind();
     m_gen->getOutC()->println("case 0: {");

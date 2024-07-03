@@ -83,9 +83,7 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
 
 void TaskGenerateExecModelActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef");
-//    if (f->name() != "comp") {
-        TaskGenerateExecModelStruct::visitTypeFieldRef(f);
-//    }
+    TaskGenerateExecModelStruct::visitTypeFieldRef(f);
     DEBUG_LEAVE("visitTypeFieldRef");
 }
 

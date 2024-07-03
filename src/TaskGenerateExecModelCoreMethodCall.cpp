@@ -84,8 +84,22 @@ void TaskGenerateExecModelCoreMethodCall::genExprMethodCallStaticNB(
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) {
+    int32_t cast_idx = 0;
     DEBUG_ENTER("genExprMethodCallStaticNB");
+    out->write("%s((zsp_rt_actor_t *)actor", m_name.c_str());
 
+    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+        it=call->getParameters().begin();
+        it!=call->getParameters().end(); it++) {
+        out->write(", ");
+        if (cast_idx < m_types.size()) {
+            out->write("(%s)", m_types.at(cast_idx).c_str());
+            cast_idx++;
+        }
+        TaskGenerateExecModelExprParamNB(gen, refgen, out).generate(it->get());
+    }
+
+    out->write(")");
     DEBUG_LEAVE("genExprMethodCallStaticNB");
 }
 

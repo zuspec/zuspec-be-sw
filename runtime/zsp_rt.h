@@ -89,11 +89,13 @@ void zsp_rt_mblk_rewind(
     zsp_rt_mblk_t           *curr);
  */
 
+struct zsp_rt_actor_impl_s;
 typedef struct zsp_rt_actor_s {
-    zsp_rt_mblk_t           *stack_r;
-    zsp_rt_mblk_t           *stack_s;
-    struct zsp_rt_task_s    *task_q;
-    struct zsp_rt_task_s    *task;
+    struct zsp_rt_actor_impl_s  *impl;
+    zsp_rt_mblk_t               *stack_r;
+    zsp_rt_mblk_t               *stack_s;
+    struct zsp_rt_task_s        *task_q;
+    struct zsp_rt_task_s        *task;
 } zsp_rt_actor_t;
 
 /**
@@ -170,6 +172,10 @@ typedef struct zsp_rt_addr_claim_s {
     uint8_t         *hndl;
 } zsp_rt_addr_claim_t;
 
+typedef struct zsp_rt_addr_claimspec_s {
+    zsp_rt_addr_claim_t     *claim;
+} zsp_rt_addr_claimspec_t;
+
 typedef struct zsp_rt_addr_handle_s {
     zsp_rt_addr_claim_t     *store;
     uint64_t                offset;
@@ -185,16 +191,35 @@ struct zsp_rt_addr_handle_s zsp_rt_make_handle_from_claim(
     zsp_rt_addr_claim_t     *claim,
     uint64_t                offset);
 
+typedef struct zsp_rt_addr_region_s {
+    zsp_rt_rc_t         base;
+    uint64_t            size;
+} zsp_rt_addr_region_t;
 
 struct zsp_rt_addr_space_impl_s;
 typedef struct zsp_rt_addr_space_s {
     struct zsp_rt_addr_space_impl_s     *impl;
 } zsp_rt_addr_space_t;
 
-typedef struct zsp_rt_addr_region_s {
-    zsp_rt_rc_t         base;
-    uint64_t            size;
-} zsp_rt_addr_region_t;
+typedef int (*zsp_rt_claimspec_match_f)(
+    void                    *ud,
+    zsp_rt_addr_region_t    *region);
+
+void zsp_rt_alloc_claim(
+    zsp_rt_actor_t              *actor,
+    zsp_rt_addr_space_t         *aspace,
+    zsp_rt_addr_claim_t         *claim,
+    zsp_rt_claimspec_match_f    *match_f,
+    void                        *match_ud
+);
+
+zsp_rt_addr_claim_t *zsp_rt_addr_claim_new(
+    zsp_rt_actor_t              *actor);
+
+void zsp_rt_addr_space_init(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    int32_t                 trait_sz);
 
 zsp_rt_addr_handle_t zsp_rt_addr_space_add_nonallocatable_region(
     zsp_rt_actor_t          *actor,

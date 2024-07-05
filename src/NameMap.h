@@ -71,6 +71,8 @@ public:
         visitDataTypeActivity(t);
     }
 
+    virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
+
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;

@@ -114,6 +114,48 @@ void TaskBuildTypeCollection::visitDataTypeActivityTraverseType(arl::dm::IDataTy
     DEBUG_LEAVE("visitDataTypeActivityTraverseType");
 }
 
+void TaskBuildTypeCollection::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("visitDataTypeAddrClaim");
+    m_type_c->addType(t);
+
+    for (int32_t i=m_type_s.size()-1; i>=0; i--) {
+        if (m_type_s.at(i) != Type::Field) {
+            m_type_c->addDep(
+                t,
+                m_dtype_s.at(i));
+        }
+    }
+
+    m_dtype_s.push_back(t);
+    m_type_s.push_back(Type::Action);
+
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=t->getFields().begin();
+        it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+
+    process_exec_blocks(t);
+
+    m_dtype_s.pop_back();
+    m_type_s.pop_back();
+    DEBUG_LEAVE("visitDataTypeAddrClaim");
+}
+
+void TaskBuildTypeCollection::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
+    DEBUG_ENTER("visitDataTypeAddrSpaceTransparentC");
+    if (m_type_c->addType(t)) {
+        for (int32_t i=m_type_s.size()-1; i>=0; i--) {
+            if (m_type_s.at(i) != Type::Field) {
+                m_type_c->addDep(
+                    t,
+                    m_dtype_s.at(i));
+            }
+        }
+    }
+    DEBUG_LEAVE("visitDataTypeAddrSpaceTransparentC");
+}
+
 void TaskBuildTypeCollection::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
     DEBUG_ENTER("visitDataTypeComponent");
 

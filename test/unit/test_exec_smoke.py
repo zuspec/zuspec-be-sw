@@ -194,6 +194,7 @@ class TestExecSmoke(TestBase):
 
         component pss_top {
             transparent_addr_space_c<>  aspace;
+//            transparent_addr_space_c<>  aspace2;
 
             exec init_down {
                 transparent_addr_region_s<> region;

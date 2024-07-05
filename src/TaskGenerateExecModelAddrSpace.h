@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelDefineType.h
+ * TaskGenerateExecModelAddrSpace.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,8 +20,8 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
-#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 
 namespace zsp {
 namespace be {
@@ -29,38 +29,17 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelDefineType :
-    public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModelAddrSpace {
 public:
-    TaskGenerateExecModelDefineType(
+    TaskGenerateExecModelAddrSpace(
         TaskGenerateExecModel       *gen,
         IOutput                     *out_h,
         IOutput                     *out_c
     );
 
-    virtual ~TaskGenerateExecModelDefineType();
+    virtual ~TaskGenerateExecModelAddrSpace();
 
-    virtual void generate(vsc::dm::IDataType *item);
-
-    virtual void generate_dflt(vsc::dm::IDataType *item);
-
-	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
-
-    virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
-
-	virtual void visitDataTypeAddrSpaceC(arl::dm::IDataTypeAddrSpaceC *t) override;
-
-	virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
-
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
-
-	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
-
-	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
-
-    virtual void visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) override;
-
-    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+    void generate(arl::dm::IDataTypeAddrSpaceC *t);
 
 private:
     static dmgr::IDebug             *m_dbg;

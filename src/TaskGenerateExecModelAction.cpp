@@ -19,10 +19,13 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/TaskActionHasMemClaim.h"
 #include "GenRefExprExecModel.h"
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAction.h"
+#include "TaskGenerateExecModelActionAlloc.h"
+#include "TaskGenerateExecModelActionInit.h"
 #include "TaskGenerateExecModelActionStruct.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelExecBlockB.h"
@@ -57,6 +60,7 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
 
 
     // Declare the action-init function
+    TaskGenerateExecModelActionInit(m_gen, m_gen->getOutC()).generate(action);
     m_gen->getOutC()->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
         m_gen->getNameMap()->getName(action).c_str(),
         m_gen->getActorName().c_str(),
@@ -130,6 +134,9 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
                 tname,
                 action->getExecs(arl::dm::ExecKindT::PostSolve));
     }
+    if (arl::dm::TaskActionHasMemClaim().check(action)) {
+        TaskGenerateExecModelActionAlloc(m_gen, m_gen->getOutC()).generate(action);
+    }
 
     // Define the activity function if present
     if (action->activities().size()) {
@@ -170,6 +177,11 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         m_gen->getOutC()->println("%s__post_solve(actor, this_p);",
             m_gen->getNameMap()->getName(action).c_str());
     }
+    if (arl::dm::TaskActionHasMemClaim().check(action)) {
+        m_gen->getOutC()->println("%s__alloc(actor, this_p);",
+            m_gen->getNameMap()->getName(action).c_str());
+    }
+
     if (action->getExecs(arl::dm::ExecKindT::Body).size()) {
         if (body_blocking) {
             m_gen->getOutC()->println("body = (struct %s__body_s *)zsp_rt_task_enter(",

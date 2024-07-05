@@ -38,9 +38,33 @@ TaskGenerateExecModelStructInit::~TaskGenerateExecModelStructInit() {
 
 }
 
-void TaskGenerateExecModelStructInit::generate(vsc::dm::IAccept *i) {
+void TaskGenerateExecModelStructInit::generate(vsc::dm::IDataTypeStruct *i) {
     m_depth = 0;
-    i->accept(m_this);
+    m_gen->getOutC()->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
+        m_gen->getNameMap()->getName(i).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(i).c_str());
+    m_gen->getOutC()->inc_ind();
+    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
+        m_gen->getNameMap()->getName(i).c_str());
+    m_depth++;
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=i->getFields().begin();
+        it!=i->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    m_depth--;
+    m_gen->getOutC()->dec_ind();
+    m_gen->getOutC()->println("}");
+}
+
+void TaskGenerateExecModelStructInit::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("visitDataTypeAddrClaim");
+    if (m_depth) {
+        m_out_c->println("this_p->%s.claim = zsp_rt_addr_claim_new();", 
+            m_gen->getNameMap()->getName(m_field).c_str());
+    }
+    DEBUG_LEAVE("visitDataTypeAddrClaim");
 }
 
 void TaskGenerateExecModelStructInit::visitDataTypeArray(vsc::dm::IDataTypeArray *t) {}
@@ -62,8 +86,10 @@ void TaskGenerateExecModelStructInit::visitDataTypePtr(vsc::dm::IDataTypePtr *t)
 void TaskGenerateExecModelStructInit::visitDataTypeString(vsc::dm::IDataTypeString *t) {}
 
 void TaskGenerateExecModelStructInit::visitTypeField(vsc::dm::ITypeField *f) {
+    DEBUG_ENTER("visitTypeField %s", f->name().c_str());
     m_field = f;
     f->getDataType()->accept(m_this);
+    DEBUG_LEAVE("visitTypeField %s", f->name().c_str());
 }
 
 void TaskGenerateExecModelStructInit::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {

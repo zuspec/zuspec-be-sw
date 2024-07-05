@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "zsp_rt.h"
+#include "zsp_rt_posix.h"
 
 
 int zsp_rt_run_one_task(
@@ -106,6 +106,9 @@ zsp_rt_task_t *zsp_rt_task_leave(
 }
 
 void zsp_rt_actor_init(zsp_rt_actor_t *actor) {
+    actor->impl = (zsp_rt_actor_impl_t *)malloc(sizeof(zsp_rt_actor_impl_t));
+    memset(actor->impl, 0, sizeof(zsp_rt_actor_impl_t));
+
     actor->stack_s = (zsp_rt_mblk_t *)malloc(
         sizeof(zsp_rt_mblk_t)+1024-sizeof(uint8_t)
     );
@@ -172,6 +175,43 @@ zsp_rt_addr_handle_t zsp_rt_addr_space_add_region(
 void zsp_rt_reg_group_set_handle(zsp_rt_actor_t *actor, void **reg_h, zsp_rt_addr_handle_t *hndl) {
     fprintf(stdout, "get hndl: 0x%p\n", hndl->store->hndl);
     *reg_h = (void *)hndl->store->hndl;
+}
+
+static void zsp_rt_addr_claim_dtor(zsp_rt_actor_t *actor, zsp_rt_addr_claim_impl_t *claim) {
+    claim->next = actor->impl->claim_free_l;
+    actor->impl->claim_free_l = claim;
+}
+
+zsp_rt_addr_claim_t *zsp_rt_addr_claim_new(
+    zsp_rt_actor_t              *actor) {
+    zsp_rt_addr_claim_impl_t *ret = 0;
+    if (!actor->impl->claim_free_l) {
+        // Alloc a block of claims
+        int32_t blksz = 16, i;
+        zsp_rt_addr_claim_impl_t *block = (zsp_rt_addr_claim_impl_t *)malloc(
+            sizeof(zsp_rt_addr_claim_impl_t *)*blksz);
+        for (i=0; i<blksz; i++) {
+            block[i].claim.store.actor = actor;
+            block[i].claim.store.count = 0;
+            block[i].claim.store.dtor = (zsp_rt_dtor_f)&zsp_rt_addr_claim_dtor;
+            (&block[i])->next = actor->impl->claim_free_l;
+            actor->impl->claim_free_l = &block[i];
+        }
+    }
+    ret = actor->impl->claim_free_l;
+    actor->impl->claim_free_l = ret->next;
+
+    // Convey ownership to the target
+    ret->claim.store.count = 1;
+
+    return &ret->claim;
+}
+
+void zsp_rt_addr_space_init(
+    zsp_rt_actor_t          *actor,
+    zsp_rt_addr_space_t     *aspace,
+    int32_t                 trait_sz) {
+
 }
 
 zsp_rt_addr_handle_t zsp_rt_make_handle_from_claim(

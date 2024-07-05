@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelCompStruct.cpp
+ * TaskGenerateExecModelActionInit.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelCompStruct.h"
+#include "TaskGenerateExecModelActionInit.h"
 
 
 namespace zsp {
@@ -28,19 +28,17 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelCompStruct::TaskGenerateExecModelCompStruct(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out) : 
-        TaskGenerateExecModelStruct(gen, out) {
+TaskGenerateExecModelActionInit::TaskGenerateExecModelActionInit(
+        TaskGenerateExecModel       *gen,
+        IOutput                     *out) : 
+        TaskGenerateExecModelStructInit(gen/*, out*/) {
+    m_dbg = 0;
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionInit", gen->getDebugMgr());
 
 }
 
-TaskGenerateExecModelCompStruct::~TaskGenerateExecModelCompStruct() {
+TaskGenerateExecModelActionInit::~TaskGenerateExecModelActionInit() {
 
-}
-
-void TaskGenerateExecModelCompStruct::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
-    m_out->write("%s_t ", m_gen->getNameMap()->getName(t).c_str());
 }
 
 }

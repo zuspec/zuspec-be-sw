@@ -96,6 +96,10 @@ void NameMap::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
     m_name = t->name();
 }
 
+void NameMap::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
+    m_name = t->name();
+}
+
 void NameMap::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     m_name = t->name();
 }

@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/TaskActionHasMemClaim.h"
 #include "zsp/be/sw/INameMap.h"
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskCheckIsExecBlocking.h"
@@ -119,7 +120,18 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
             m_gen->getActorName().c_str(),
             m_gen->getNameMap()->getName(t).c_str());
     }
-
+    if (arl::dm::TaskActionHasMemClaim().check(t)) {
+        m_out->println("static void %s__alloc(struct %s_s *actor, struct %s_s *this_p);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getActorName().c_str(),
+            m_gen->getNameMap()->getName(t).c_str());
+    }
+    if (t->getExecs(arl::dm::ExecKindT::PreBody).size()) {
+        m_out->println("static void %s__pre_body(struct %s_s *actor, struct %s_s *this_p);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_gen->getActorName().c_str(),
+            m_gen->getNameMap()->getName(t).c_str());
+    }
 
     DEBUG_LEAVE("visitDataTypeAction %s", t->name().c_str());
 }

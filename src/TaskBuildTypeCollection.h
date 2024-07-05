@@ -53,6 +53,10 @@ public:
 
 	virtual void visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) override;
 
+    virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+
+    virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
+
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
 	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;

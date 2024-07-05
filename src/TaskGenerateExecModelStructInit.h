@@ -35,7 +35,9 @@ public:
 
     virtual ~TaskGenerateExecModelStructInit();
 
-    virtual void generate(vsc::dm::IAccept *i);
+    virtual void generate(vsc::dm::IDataTypeStruct *i);
+
+	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
 
 	virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
 

@@ -23,6 +23,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
+#include "TaskGenerateExecModelAddrSpace.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelPackedStruct.h"
@@ -70,6 +71,18 @@ void TaskGenerateExecModelDefineType::visitDataTypeActivity(arl::dm::IDataTypeAc
     DEBUG_ENTER("visitDataTypeActivity");
     TaskGenerateExecModelActivity(m_gen).generate(t);
     DEBUG_LEAVE("visitDataTypeActivity");
+}
+
+void TaskGenerateExecModelDefineType::visitDataTypeAddrSpaceC(arl::dm::IDataTypeAddrSpaceC *t) {
+    DEBUG_ENTER("visitDataTypeAddrSpaceC");
+    TaskGenerateExecModelAddrSpace(m_gen, m_out_h, m_out_c).generate(t);
+    DEBUG_LEAVE("visitDataTypeAddrSpaceC");
+}
+
+void TaskGenerateExecModelDefineType::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
+    DEBUG_ENTER("visitDataTypeAddrSpaceTransparentC");
+    TaskGenerateExecModelAddrSpace(m_gen, m_out_h, m_out_c).generate(t);
+    DEBUG_LEAVE("visitDataTypeAddrSpaceTransparentC");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 

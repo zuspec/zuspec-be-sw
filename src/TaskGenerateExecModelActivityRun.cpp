@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/TaskActionHasMemClaim.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelActivityRun.h"
 

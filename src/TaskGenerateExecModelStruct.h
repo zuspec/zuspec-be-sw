@@ -21,6 +21,7 @@
 #pragma once
 #include <unordered_map>
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -36,7 +37,11 @@ public:
 
     virtual ~TaskGenerateExecModelStruct();
 
+    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
+
     virtual void generate(vsc::dm::IDataTypeStruct *i);
+
+    virtual void generate_suffix(vsc::dm::IDataTypeStruct *i);
 
 	virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
 

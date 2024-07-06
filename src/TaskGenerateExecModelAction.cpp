@@ -61,15 +61,6 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
 
     // Declare the action-init function
     TaskGenerateExecModelActionInit(m_gen, m_gen->getOutC()).generate(action);
-    m_gen->getOutC()->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
-        m_gen->getNameMap()->getName(action).c_str(),
-        m_gen->getActorName().c_str(),
-        m_gen->getNameMap()->getName(action).c_str());
-    m_gen->getOutC()->inc_ind();
-    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
-        m_gen->getNameMap()->getName(action).c_str());
-    m_gen->getOutC()->dec_ind();
-    m_gen->getOutC()->println("}");
 
     // Define the exec blocks (if present)
     bool body_blocking = false;

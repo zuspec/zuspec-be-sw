@@ -48,6 +48,8 @@ public:
 
     virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
 
+	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+
 	virtual void visitDataTypeAddrSpaceC(arl::dm::IDataTypeAddrSpaceC *t) override;
 
 	virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;

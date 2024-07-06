@@ -23,7 +23,10 @@
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "NameMap.h"
 #include "Output.h"
+#include "TaskBuildStaticCompTreeMap.h"
 #include "TaskBuildTypeCollection.h"
+#include "TaskCollectAddrTraitTypes.h"
+#include "TaskCountAspaceInstances.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAddrHandle.h"
 #include "TaskGenerateExecModelCoreMethodCall.h"
@@ -68,6 +71,12 @@ void TaskGenerateExecModel::generate(
 
     m_comp_t = comp_t;
     m_action_t = action_t;
+
+    DEBUG("AddressSpace Instances: %d", TaskCountAspaceInstances().count(comp_t));
+    TaskBuildStaticCompTreeMap(m_dmgr).build(comp_t);
+    DEBUG("AddrSpaceTraits: %d", TaskCollectAddrTraitTypes(getDebugMgr()).collect(
+        m_comp_t).size());
+
 
 
     m_actor_name = comp_t->name();

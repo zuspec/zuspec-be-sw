@@ -1,5 +1,5 @@
-/**
- * TaskGenerateExecModelActionInit.h
+/*
+ * TaskGenerateExecModelAddrClaimInit.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,32 +16,24 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "TaskGenerateExecModelStructInit.h"
+#include "TaskGenerateExecModelAddrClaimInit.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+TaskGenerateExecModelAddrClaimInit::TaskGenerateExecModelAddrClaimInit() {
 
-class TaskGenerateExecModelActionInit :
-    public virtual TaskGenerateExecModelStructInit {
-public:
-    TaskGenerateExecModelActionInit(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out);
+}
 
-    virtual ~TaskGenerateExecModelActionInit();
+TaskGenerateExecModelAddrClaimInit::~TaskGenerateExecModelAddrClaimInit() {
 
-    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
-
-};
+}
 
 }
 }
 }
-
-

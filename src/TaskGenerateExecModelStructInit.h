@@ -34,8 +34,12 @@ public:
     TaskGenerateExecModelStructInit(TaskGenerateExecModel *gen);
 
     virtual ~TaskGenerateExecModelStructInit();
+    
+    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
 
     virtual void generate(vsc::dm::IDataTypeStruct *i);
+
+    virtual void generate_suffix(vsc::dm::IDataTypeStruct *i);
 
 	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
 

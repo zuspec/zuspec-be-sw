@@ -192,9 +192,19 @@ class TestExecSmoke(TestBase):
         import std_pkg::*;
         import function void print(string msg);
 
+        component Sub2 {
+        }
+
+        component Sub1 {
+            Sub2        c1;
+        }
+
         component pss_top {
             transparent_addr_space_c<>  aspace;
 //            transparent_addr_space_c<>  aspace2;
+
+            Sub1    s1, s2;
+            Sub2    s3;
 
             exec init_down {
                 transparent_addr_region_s<> region;

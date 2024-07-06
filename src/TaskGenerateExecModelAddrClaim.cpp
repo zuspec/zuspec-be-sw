@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelActionInit.cpp
+ * TaskGenerateExecModelAddrClaim.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,8 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelActionInit.h"
+#include "TaskGenerateExecModelAddrClaim.h"
+#include "TaskGenerateExecModelAddrClaimStruct.h"
 
 
 namespace zsp {
@@ -28,25 +29,25 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActionInit::TaskGenerateExecModelActionInit(
+TaskGenerateExecModelAddrClaim::TaskGenerateExecModelAddrClaim(
         TaskGenerateExecModel       *gen,
-        IOutput                     *out) : 
-        TaskGenerateExecModelStructInit(gen/*, out*/) {
-    m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionInit", gen->getDebugMgr());
+        IOutput                     *out_h,
+        IOutput                     *out_c) : m_gen(gen), m_out_h(out_h), m_out_c(out_c) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelAddrClaim", gen->getDebugMgr());
+}
+
+TaskGenerateExecModelAddrClaim::~TaskGenerateExecModelAddrClaim() {
 
 }
 
-TaskGenerateExecModelActionInit::~TaskGenerateExecModelActionInit() {
-
+void TaskGenerateExecModelAddrClaim::generate(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("generate");
+    TaskGenerateExecModelAddrClaimStruct(m_gen, m_out_h).generate(t);
+    DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelActionInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    TaskGenerateExecModelStructInit::generate_prefix(i);
-    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
-        m_gen->getNameMap()->getName(i).c_str());
 
-}
+dmgr::IDebug *TaskGenerateExecModelAddrClaim::m_dbg = 0;
 
 }
 }

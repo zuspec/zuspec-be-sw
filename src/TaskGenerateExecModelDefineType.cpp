@@ -23,6 +23,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
+#include "TaskGenerateExecModelAddrClaim.h"
 #include "TaskGenerateExecModelAddrSpace.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelDefineType.h"
@@ -71,6 +72,12 @@ void TaskGenerateExecModelDefineType::visitDataTypeActivity(arl::dm::IDataTypeAc
     DEBUG_ENTER("visitDataTypeActivity");
     TaskGenerateExecModelActivity(m_gen).generate(t);
     DEBUG_LEAVE("visitDataTypeActivity");
+}
+
+void TaskGenerateExecModelDefineType::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("visitDataTypeAddrClaim");
+    TaskGenerateExecModelAddrClaim(m_gen, m_out_h, m_out_c).generate(t);
+    DEBUG_LEAVE("visitDataTypeAddrClaim");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeAddrSpaceC(arl::dm::IDataTypeAddrSpaceC *t) {

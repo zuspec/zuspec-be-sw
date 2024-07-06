@@ -173,6 +173,7 @@ typedef struct zsp_rt_addr_claim_s {
 } zsp_rt_addr_claim_t;
 
 typedef struct zsp_rt_addr_claimspec_s {
+    zsp_rt_obj_t            obj;
     zsp_rt_addr_claim_t     *claim;
 } zsp_rt_addr_claimspec_t;
 

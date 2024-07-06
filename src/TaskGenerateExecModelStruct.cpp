@@ -38,11 +38,15 @@ TaskGenerateExecModelStruct::~TaskGenerateExecModelStruct() {
 
 }
 
-void TaskGenerateExecModelStruct::generate(vsc::dm::IDataTypeStruct *i) {
-    DEBUG_ENTER("generate");
+void TaskGenerateExecModelStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
     m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
     m_out->inc_ind();
     m_out->println("zsp_rt_rc_t base;");
+}
+
+void TaskGenerateExecModelStruct::generate(vsc::dm::IDataTypeStruct *i) {
+    DEBUG_ENTER("generate");
+    generate_prefix(i);
     m_depth = 0;
     m_ptr = 0;
     m_field = 0;
@@ -72,9 +76,13 @@ void TaskGenerateExecModelStruct::generate(vsc::dm::IDataTypeStruct *i) {
         (*it)->accept(m_this);
     }
     m_depth--;
+    generate_suffix(i);
+    DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateExecModelStruct::generate_suffix(vsc::dm::IDataTypeStruct *i) {
     m_out->dec_ind();
     m_out->println("} %s_t;", m_gen->getNameMap()->getName(i).c_str());
-    DEBUG_LEAVE("generate");
 }
 
 void TaskGenerateExecModelStruct::visitDataTypeArray(vsc::dm::IDataTypeArray *t) {

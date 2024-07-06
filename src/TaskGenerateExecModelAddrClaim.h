@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActionInit.h
+ * TaskGenerateExecModelAddrClaim.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,24 +19,33 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateExecModelStructInit.h"
+#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/IDataTypeAddrClaim.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
+class TaskGenerateExecModel;
 
-
-class TaskGenerateExecModelActionInit :
-    public virtual TaskGenerateExecModelStructInit {
+class TaskGenerateExecModelAddrClaim {
 public:
-    TaskGenerateExecModelActionInit(
+    TaskGenerateExecModelAddrClaim(
         TaskGenerateExecModel       *gen,
-        IOutput                     *out);
+        IOutput                     *out_h,
+        IOutput                     *out_c
+    );
 
-    virtual ~TaskGenerateExecModelActionInit();
+    virtual ~TaskGenerateExecModelAddrClaim();
 
-    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+    virtual void generate(arl::dm::IDataTypeAddrClaim *t);
+
+protected:
+    static dmgr::IDebug             *m_dbg;
+    TaskGenerateExecModel           *m_gen;
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
 
 };
 

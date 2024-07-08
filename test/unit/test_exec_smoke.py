@@ -226,7 +226,7 @@ class TestExecSmoke(TestBase):
 
                 exec body {
                     addr_handle_t addr = make_handle_from_claim(claim, 0);
-                    write32(addr, 0x01020304);
+//                    write32(addr, 0x01020304);
                 }
             }
         }

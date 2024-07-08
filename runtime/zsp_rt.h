@@ -167,6 +167,11 @@ typedef struct zsp_rt_action_s {
     zsp_rt_task_t           task;
 } zsp_rt_action_t;
 
+typedef struct zsp_rt_component_s {
+    zsp_rt_obj_t            obj;
+    int32_t                 comp_id;
+} zsp_rt_component_t;
+
 typedef struct zsp_rt_addr_claim_s {
     zsp_rt_rc_t     store;
     uint8_t         *hndl;

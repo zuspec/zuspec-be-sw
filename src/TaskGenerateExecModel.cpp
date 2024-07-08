@@ -23,10 +23,7 @@
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "NameMap.h"
 #include "Output.h"
-#include "TaskBuildStaticCompTreeMap.h"
 #include "TaskBuildTypeCollection.h"
-#include "TaskCollectAddrTraitTypes.h"
-#include "TaskCountAspaceInstances.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelAddrHandle.h"
 #include "TaskGenerateExecModelCoreMethodCall.h"
@@ -72,12 +69,10 @@ void TaskGenerateExecModel::generate(
     m_comp_t = comp_t;
     m_action_t = action_t;
 
-    DEBUG("AddressSpace Instances: %d", TaskCountAspaceInstances().count(comp_t));
-    TaskBuildStaticCompTreeMap(m_dmgr).build(comp_t);
-    DEBUG("AddrSpaceTraits: %d", TaskCollectAddrTraitTypes(getDebugMgr()).collect(
-        m_comp_t).size());
-
-
+    m_num_aspace_insts = TaskCountAspaceInstances().count(comp_t);
+    DEBUG("AddressSpace Instances: %d", m_num_aspace_insts);
+    m_comp_tree_m = TaskBuildStaticCompTreeMap(m_dmgr).build(comp_t);
+    m_addr_trait_m = TaskCollectAddrTraitTypes(getDebugMgr()).collect(m_comp_t);
 
     m_actor_name = comp_t->name();
     m_actor_name += "_";
@@ -96,6 +91,9 @@ void TaskGenerateExecModel::generate(
     ));
 
     std::vector<int32_t> sorted = type_c->sort();
+
+    // Core model-centric definitions first
+    core_defs();
 
     // First, generate forward declarations for all types
     getOutHPrv()->println("struct %s_s;", m_actor_name.c_str());
@@ -136,6 +134,43 @@ bool TaskGenerateExecModel::fwdDecl(vsc::dm::IDataType *dt, bool add) {
     }
 }
 
+void TaskGenerateExecModel::core_defs() {
+    std::string trait_idx_t;
+    std::string comp_idx_t;
+
+    if (m_num_aspace_insts >= (1ULL << 32)) {
+        trait_idx_t = "uint64_t";
+    } else if (m_num_aspace_insts >= (1ULL << 16)) {
+        trait_idx_t = "uint32_t";
+    } else if (m_num_aspace_insts >= (1ULL << 8)) {
+        trait_idx_t = "uint16_t";
+    } else {
+        trait_idx_t = "uint8_t";
+    }
+
+    m_out_h_prv->println("typedef %s zsp_rt_aspace_idx_t;", trait_idx_t.c_str());
+
+    if (m_comp_tree_m.first >= (1ULL << 32)) {
+        comp_idx_t = "uint64_t";
+    } else if (m_comp_tree_m.first >= (1ULL << 16)) {
+        comp_idx_t = "uint32_t";
+    } else if (m_comp_tree_m.first >= (1ULL << 8)) {
+        comp_idx_t = "uint16_t";
+    } else {
+        comp_idx_t = "uint8_t";
+    }
+
+    m_out_h_prv->println("typedef %s zsp_rt_comp_idx_t;", comp_idx_t.c_str());
+
+    m_out_h_prv->println("typedef struct %s_init_s {", getActorName().c_str());
+    m_out_h_prv->inc_ind();
+    m_out_h_prv->println("zsp_rt_aspace_idx_t       aspace_idx;");
+    m_out_h_prv->println("zsp_rt_comp_idx_t         comp_idx;");
+    m_out_h_prv->println("zsp_rt_aspace_idx_t       traits[%d];", m_addr_trait_m.size());
+    m_out_h_prv->dec_ind();
+    m_out_h_prv->println("} %s_init_t;", getActorName().c_str());
+
+}
 
 
 void TaskGenerateExecModel::generate_actor_entry() {
@@ -146,6 +181,8 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_h_prv->println("zsp_rt_actor_t actor;");
     // public-interface functions go here
     m_out_h_prv->println("%s_t comp;", m_comp_t->name().c_str());
+    m_out_h_prv->println("zsp_rt_component_t *comp_insts[%d];", m_comp_tree_m.first);
+    m_out_h_prv->println("zsp_rt_addr_space_t *aspace_insts[%d];", m_num_aspace_insts);
     m_out_h_prv->dec_ind();
     m_out_h_prv->println("} %s_t;", getActorName().c_str());
 
@@ -170,6 +207,7 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->println("}");
     m_out_c->println("case 1: { // initialize comp-tree and start action");
     m_out_c->inc_ind();
+    m_out_c->println("%s_init_t init_data;", getActorName().c_str());
     m_out_c->println("%s_t *action_t = (%s_t *)zsp_rt_task_enter(",
         getNameMap()->getName(m_action_t).c_str(),
         getNameMap()->getName(m_action_t).c_str());
@@ -180,7 +218,9 @@ void TaskGenerateExecModel::generate_actor_entry() {
         getNameMap()->getName(m_action_t).c_str());
     m_out_c->dec_ind();
     m_out_c->println("task->idx++;");
-    m_out_c->println("%s__init(actor, &actor->comp);", m_comp_t->name().c_str());
+    m_out_c->println("init_data.aspace_idx = 0;");
+    m_out_c->println("init_data.comp_idx = 0;");
+    m_out_c->println("%s__exec_init(actor, &init_data, actor->comp.__aspace, &actor->comp);", m_comp_t->name().c_str());
     m_out_c->println("action_t->comp = &actor->comp;");
     m_out_c->println("ret = zsp_rt_task_run(&actor->actor, &action_t->task);");
     m_out_c->println("if (ret) {");

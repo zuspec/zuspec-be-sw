@@ -27,6 +27,9 @@
 #include "zsp/arl/dm/IDataTypeAction.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/INameMap.h"
+#include "TaskBuildStaticCompTreeMap.h"
+#include "TaskCollectAddrTraitTypes.h"
+#include "TaskCountAspaceInstances.h"
 
 namespace zsp {
 namespace be {
@@ -72,7 +75,28 @@ public:
         return m_addr_handle_t;
     }
 
+    int32_t getNumAspaceInsts() {
+        return m_num_aspace_insts;
+    }
+
+    int32_t getNumTraitTypes() {
+        return m_addr_trait_m.size();
+    }
+
+    int32_t getTraitTypeId(vsc::dm::IDataTypeStruct *trait_t) {
+        int32_t ret = -1;
+        TaskCollectAddrTraitTypes::TraitM::const_iterator it;
+
+        if ((it=m_addr_trait_m.find(trait_t)) != m_addr_trait_m.end()) {
+            ret = it->second;
+        }
+
+        return ret;
+    }
+
 private:
+    void core_defs();
+
     void generate_actor_entry();
 
     void attach_custom_gen();
@@ -91,6 +115,10 @@ private:
     INameMapUP                                  m_name_m;
 
     std::unordered_set<vsc::dm::IDataType *>    m_dt_fwd_decl;
+    uint32_t                                    m_num_aspace_insts;
+    uint32_t                                    m_num_comp_insts;
+    TaskCollectAddrTraitTypes::TraitM           m_addr_trait_m;
+    TaskBuildStaticCompTreeMap::CompTreeM       m_comp_tree_m;
 
 };
 

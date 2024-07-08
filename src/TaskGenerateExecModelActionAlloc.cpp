@@ -63,8 +63,8 @@ void TaskGenerateExecModelActionAlloc::visitTypeFieldAddrClaim(arl::dm::ITypeFie
     m_out->println("zsp_rt_alloc_claim(");
     m_out->inc_ind();
     m_out->println("&actor->actor,");
-    m_out->println("this_p->comp->%s_aspace,",
-        m_gen->getNameMap()->getName(f->getTraitType()).c_str());
+    m_out->println("actor->aspace_insts[this_p->comp->__aspace[%d]],", 
+        m_gen->getTraitTypeId(f->getTraitType()));
     m_out->println("this_p->%s.claim,", f->name().c_str());
     m_out->println("0,");
     m_out->println("0");

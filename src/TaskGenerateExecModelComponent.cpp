@@ -22,6 +22,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelCompStruct.h"
+#include "TaskGenerateExecModelCompExecInit.h"
 #include "TaskGenerateExecModelCompInit.h"
 #include "TaskGenerateExecModelCompStruct.h"
 
@@ -47,6 +48,8 @@ void TaskGenerateExecModelComponent::generate(arl::dm::IDataTypeComponent *comp_
     TaskGenerateExecModelCompStruct(m_gen, m_gen->getOutHPrv()).generate(comp_t);
 
     TaskGenerateExecModelCompInit(m_gen).generate(comp_t);
+
+    TaskGenerateExecModelCompExecInit(m_gen, m_gen->getOutC()).generate(comp_t);
 
 /*
     // First, handle forward declaration

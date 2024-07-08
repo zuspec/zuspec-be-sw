@@ -33,7 +33,8 @@ class TaskBuildStaticCompTreeMap :
     public virtual arl::dm::VisitorBase {
 public:
     using SubInstM=std::map<arl::dm::IDataTypeComponent *, std::vector<int32_t>>;
-    using CompTreeM=std::map<arl::dm::IDataTypeComponent *, SubInstM>;
+    using RootM=std::map<arl::dm::IDataTypeComponent *, SubInstM>;
+    using CompTreeM=std::pair<int32_t, RootM>;
 public:
     TaskBuildStaticCompTreeMap(dmgr::IDebugMgr *dmgr);
 
@@ -64,7 +65,6 @@ private:
         std::map<arl::dm::IDataTypeComponent *, std::vector<int32_t>>       sub_comp_m;
     };
 
-    int32_t                                                                 m_num_comp;
     std::map<arl::dm::IDataTypeComponent *, CompData>                       m_comp_data;
     std::vector<CompData *>                                                 m_comp_s;
 

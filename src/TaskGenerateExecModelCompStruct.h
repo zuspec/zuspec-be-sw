@@ -37,6 +37,8 @@ public:
 
     virtual ~TaskGenerateExecModelCompStruct();
 
+    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+
     virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
 
 

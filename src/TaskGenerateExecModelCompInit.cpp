@@ -45,6 +45,7 @@ TaskGenerateExecModelCompInit::~TaskGenerateExecModelCompInit() {
 void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
     if (m_depth == 0) {
+        /*
         GenRefExprExecModel refgen(
             m_gen, 
             t,
@@ -73,6 +74,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
                 init_down
             );
         }
+         */
 
         m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
             m_gen->getNameMap()->getName(t).c_str(),
@@ -89,7 +91,8 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         }
         m_subcomp_init.dec_ind();
         m_depth--;
-        
+
+        /*
         if (init_down.size()) {
             m_out_c->println("%s__init_down(actor, this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
@@ -102,6 +105,7 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
             m_out_c->println("%s__init_up(actor, this_p);", 
                 m_gen->getNameMap()->getName(t).c_str());
         }
+         */
 
         m_out_c->dec_ind();
         m_out_c->println("}");

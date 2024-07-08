@@ -189,7 +189,7 @@ zsp_rt_addr_claim_t *zsp_rt_addr_claim_new(
         // Alloc a block of claims
         int32_t blksz = 16, i;
         zsp_rt_addr_claim_impl_t *block = (zsp_rt_addr_claim_impl_t *)malloc(
-            sizeof(zsp_rt_addr_claim_impl_t *)*blksz);
+            sizeof(zsp_rt_addr_claim_impl_t)*blksz);
         for (i=0; i<blksz; i++) {
             block[i].claim.store.actor = actor;
             block[i].claim.store.count = 0;
@@ -226,4 +226,15 @@ zsp_rt_addr_handle_t zsp_rt_make_handle_from_handle(
     zsp_rt_addr_handle_t    *hndl, 
     uint64_t                offset) {
 
+}
+
+void zsp_rt_alloc_claim(
+    zsp_rt_actor_t              *actor,
+    zsp_rt_addr_space_t         *aspace,
+    zsp_rt_addr_claim_t         *claim,
+    zsp_rt_claimspec_match_f    *match_f,
+    void                        *match_ud) {
+    fprintf(stdout, "alloc\n");
+
+//    claim->store = 
 }

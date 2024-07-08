@@ -37,7 +37,6 @@ TaskBuildStaticCompTreeMap::~TaskBuildStaticCompTreeMap() {
 
 TaskBuildStaticCompTreeMap::CompTreeM TaskBuildStaticCompTreeMap::build(arl::dm::IDataTypeComponent *comp_t) {
     DEBUG_ENTER("build %s", comp_t->name().c_str());
-    m_num_comp = 0;
 
     CompData comp_data;
     comp_data.num_comp = 0;
@@ -52,10 +51,11 @@ TaskBuildStaticCompTreeMap::CompTreeM TaskBuildStaticCompTreeMap::build(arl::dm:
     m_comp_data.insert({comp_t, comp_data});
 
     CompTreeM ret;
+    ret.first = comp_data.num_comp;
     for (std::map<arl::dm::IDataTypeComponent *,CompData>::const_iterator
         it=m_comp_data.begin();
         it!=m_comp_data.end(); it++) {
-        ret.insert({it->first, it->second.sub_comp_m});
+        ret.second.insert({it->first, it->second.sub_comp_m});
         if (DEBUG_EN) {
             DEBUG("Comp: %s", it->first->name().c_str());
             for (std::map<arl::dm::IDataTypeComponent *, std::vector<int32_t>>::const_iterator

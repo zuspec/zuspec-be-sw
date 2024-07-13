@@ -68,7 +68,7 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         DEBUG("generate body function");
         std::string fname = m_gen->getNameMap()->getName(action) + "__body";
         std::string tname;
-        if ((body_blocking=TaskCheckIsExecBlocking(m_gen->getDebugMgr(), false).check(
+        if ((body_blocking=TaskCheckIsExecBlocking(m_gen->getDebugMgr(), m_gen->isTargetImpBlocking()).check(
             action->getExecs(arl::dm::ExecKindT::Body)))) {
             DEBUG("Body is blocking");
             tname = "struct " + m_gen->getNameMap()->getName(action) + "__body_s";
@@ -85,6 +85,7 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
             TaskGenerateExecModelExecBlockB(
                 m_gen, 
                 &refgen,
+                m_gen->getOutHPrv(),
                 m_gen->getOutC()).generate(
                     fname,
                     tname,

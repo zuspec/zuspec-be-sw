@@ -84,10 +84,14 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
                 m_gen->getNameMap()->getName(t).c_str(),
                 m_gen->getActorName().c_str(),
                 m_gen->getNameMap()->getName(t).c_str());
-            m_out->println("static zsp_rt_task_t *%s__body_run(struct %s_s *actor, struct %s__body_s *this_p);",
+            m_out->println("static zsp_rt_task_t *%s__body_run(struct %s_s *actor, zsp_rt_task_t *this_p);",
                 m_gen->getNameMap()->getName(t).c_str(),
-                m_gen->getActorName().c_str(),
-                m_gen->getNameMap()->getName(t).c_str());
+                m_gen->getActorName().c_str());
+            for (std::vector<arl::dm::ITypeExecUP>::const_iterator
+                it=t->getExecs(arl::dm::ExecKindT::Body).begin();
+                it!=t->getExecs(arl::dm::ExecKindT::Body).end(); it++) {
+                (*it)->accept(m_this);
+            }
         } else {
             m_out->println("static void %s__body(struct %s_s *actor, struct %s_s *this_p);",
                 m_gen->getNameMap()->getName(t).c_str(),
@@ -179,6 +183,32 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeStruct(vsc::dm::IDataTypeStruct 
     // TODO: need to find associated functions
 
     DEBUG_LEAVE("visitDataTypeStruct");
+}
+
+void TaskGenerateExecModelFwdDecl::visitTypeExecProc(arl::dm::ITypeExecProc *t) {
+    DEBUG_ENTER("visitTypeExecProc");
+    t->getBody()->accept(m_this);
+
+    DEBUG_LEAVE("visitTypeExecProc");
+}
+
+void TaskGenerateExecModelFwdDecl::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtScope");
+    if (TaskCheckIsExecBlocking(
+        m_gen->getDebugMgr(), m_gen->isTargetImpBlocking()).check(s)) {
+        m_out->println("struct exec_%p_s;", s);
+        m_out->println("static zsp_rt_task_t *exec_%p(struct %s_s *actor, struct exec_%p_s *this_s);",
+            s,
+            m_gen->getActorName().c_str(),
+            s);
+        
+        for (std::vector<arl::dm::ITypeProcStmtUP>::const_iterator
+            it=s->getStatements().begin();
+            it!=s->getStatements().end(); it++) {
+            (*it)->accept(m_this);
+        }
+    }
+    DEBUG_LEAVE("visitTypeProcStmtScope");
 }
 
 dmgr::IDebug *TaskGenerateExecModelFwdDecl::m_dbg = 0;

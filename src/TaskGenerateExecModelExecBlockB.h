@@ -38,7 +38,8 @@ public:
     TaskGenerateExecModelExecBlockB(
         TaskGenerateExecModel       *gen,
         IGenRefExpr                 *refgen,
-        IOutput                     *out);
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
     virtual ~TaskGenerateExecModelExecBlockB();
 
@@ -51,7 +52,8 @@ private:
     static dmgr::IDebug                 *m_dbg;
     TaskGenerateExecModel               *m_gen;
     IGenRefExpr                         *m_refgen;
-    IOutput                             *m_out;
+    IOutput                             *m_out_h;
+    IOutput                             *m_out_c;
 
 };
 

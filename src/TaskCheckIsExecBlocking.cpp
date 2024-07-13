@@ -30,7 +30,7 @@ namespace sw {
 TaskCheckIsExecBlocking::TaskCheckIsExecBlocking(
     dmgr::IDebugMgr         *dmgr,
     bool                    imp_target_blocking) : 
-        m_imp_target_blocking(imp_target_blocking) {
+        m_dmgr(dmgr), m_imp_target_blocking(imp_target_blocking) {
     DEBUG_INIT("zsp::be::sw::TaskCheckIsExecBlocking", dmgr);
 }
 
@@ -39,6 +39,14 @@ TaskCheckIsExecBlocking::~TaskCheckIsExecBlocking() {
 }
 
 bool TaskCheckIsExecBlocking::check(arl::dm::ITypeExec *exec) {
+    DEBUG_ENTER("check");
+    m_blocking = false;
+    exec->accept(m_this);
+    DEBUG_LEAVE("check %d", m_blocking);
+    return m_blocking;
+}
+
+bool TaskCheckIsExecBlocking::check(arl::dm::ITypeProcStmt *exec) {
     DEBUG_ENTER("check");
     m_blocking = false;
     exec->accept(m_this);
@@ -56,6 +64,50 @@ bool TaskCheckIsExecBlocking::check(const std::vector<arl::dm::ITypeExecUP> &exe
     }
     DEBUG_LEAVE("check %d", m_blocking);
     return m_blocking;
+}
+
+void TaskCheckIsExecBlocking::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {
+    if (m_imp_target_blocking && e->getTarget()->hasFlags(arl::dm::DataTypeFunctionFlags::Import)) {
+        m_blocking = true;
+    } else {
+        if (!m_blocking) {
+            e->getContext()->accept(m_this);
+        } 
+
+        // First, check the parameter expressions
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator 
+            it=e->getParameters().begin();
+            it!=e->getParameters().end() && !m_blocking; it++) {
+            (*it)->accept(m_this);
+        }
+
+        if (!m_blocking) {
+            e->getTarget()->getBody()->accept(m_this);
+        }
+    }
+}
+
+void TaskCheckIsExecBlocking::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) {
+    DEBUG("m_imp_target_blocking: %d", m_imp_target_blocking);
+    DEBUG("flags: 0x%08x", e->getTarget()->getFlags());
+    if (m_imp_target_blocking && e->getTarget()->hasFlags(arl::dm::DataTypeFunctionFlags::Import)) {
+        m_blocking = true;
+    } else {
+        // First, check the parameter expressions
+        for (std::vector<vsc::dm::ITypeExprUP>::const_iterator 
+            it=e->getParameters().begin();
+            it!=e->getParameters().end() && !m_blocking; it++) {
+            (*it)->accept(m_this);
+        }
+
+        if (!m_blocking) {
+            e->getTarget()->getBody()->accept(m_this);
+        }
+    }
+}
+
+void TaskCheckIsExecBlocking::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) {
+    m_blocking = true;
 }
 
 dmgr::IDebug *TaskCheckIsExecBlocking::m_dbg = 0;

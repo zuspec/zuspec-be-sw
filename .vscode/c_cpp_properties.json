@@ -12,6 +12,7 @@
                 "packages/vsc-dm/src/include",
                 "packages/zuspec-arl-dm/src/include",
                 "packages/zuspec-fe-parser/src/include",
+                "packages/zuspec-parser/src",
                 "packages/zuspec-parser/build/include",
                 "packages/gtest/googletest/include"
             ],

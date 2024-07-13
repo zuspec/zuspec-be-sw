@@ -226,7 +226,112 @@ class TestExecSmoke(TestBase):
 
                 exec body {
                     addr_handle_t addr = make_handle_from_claim(claim, 0);
-//                    write32(addr, 0x01020304);
+                    addr_handle_t addr2 = make_handle_from_claim(claim, 4);
+                    write32(addr, 0x01020304);
+                    write32(addr2, 0x02030405);
+                }
+            }
+        }
+        """
+
+        self.genBuildRun(
+            content,
+            "pss_top",
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
+        )
+
+    def test_aspace_trait_alloc(self):
+        content = """
+        import addr_reg_pkg::*;
+        import std_pkg::*;
+        import function void print(string msg);
+
+        component Sub2 {
+        }
+
+        component Sub1 {
+            Sub2        c1;
+        }
+
+        struct trait_t {
+            int id;
+        }
+
+        component pss_top {
+            transparent_addr_space_c<trait_t>  aspace;
+//            transparent_addr_space_c<>  aspace2;
+
+            Sub1    s1, s2;
+            Sub2    s3;
+
+            exec init_down {
+                transparent_addr_region_s<trait_t> region;
+                addr_handle_t hndl;
+
+                region.addr = 0x80000000;
+                region.size = 0x10000000;
+                region.trait.id = 1;
+                hndl = aspace.add_region(region);
+
+                region.addr = 0x90000000;
+                region.size = 0x10000000;
+                region.trait.id = 2;
+                hndl = aspace.add_region(region);
+            }
+
+            action Entry {
+                rand addr_claim_s<>   claim;
+
+                exec post_solve {
+                    print("post-solve");
+                    claim.size = 512;
+                }
+
+                exec body {
+                    addr_handle_t addr = make_handle_from_claim(claim, 0);
+                    addr_handle_t addr2 = make_handle_from_claim(claim, 4);
+                    write32(addr, 0x01020304);
+                    write32(addr2, 0x02030405);
+                }
+            }
+        }
+        """
+
+        self.genBuildRun(
+            content,
+            "pss_top",
+            "pss_top::Entry",
+            extra_src=[
+                os.path.join(self.data_dir, "support/support.c")
+            ],
+            extra_hdr=[
+                os.path.join(self.data_dir, "support/support.h")
+            ]
+        )
+
+    def test_top_level_yield(self):
+        content = """
+        import addr_reg_pkg::*;
+        import std_pkg::*;
+        import function void print(string msg);
+
+        function void doit() {
+        yield;
+        }
+
+        component pss_top {
+
+            action Entry {
+                exec body {
+                    print("Hello 1");
+                    yield;
+                    print("Hello 2");
                 }
             }
         }

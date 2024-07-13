@@ -94,6 +94,14 @@ public:
         return ret;
     }
 
+    bool isTargetImpBlocking() {
+        return m_target_imp_blocking;
+    }
+
+    void setTargetImpBlocking(bool v) {
+        m_target_imp_blocking = v;
+    }
+
 private:
     void core_defs();
 
@@ -119,6 +127,7 @@ private:
     uint32_t                                    m_num_comp_insts;
     TaskCollectAddrTraitTypes::TraitM           m_addr_trait_m;
     TaskBuildStaticCompTreeMap::CompTreeM       m_comp_tree_m;
+    bool                                        m_target_imp_blocking;
 
 };
 

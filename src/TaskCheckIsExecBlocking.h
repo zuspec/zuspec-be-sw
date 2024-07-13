@@ -40,11 +40,21 @@ public:
 
     bool check(arl::dm::ITypeExec *exec);
 
+    bool check(arl::dm::ITypeProcStmt *exec);
+
     bool check(const std::vector<arl::dm::ITypeExecUP> &execs);
+
+    virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
+
+    virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
+
+    virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) override;
+    
 
 
 private:
     static dmgr::IDebug         *m_dbg;
+    dmgr::IDebugMgr             *m_dmgr;
     bool                        m_imp_target_blocking;
     bool                        m_blocking;
 

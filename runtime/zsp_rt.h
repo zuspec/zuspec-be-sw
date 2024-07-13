@@ -194,8 +194,11 @@ struct zsp_rt_addr_handle_s zsp_rt_make_handle_from_handle(
 
 struct zsp_rt_addr_handle_s zsp_rt_make_handle_from_claim(
     zsp_rt_actor_t          *actor,
-    zsp_rt_addr_claim_t     *claim,
+    zsp_rt_addr_claimspec_t *claim,
     uint64_t                offset);
+
+uintptr_t zsp_rt_addr_value(zsp_rt_addr_handle_t *handle);
+
 
 typedef struct zsp_rt_addr_region_s {
     zsp_rt_rc_t         base;
@@ -214,7 +217,7 @@ typedef int (*zsp_rt_claimspec_match_f)(
 void zsp_rt_alloc_claim(
     zsp_rt_actor_t              *actor,
     zsp_rt_addr_space_t         *aspace,
-    zsp_rt_addr_claim_t         *claim,
+    zsp_rt_addr_claimspec_t     *claim,
     zsp_rt_claimspec_match_f    *match_f,
     void                        *match_ud
 );

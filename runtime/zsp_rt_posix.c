@@ -62,7 +62,9 @@ zsp_rt_task_t *zsp_rt_task_enter(
     task->func = 0;
     task->idx = 0;
 
-    init_f(actor, &task->rc);
+    if (init_f) {
+        init_f(actor, &task->rc);
+    }
 
     return task;
 }
@@ -109,8 +111,9 @@ void zsp_rt_actor_init(zsp_rt_actor_t *actor) {
     actor->impl = (zsp_rt_actor_impl_t *)malloc(sizeof(zsp_rt_actor_impl_t));
     memset(actor->impl, 0, sizeof(zsp_rt_actor_impl_t));
 
+    // TODO: reduce this later
     actor->stack_s = (zsp_rt_mblk_t *)malloc(
-        sizeof(zsp_rt_mblk_t)+1024-sizeof(uint8_t)
+        sizeof(zsp_rt_mblk_t)+(1024*1)-sizeof(uint8_t)
     );
     memset(actor->stack_s, 0, sizeof(zsp_rt_mblk_t));
     actor->stack_r = actor->stack_s;
@@ -216,25 +219,55 @@ void zsp_rt_addr_space_init(
 
 zsp_rt_addr_handle_t zsp_rt_make_handle_from_claim(
     zsp_rt_actor_t          *actor,
-    zsp_rt_addr_claim_t     *claim, 
+    zsp_rt_addr_claimspec_t *claim, 
     uint64_t                offset) {
+    zsp_rt_addr_handle_t ret;
+    ret.offset = offset;
+    ret.store = claim->claim;
 
+    return ret;
 }
 
 zsp_rt_addr_handle_t zsp_rt_make_handle_from_handle(
     zsp_rt_actor_t          *actor,
     zsp_rt_addr_handle_t    *hndl, 
     uint64_t                offset) {
+    zsp_rt_addr_handle_t ret;
+    ret.offset = hndl->offset + offset;
+    ret.store = hndl->store;
+
+    return ret;
+}
+
+uintptr_t zsp_rt_addr_value(zsp_rt_addr_handle_t *handle) {
+    uintptr_t ptr = (uintptr_t)handle->store->hndl;
+    ptr += handle->offset;
+    return ptr;
+}
+
+static void zsp_rt_alloc_dtor(zsp_rt_addr_claim_t *claim) {
 
 }
 
 void zsp_rt_alloc_claim(
     zsp_rt_actor_t              *actor,
     zsp_rt_addr_space_t         *aspace,
-    zsp_rt_addr_claim_t         *claim,
+    zsp_rt_addr_claimspec_t     *claim,
     zsp_rt_claimspec_match_f    *match_f,
     void                        *match_ud) {
     fprintf(stdout, "alloc\n");
+//    uint32_t sizeof_trait = sizeof(zsp_rt_rc_t);
+//    uint64_t addr = *((uint64_t *)((uint8_t *)region+sizeof(zsp_rt_addr_region_t)+sizeof_trait));
+    zsp_rt_addr_claim_t *claim_s = (zsp_rt_addr_claim_t *)malloc(sizeof(zsp_rt_addr_claim_t));
+//    claim_s->hndl = (void *)addr;
+//    claim_s->store.actor = actor;
+//    claim_s->store.count = 1;
+//    claim->store = claim_s;
+    claim_s->store.count = 1;
+    claim_s->store.actor = actor;
+    claim_s->store.dtor = (zsp_rt_dtor_f)&zsp_rt_alloc_dtor;
+    claim_s->hndl = 0x00000000;
+    claim->claim = claim_s;
 
 //    claim->store = 
 }

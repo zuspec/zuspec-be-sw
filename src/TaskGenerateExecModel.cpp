@@ -44,7 +44,8 @@ namespace sw {
 
 
 TaskGenerateExecModel::TaskGenerateExecModel(
-    arl::dm::IContext       *ctxt) : m_ctxt(ctxt), m_dmgr(ctxt->getDebugMgr()) {
+    arl::dm::IContext       *ctxt) : m_ctxt(ctxt), m_dmgr(ctxt->getDebugMgr()),
+    m_target_imp_blocking(false) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModel", m_dmgr);
 }
 
@@ -311,7 +312,7 @@ void TaskGenerateExecModel::attach_custom_gen() {
             m_dmgr,
             "zsp_rt_make_handle_from_claim",
             0,
-            {"zsp_rt_addr_claim_t *"}));
+            {"zsp_rt_addr_claimspec_t *"}));
 
     std::vector<std::string> rw_funcs = {
         "addr_reg_pkg::write64",

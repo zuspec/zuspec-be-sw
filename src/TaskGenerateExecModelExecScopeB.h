@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelFwdDecl.h
+ * TaskGenerateExecModelExecScopeB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -22,6 +22,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
+#include "IGenRefExpr.h"
 
 namespace zsp {
 namespace be {
@@ -29,35 +30,33 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelFwdDecl : public virtual arl::dm::VisitorBase {
+class TaskGenerateExecModelExecScopeB :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelFwdDecl(
-        TaskGenerateExecModel   *gen,
-        IOutput                 *out);
+    TaskGenerateExecModelExecScopeB(
+        TaskGenerateExecModel       *gen,
+        IGenRefExpr                 *refgen,
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelFwdDecl();
+    virtual ~TaskGenerateExecModelExecScopeB();
 
-    void generate(vsc::dm::IAccept *item);
+    virtual void generate(arl::dm::ITypeProcStmtScope *t);
 
-    void generate_dflt(vsc::dm::IAccept *item);
+    virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) override;
 
-    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
-
-    virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
-
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
-
-    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
-
-    virtual void visitTypeExecProc(arl::dm::ITypeExecProc *t) override;
-
-	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
+    virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) override;
 
 private:
     static dmgr::IDebug             *m_dbg;
     TaskGenerateExecModel           *m_gen;
-    IOutput                         *m_out;
-
+    IGenRefExpr                     *m_refgen;
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
+    std::vector<IOutput *>          m_out_c_s;
+    std::vector<IOutput *>          m_out_h_s;
+    int32_t                         m_idx;
+    int32_t                         m_depth;
 
 };
 

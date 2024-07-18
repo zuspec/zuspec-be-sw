@@ -36,7 +36,7 @@ public:
 
     virtual ~TaskGenerateExecModelActionInit();
 
-    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+    virtual void generate_core(vsc::dm::IDataTypeStruct *i) override;
 
 };
 

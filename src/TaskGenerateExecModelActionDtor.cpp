@@ -1,5 +1,5 @@
-/**
- * TaskGenerateExecModelRegGroup.h
+/*
+ * TaskGenerateExecModelActionDtor.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,37 +16,28 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateExecModelStructStruct.h"
+#include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelActionDtor.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+TaskGenerateExecModelActionDtor::TaskGenerateExecModelActionDtor(
+        TaskGenerateExecModel           *gen,
+        IOutput                         *out_h,
+        IOutput                         *out_c) : TaskGenerateExecModelStructDtor(gen, out_h, out_c) {
 
-class TaskGenerateExecModelRegGroup :
-    public virtual TaskGenerateExecModelStructStruct {
-public:
-    TaskGenerateExecModelRegGroup(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out_h,
-        IOutput                     *out_c
-    );
+}
 
-    virtual ~TaskGenerateExecModelRegGroup();
+TaskGenerateExecModelActionDtor::~TaskGenerateExecModelActionDtor() {
 
-    virtual void generate(vsc::dm::IDataType *t);
-
-private:
-
-};
+}
 
 }
 }
 }
-
-

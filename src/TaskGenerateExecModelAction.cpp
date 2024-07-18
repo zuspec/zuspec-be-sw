@@ -26,6 +26,7 @@
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActionAlloc.h"
 #include "TaskGenerateExecModelActionInit.h"
+#include "TaskGenerateExecModelActionDtor.h"
 #include "TaskGenerateExecModelActionStruct.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelExecBlockB.h"
@@ -220,6 +221,12 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
     m_gen->getOutC()->println("return ret;");
     m_gen->getOutC()->dec_ind();
     m_gen->getOutC()->println("}");
+
+    // Finally, define the destructor
+    TaskGenerateExecModelActionDtor(
+        m_gen, 
+        m_gen->getOutHPrv(),
+        m_gen->getOutC()).generate(action);
 
     DEBUG_LEAVE("generate");
 }

@@ -85,6 +85,30 @@ bool GenRefExprExecModel::isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) {
     return m_isRefFieldRef;
 }
 
+bool GenRefExprExecModel::isRefCountedField(vsc::dm::IAccept *ref) {
+    DEBUG_ENTER("isRefCountedField");
+    m_ret.clear();
+    m_depth = 0;
+    m_isFieldRef = false;
+    m_isRefFieldRef = false;
+    m_isRefCountedField = false;
+    ref->accept(m_this);
+    DEBUG_LEAVE("isRefCountedField");
+    return m_isRefCountedField;
+}
+
+void GenRefExprExecModel::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("visitDataTypeAddrClaim");
+    m_isRefCountedField = false;
+    DEBUG_LEAVE("visitDataTypeAddrClaim");
+}
+
+void GenRefExprExecModel::visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) {
+    DEBUG_ENTER("visitDataTypeAddrHandle");
+    m_isRefCountedField = true;
+    DEBUG_LEAVE("visitDataTypeAddrHandle");
+}
+
 void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) {
     DEBUG_ENTER("visitTypeExprRefBottomUp (%d)", m_depth);
     arl::dm::ITypeProcStmtScope *scope = m_scope_s.at(
@@ -176,6 +200,7 @@ void GenRefExprExecModel::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef");
     m_isFieldRef = true;
     m_isRefFieldRef = true;
+    m_isRefCountedField = true;
     DEBUG_LEAVE("visitTypeFieldRef");
 }
 

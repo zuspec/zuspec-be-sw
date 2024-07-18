@@ -20,7 +20,7 @@
  */
 #pragma once
 #include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "TaskGenerateExecModelStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -29,7 +29,7 @@ namespace sw {
 
 
 class TaskGenerateExecModelCompStruct : 
-    public virtual TaskGenerateExecModelStruct {
+    public virtual TaskGenerateExecModelStructStruct {
 public:
     TaskGenerateExecModelCompStruct(
         TaskGenerateExecModel   *gen,
@@ -38,6 +38,8 @@ public:
     virtual ~TaskGenerateExecModelCompStruct();
 
     virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+
+    virtual void generate_dtor(vsc::dm::IDataTypeStruct *i) override { }
 
     virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
 

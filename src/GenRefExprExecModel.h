@@ -52,6 +52,8 @@ public:
     virtual bool isFieldRefExpr(vsc::dm::ITypeExpr *ref) override;
 
     virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) override;
+
+    virtual bool isRefCountedField(vsc::dm::IAccept *ref) override;
     
     virtual void pushScope(arl::dm::ITypeProcStmtScope *s) override {
         m_scope_s.push_back(s);
@@ -60,6 +62,18 @@ public:
     virtual void popScope() override {
         m_scope_s.pop_back();
     }
+
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override { }
+
+	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+
+	virtual void visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) override;
+
+	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override { }
+
+	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override { }
+
+	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override { }
 
 	virtual void visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) override;
 
@@ -90,6 +104,7 @@ private:
     bool                                            m_isRef;
     bool                                            m_isFieldRef;
     bool                                            m_isRefFieldRef;
+    bool                                            m_isRefCountedField;
     std::vector<arl::dm::ITypeProcStmtScope *>      m_scope_s;
 
 };

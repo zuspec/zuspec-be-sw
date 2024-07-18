@@ -22,6 +22,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/IDataTypeAddrClaim.h"
 #include "zsp/be/sw/IOutput.h"
+#include "TaskGenerateExecModelStruct.h"
 
 namespace zsp {
 namespace be {
@@ -29,7 +30,8 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelAddrClaim {
+class TaskGenerateExecModelAddrClaim : 
+    public virtual TaskGenerateExecModelStruct {
 public:
     TaskGenerateExecModelAddrClaim(
         TaskGenerateExecModel       *gen,
@@ -39,13 +41,9 @@ public:
 
     virtual ~TaskGenerateExecModelAddrClaim();
 
-    virtual void generate(arl::dm::IDataTypeAddrClaim *t);
+    virtual void generate_type(vsc::dm::IDataTypeStruct *t);
 
 protected:
-    static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
-    IOutput                         *m_out_h;
-    IOutput                         *m_out_c;
 
 };
 

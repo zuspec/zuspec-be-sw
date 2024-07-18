@@ -46,11 +46,17 @@ void zsp_rt_rc_dtor(
     ((hndl).store && (hndl).store->count++)?hndl:hndl;
 
 #define zsp_rt_rc_dec(rc) \
-    if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))))) { \
-        (((zsp_rt_rc_t *)(rc))->dtor( \
-            ((zsp_rt_rc_t *)(tc))->actor, \
-            ((zsp_rt_rc_t *)(tc))); \
+    if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))->count))) { \
+        ((zsp_rt_rc_t *)(rc))->dtor( \
+            ((zsp_rt_rc_t *)(rc))->actor, \
+            ((zsp_rt_rc_t *)(rc))); \
     }
+// #define zsp_rt_rc_dec(rc) \
+//     if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))->count))) { \
+//         fprintf(stdout, "dtor dtor=%p\n", \
+//             ((zsp_rt_rc_t *)(rc))->dtor); \
+//         ((zsp_rt_rc_t *)(rc))->dtor(0, 0); \
+//     }
 #define zsp_rt_rc_inc(rc) ((zsp_rt_rc_t *)(rc))->count++;
 
 typedef struct zsp_rt_obj_s {
@@ -96,6 +102,7 @@ typedef struct zsp_rt_actor_s {
     zsp_rt_mblk_t               *stack_s;
     struct zsp_rt_task_s        *task_q;
     struct zsp_rt_task_s        *task;
+    uint64_t                    seed;
 } zsp_rt_actor_t;
 
 /**
@@ -125,6 +132,7 @@ typedef struct zsp_rt_task_s {
     uint32_t                idx;
     zsp_rt_mblk_t           *stack_prev_p;
     uint32_t                stack_prev_base;
+    struct zsp_rt_task_s    *prev;
     struct zsp_rt_task_s    *next;
 } zsp_rt_task_t;
 
@@ -148,7 +156,13 @@ zsp_rt_task_t *zsp_rt_task_run(
 static inline zsp_rt_task_t *zsp_rt_task_run(
     zsp_rt_actor_t          *actor,
     zsp_rt_task_t           *task) {
-    return task->func(actor, task);
+    zsp_rt_task_t *task_n = task->func(actor, task);
+    if (task_n && task != task_n) {
+        // Allow the caller
+        task_n->prev = task;
+    }
+
+    return task_n;
 }
 
 zsp_rt_task_t *zsp_rt_task_leave(

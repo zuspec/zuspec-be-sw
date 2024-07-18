@@ -40,7 +40,11 @@ public:
 
     virtual ~TaskGenerateExecModelStructDtor();
 
+    void generate_enter(vsc::dm::IDataTypeStruct *t);
+
     void generate(vsc::dm::IDataTypeStruct *t);
+
+    void generate_leave(vsc::dm::IDataTypeStruct *t);
 
     virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
 
@@ -51,10 +55,13 @@ public:
 	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
+    virtual void visitTypeFieldAddrClaim(arl::dm::ITypeFieldAddrClaim *f) override;
     
     virtual void visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) override;
 
     virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
 
     
 private:

@@ -30,7 +30,7 @@ namespace sw {
 
 TaskGenerateExecModelAddrClaimStruct::TaskGenerateExecModelAddrClaimStruct(
     TaskGenerateExecModel       *gen,
-    IOutput                     *out) : TaskGenerateExecModelStruct(gen, out) {
+    IOutput                     *out) : TaskGenerateExecModelStructStruct(gen, out) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelAddrClaimStruct", gen->getDebugMgr());
 }
@@ -40,8 +40,19 @@ TaskGenerateExecModelAddrClaimStruct::~TaskGenerateExecModelAddrClaimStruct() {
 }
 
 void TaskGenerateExecModelAddrClaimStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    TaskGenerateExecModelStruct::generate_prefix(i);
+    TaskGenerateExecModelStructStruct::generate_prefix(i);
     m_out->println("zsp_rt_addr_claim_t *claim;");
+}
+
+void TaskGenerateExecModelAddrClaimStruct::generate_dtor(vsc::dm::IDataTypeStruct *i) {
+    m_out->println("void %s__dtor(%s_t *actor, %s_t *this_p) {",
+        m_gen->getNameMap()->getName(i).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(i).c_str());
+    m_out->inc_ind();
+    m_out->println("zsp_rt_rc_dec(this_p->claim);");
+    m_out->dec_ind();
+    m_out->println("}");
 }
 
 }

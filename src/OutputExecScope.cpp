@@ -29,22 +29,25 @@ namespace sw {
 OutputExecScope::OutputExecScope(
         bool                new_scope,
         const std::string   &ind) : 
-        m_new_scope(new_scope), m_decl(ind), m_exec(ind) {
+        m_new_scope(new_scope), m_decl(ind), m_exec(ind), m_dtor(ind) {
     if (new_scope) {
         m_decl.inc_ind();
         m_exec.inc_ind();
+        m_dtor.inc_ind();
     }
 }
 
 OutputExecScope::OutputExecScope(
         bool                new_scope,
         IOutput             *upper) :
-        m_new_scope(new_scope), m_decl(upper->ind()), m_exec(upper->ind()) {
+        m_new_scope(new_scope), 
+        m_decl(upper->ind()), m_exec(upper->ind()), m_dtor(upper->ind()) {
     
     // If we'll be creating a new scope, add an additional level of indent
     if (new_scope) {
         m_decl.inc_ind();
         m_exec.inc_ind();
+        m_dtor.inc_ind();
     }
 }
 
@@ -60,6 +63,8 @@ void OutputExecScope::apply(IOutput *out) {
     out->writes(m_decl.getValue());
     out->writes("\n");
     out->writes(m_exec.getValue());
+    out->writes("\n");
+    out->writes(m_dtor.getValue());
 
     if (m_new_scope) {
         out->dec_ind();

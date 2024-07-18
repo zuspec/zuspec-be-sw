@@ -75,6 +75,14 @@ void TaskGenerateExecModelExecScopeNB::generate(
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
     DEBUG_ENTER("visitTypeProcStmtAssign");
+    // if is a ref-counted field, dec ref of previous value
+    bool is_rc = m_refgen->isRefCountedField(s->getLhs());
+
+    if (is_rc) {
+        m_out_s.back().exec()->println("zsp_rt_rc_dec(%s);",
+            m_refgen->genLval(s->getLhs()).c_str());
+    }
+
     m_out_s.back().exec()->indent();
     m_out_s.back().exec()->write("%s = ",
         m_refgen->genLval(s->getLhs()).c_str());
@@ -83,6 +91,12 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypePro
         m_refgen, 
         m_out_s.back().exec()).generate(s->getRhs());
     m_out_s.back().exec()->write(";\n");
+
+    // if is a ref-counted field, inc ref of new value
+    if (is_rc) {
+        m_out_s.back().exec()->println("zsp_rt_rc_inc(%s);",
+            m_refgen->genLval(s->getLhs()).c_str());
+    }
     DEBUG_LEAVE("visitTypeProcStmtAssign");
 }
 
@@ -167,9 +181,28 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypePr
             m_gen, 
             m_refgen, 
             m_out_s.back().decl()).generate(s->getInit());
+        if (m_refgen->isRefCountedField(s->getDataType())) {
+            m_var = s;
+            s->getDataType()->accept(m_this);
+        }
     }
     m_out_s.back().decl()->write(";\n"); 
     DEBUG_LEAVE("visitTypeProcStmtVarDecl");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+    DEBUG_ENTER("visitDataTypeAddrClaim");
+
+    DEBUG_LEAVE("visitDataTypeAddrClaim");
+}
+
+void TaskGenerateExecModelExecScopeNB::visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) {
+    DEBUG_ENTER("visitDataTypeAddrHandle");
+    m_out_s.back().exec()->println("zsp_rt_rc_inc(%s.store);",
+        m_var->name().c_str());
+    m_out_s.back().dtor()->println("zsp_rt_rc_dec(%s.store);",
+        m_var->name().c_str());
+    DEBUG_LEAVE("visitDataTypeAddrHandle");
 }
 
 }

@@ -227,14 +227,17 @@ void TaskGenerateExecModel::generate_actor_entry() {
     m_out_c->println("if (ret) {");
     m_out_c->inc_ind();
     m_out_c->println("zsp_rt_queue_task(&actor->actor, ret);");
+    m_out_c->println("break;");
     m_out_c->dec_ind();
     m_out_c->println("}");
-    m_out_c->println("break;");
     m_out_c->dec_ind();
     m_out_c->println("}");
     m_out_c->println("case 2: { // done");
     m_out_c->inc_ind();
     m_out_c->println("task->idx++;");
+    m_out_c->println("// TODO: call action dtor");
+    m_out_c->println("fprintf(stdout, \"task->prev=%%p\\n\", task->prev);");
+    m_out_c->println("task->prev->rc.dtor((zsp_rt_actor_t *)actor, (zsp_rt_rc_t *)task->prev);");
     m_out_c->dec_ind();
     m_out_c->println("}");
     m_out_c->dec_ind();
@@ -378,6 +381,20 @@ void TaskGenerateExecModel::attach_custom_gen() {
                 DEBUG("Attach reg-access generator");
                 (*it)->setAssociatedData(
                     new TaskGenerateExecModelRegRwCall(m_dmgr));
+            }
+        } else if (name.find("std_pkg::") == 0) {
+            if (name.find("urandom_range") != -1) {
+                (*it)->setAssociatedData(
+                    new TaskGenerateExecModelCoreMethodCall(
+                        m_dmgr,
+                        "zsp_rt_urandom_range",
+                        -1, {}));
+            } else if (name.find("urandom") != -1) {
+                (*it)->setAssociatedData(
+                    new TaskGenerateExecModelCoreMethodCall(
+                        m_dmgr,
+                        "zsp_rt_urandom",
+                        -1, {}));
             }
         }
     }

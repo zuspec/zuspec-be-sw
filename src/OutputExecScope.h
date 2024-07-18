@@ -47,10 +47,13 @@ public:
 
     IOutput *exec() { return &m_exec; }
 
+    IOutput *dtor() { return &m_dtor; }
+
 private:
     bool            m_new_scope;
     OutputStr       m_decl;
     OutputStr       m_exec;
+    OutputStr       m_dtor;
 
 };
 

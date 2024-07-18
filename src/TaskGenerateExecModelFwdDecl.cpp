@@ -25,6 +25,7 @@
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelFwdDecl.h"
+#include "TaskHasDtorFields.h"
 
 
 namespace zsp {
@@ -72,6 +73,10 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
     m_out->println("static zsp_rt_task_t *%s__run(struct %s_s *actor, struct %s_s *this_p);",
+        m_gen->getNameMap()->getName(t).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(t).c_str());
+    m_out->println("static void %s__dtor(struct %s_s *actor, struct %s_s *this_p);",
         m_gen->getNameMap()->getName(t).c_str(),
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
@@ -143,11 +148,15 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeAction(arl::dm::IDataTypeAction 
 void TaskGenerateExecModelFwdDecl::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) {
     DEBUG_ENTER("visitDataTypeActivitySequence");
     m_out->println("struct activity_%p_s;", t);
-    m_out->println("static void activity_%p_init(struct %s_s *actor, struct activity_%p_s *this_p);", 
+    m_out->println("static void activity_%p__init(struct %s_s *actor, struct activity_%p_s *this_p);", 
         t,
         m_gen->getActorName().c_str(),
         t);
-    m_out->println("static zsp_rt_task_t *activity_%p_run(struct %s_s *actor, struct activity_%p_s *this_p);", 
+    m_out->println("static zsp_rt_task_t *activity_%p__run(struct %s_s *actor, struct activity_%p_s *this_p);", 
+        t,
+        m_gen->getActorName().c_str(),
+        t);
+    m_out->println("static void activity_%p__dtor(struct %s_s *actor, struct activity_%p_s *this_p);", 
         t,
         m_gen->getActorName().c_str(),
         t);
@@ -179,6 +188,10 @@ void TaskGenerateExecModelFwdDecl::visitDataTypeStruct(vsc::dm::IDataTypeStruct 
         m_gen->getNameMap()->getName(t).c_str(),
         m_gen->getActorName().c_str(),
         m_gen->getNameMap()->getName(t).c_str());
+    m_out->println("static void %s__dtor(struct %s_s *actor, struct %s_s *this_p);",
+        m_gen->getNameMap()->getName(t).c_str(),
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(t).c_str());
 
     // TODO: need to find associated functions
 
@@ -197,7 +210,15 @@ void TaskGenerateExecModelFwdDecl::visitTypeProcStmtScope(arl::dm::ITypeProcStmt
     if (TaskCheckIsExecBlocking(
         m_gen->getDebugMgr(), m_gen->isTargetImpBlocking()).check(s)) {
         m_out->println("struct exec_%p_s;", s);
-        m_out->println("static zsp_rt_task_t *exec_%p(struct %s_s *actor, struct exec_%p_s *this_s);",
+        m_out->println("static void exec_%p__init(struct %s_s *actor, struct exec_%p_s *this_s);",
+            s,
+            m_gen->getActorName().c_str(),
+            s);
+        m_out->println("static zsp_rt_task_t *exec_%p__run(struct %s_s *actor, struct exec_%p_s *this_s);",
+            s,
+            m_gen->getActorName().c_str(),
+            s);
+        m_out->println("static void exec_%p__dtor(struct %s_s *actor, struct exec_%p_s *this_s);",
             s,
             m_gen->getActorName().c_str(),
             s);

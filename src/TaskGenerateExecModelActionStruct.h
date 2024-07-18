@@ -21,7 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "TaskGenerateExecModelStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -30,7 +30,7 @@ namespace sw {
 
 
 class TaskGenerateExecModelActionStruct : 
-    public virtual TaskGenerateExecModelStruct {
+    public virtual TaskGenerateExecModelStructStruct {
 public:
     TaskGenerateExecModelActionStruct(
         TaskGenerateExecModel       *gen,

@@ -1,5 +1,5 @@
 /**
- * IGenRefExpr.h
+ * TaskHasDtorFields.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include "vsc/dm/ITypeExprRef.h"
-#include "zsp/arl/dm/ITypeProcStmtScope.h"
+#include "dmgr/IDebugMgr.h"
+#include "dmgr/impl/DebugMacros.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 
 namespace zsp {
 namespace be {
@@ -28,24 +29,31 @@ namespace sw {
 
 
 
-class IGenRefExpr {
+class TaskHasDtorFields :
+    public arl::dm::VisitorBase {
 public:
 
-    virtual ~IGenRefExpr() { }
+    TaskHasDtorFields(dmgr::IDebugMgr *dmgr) : m_dbg(0) { 
+        DEBUG_INIT("zsp::be::sw::TaskHasDtorFields", dmgr);
+    }
 
-    virtual std::string genLval(vsc::dm::ITypeExpr *ref) = 0;
+    virtual ~TaskHasDtorFields() { }
 
-    virtual std::string genRval(vsc::dm::ITypeExpr *ref) = 0;
+    bool check(vsc::dm::IDataType *t) {
+        m_has = false;
 
-    virtual bool isFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
+        return m_has;
+    }
 
-    virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
+	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override {
+        DEBUG_ENTER("visitDataTypeAddrClaim");
+        m_has = true;
+        DEBUG_LEAVE("visitDataTypeAddrClaim");
+    }
 
-    virtual bool isRefCountedField(vsc::dm::IAccept *ref) = 0;
-
-    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
-
-    virtual void popScope() = 0;
+private:
+    dmgr::IDebug            *m_dbg;
+    bool                    m_has;
 
 };
 

@@ -40,15 +40,42 @@ TaskGenerateExecModelStructDtor::~TaskGenerateExecModelStructDtor() {
 
 }
 
-void TaskGenerateExecModelStructDtor::visitDataTypeAction(arl::dm::IDataTypeAction *t) { 
-    DEBUG_ENTER("visitDataTypeAction");
-    m_out_c->println("if (this_p->%s) {", m_field->name().c_str());
-    m_out_c->inc_ind();
-    m_out_c->println("%s__dtor(actor, this_p->%s);",
+void TaskGenerateExecModelStructDtor::generate_enter(vsc::dm::IDataTypeStruct *t) {
+    m_out_c->println("static void %s__dtor(%s_t *actor, %s_t *this_p) {", 
         m_gen->getNameMap()->getName(t).c_str(),
-        m_field->name().c_str());
+        m_gen->getActorName().c_str(),
+        m_gen->getNameMap()->getName(t).c_str());
+    m_out_c->inc_ind();
+}
+
+void TaskGenerateExecModelStructDtor::generate(vsc::dm::IDataTypeStruct *t) {
+    generate_enter(t);
+
+    for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        it=t->getFields().begin();
+        it!=t->getFields().end(); it++) {
+        (*it)->accept(m_this);
+    }
+
+    generate_leave(t);
+}
+
+void TaskGenerateExecModelStructDtor::generate_leave(vsc::dm::IDataTypeStruct *t) {
     m_out_c->dec_ind();
     m_out_c->println("}");
+}
+
+void TaskGenerateExecModelStructDtor::visitDataTypeAction(arl::dm::IDataTypeAction *t) { 
+    DEBUG_ENTER("visitDataTypeAction");
+    if (m_field) {
+        m_out_c->println("if (this_p->%s) {", m_field->name().c_str());
+        m_out_c->inc_ind();
+        m_out_c->println("%s__dtor(actor, this_p->%s);",
+            m_gen->getNameMap()->getName(t).c_str(),
+            m_field->name().c_str());
+        m_out_c->dec_ind();
+        m_out_c->println("}");
+    }
     DEBUG_LEAVE("visitDataTypeAction");
 }
 
@@ -80,10 +107,24 @@ void TaskGenerateExecModelStructDtor::visitDataTypeStruct(vsc::dm::IDataTypeStru
 }
 
 void TaskGenerateExecModelStructDtor::visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) { }
-    
-void TaskGenerateExecModelStructDtor::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) { }
 
-void TaskGenerateExecModelStructDtor::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) { }
+void TaskGenerateExecModelStructDtor::visitTypeFieldAddrClaim(arl::dm::ITypeFieldAddrClaim *f) {
+    m_field = f;
+    f->getDataType()->accept(m_this);
+    m_field = 0;
+}
+    
+void TaskGenerateExecModelStructDtor::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) { 
+    m_field = f;
+    f->getDataType()->accept(m_this);
+    m_field = 0;
+}
+
+void TaskGenerateExecModelStructDtor::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) { 
+    m_field = f;
+    f->getDataType()->accept(m_this);
+    m_field = 0;
+}
 
 }
 }

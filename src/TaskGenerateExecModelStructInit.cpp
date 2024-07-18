@@ -46,9 +46,16 @@ void TaskGenerateExecModelStructInit::generate_prefix(vsc::dm::IDataTypeStruct *
     m_gen->getOutC()->inc_ind();
 }
 
+void TaskGenerateExecModelStructInit::generate_core(vsc::dm::IDataTypeStruct *i) {
+    m_gen->getOutC()->println("((zsp_rt_rc_t *)this_p)->dtor = (zsp_rt_dtor_f)&%s__dtor;",
+        m_gen->getNameMap()->getName(i).c_str());
+}
+
 void TaskGenerateExecModelStructInit::generate(vsc::dm::IDataTypeStruct *i) {
     m_depth = 0;
     generate_prefix(i);
+
+    generate_core(i);
 
     m_depth++;
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
@@ -92,6 +99,14 @@ void TaskGenerateExecModelStructInit::visitDataTypeInt(vsc::dm::IDataTypeInt *t)
 void TaskGenerateExecModelStructInit::visitDataTypePtr(vsc::dm::IDataTypePtr *t) {}
 
 void TaskGenerateExecModelStructInit::visitDataTypeString(vsc::dm::IDataTypeString *t) {}
+
+void TaskGenerateExecModelStructInit::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+    DEBUG_ENTER("visitDataTypeStruct");
+    if (m_depth) {
+//        m_out_c->println("%s__init(actor, )")
+    }
+    DEBUG_LEAVE("visitDataTypeStruct");
+}
 
 void TaskGenerateExecModelStructInit::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_ENTER("visitTypeField %s", f->name().c_str());

@@ -114,7 +114,7 @@ void TaskGenerateExecModelDefineType::visitDataTypeRegGroup(arl::dm::IDataTypeRe
 
 void TaskGenerateExecModelDefineType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
-    TaskGenerateExecModelStruct(m_gen, m_out_h).generate(t);
+    TaskGenerateExecModelStruct(m_gen, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 } 
 

@@ -34,6 +34,9 @@ public:
 
     virtual ~TaskGenerateExecModelCompInit();
 
+    // Components aren't destructed in the same way that 
+    virtual void generate_core(vsc::dm::IDataTypeStruct *i) override { }
+
 	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
 private:

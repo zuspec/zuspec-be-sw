@@ -118,8 +118,9 @@ void zsp_rt_actor_init(zsp_rt_actor_t *actor) {
     memset(actor->stack_s, 0, sizeof(zsp_rt_mblk_t));
     actor->stack_r = actor->stack_s;
 
-    actor->task = 0;
     actor->task_q = 0;
+    actor->task = 0;
+    actor->seed = 0;
 }
 
 void zsp_rt_actor_mgr_init(zsp_rt_actor_mgr_t *mgr) {
@@ -245,8 +246,8 @@ uintptr_t zsp_rt_addr_value(zsp_rt_addr_handle_t *handle) {
     return ptr;
 }
 
-static void zsp_rt_alloc_dtor(zsp_rt_addr_claim_t *claim) {
-
+static void zsp_rt_alloc_dtor(zsp_rt_actor_t *actor, zsp_rt_addr_claim_t *claim) {
+    fprintf(stdout, "zsp_rt_alloc_dtor\n");
 }
 
 void zsp_rt_alloc_claim(

@@ -31,7 +31,7 @@ namespace sw {
 TaskGenerateExecModelCompStruct::TaskGenerateExecModelCompStruct(
     TaskGenerateExecModel       *gen,
     IOutput                     *out) : 
-        TaskGenerateExecModelStruct(gen, out) {
+        TaskGenerateExecModelStructStruct(gen, out) {
 
 }
 

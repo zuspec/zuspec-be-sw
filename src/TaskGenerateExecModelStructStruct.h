@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelStructInit.h
+ * TaskGenerateExecModelStructStruct.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
+#include <unordered_map>
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
 
@@ -29,21 +29,21 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelStructInit : public arl::dm::VisitorBase {
+class TaskGenerateExecModelStructStruct : public arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelStructInit(TaskGenerateExecModel *gen);
+    TaskGenerateExecModelStructStruct(
+        TaskGenerateExecModel   *gen,
+        IOutput                 *out);
 
-    virtual ~TaskGenerateExecModelStructInit();
-    
+    virtual ~TaskGenerateExecModelStructStruct();
+
     virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
-
-    virtual void generate_core(vsc::dm::IDataTypeStruct *i);
 
     virtual void generate(vsc::dm::IDataTypeStruct *i);
 
     virtual void generate_suffix(vsc::dm::IDataTypeStruct *i);
 
-	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+    virtual void generate_dtor(vsc::dm::IDataTypeStruct *i);
 
 	virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
 
@@ -59,16 +59,27 @@ public:
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
+	virtual void visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) override;
+
+	virtual void visitTypeConstraintBlock(vsc::dm::ITypeConstraintBlock *c) override { }
+
 	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
+
+	virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
 	virtual void visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) override;
 
 protected:
-    dmgr::IDebug                *m_dbg;
-    vsc::dm::ITypeField         *m_field;
-    int32_t                     m_depth;
-    TaskGenerateExecModel       *m_gen;
-    IOutput                     *m_out_c;
+    using FieldM=std::unordered_map<std::string, int32_t>;
+
+protected:
+    static dmgr::IDebug             *m_dbg;
+    TaskGenerateExecModel           *m_gen;
+    vsc::dm::ITypeField             *m_field;
+    uint32_t                        m_depth;
+    uint32_t                        m_ptr;
+    FieldM                          m_field_m;
+    IOutput                         *m_out;
 
 };
 

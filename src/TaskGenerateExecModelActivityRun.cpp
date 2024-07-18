@@ -116,6 +116,9 @@ void TaskGenerateExecModelActivityRun::visitDataTypeActivityTraverse(arl::dm::ID
     m_out->println("case %d: {", m_idx++);
     m_out->inc_ind();
 
+    // Clean up after the traversed action
+    m_out->println("// TODO: call dtor");
+
     DEBUG_LEAVE("visitDataTypeActivityTraverse");
 }
 

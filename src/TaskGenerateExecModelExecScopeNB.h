@@ -66,12 +66,17 @@ public:
 
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 
+    virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+
+    virtual void visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) override;
+
 protected:
     dmgr::IDebug                        *m_dbg;
     TaskGenerateExecModel               *m_gen;
     IGenRefExpr                         *m_refgen;
     IOutput                             *m_out;
     std::vector<OutputExecScope>        m_out_s;
+    arl::dm::ITypeProcStmtVarDecl       *m_var;
 
 };
 

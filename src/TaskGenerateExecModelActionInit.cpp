@@ -41,8 +41,8 @@ TaskGenerateExecModelActionInit::~TaskGenerateExecModelActionInit() {
 
 }
 
-void TaskGenerateExecModelActionInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    TaskGenerateExecModelStructInit::generate_prefix(i);
+void TaskGenerateExecModelActionInit::generate_core(vsc::dm::IDataTypeStruct *i) {
+    TaskGenerateExecModelStructInit::generate_core(i);
     m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
         m_gen->getNameMap()->getName(i).c_str());
 

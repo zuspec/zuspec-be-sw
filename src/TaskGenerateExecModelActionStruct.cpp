@@ -30,7 +30,7 @@ namespace sw {
 
 TaskGenerateExecModelActionStruct::TaskGenerateExecModelActionStruct(
     TaskGenerateExecModel       *gen,
-    IOutput                     *out) : TaskGenerateExecModelStruct(gen, out) {
+    IOutput                     *out) : TaskGenerateExecModelStructStruct(gen, out) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionStruct", gen->getDebugMgr());
 
@@ -83,7 +83,7 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
 
 void TaskGenerateExecModelActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef");
-    TaskGenerateExecModelStruct::visitTypeFieldRef(f);
+    TaskGenerateExecModelStructStruct::visitTypeFieldRef(f);
     DEBUG_LEAVE("visitTypeFieldRef");
 }
 

@@ -53,7 +53,7 @@ public:
 
     virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) override;
 
-    virtual bool isRefCountedField(vsc::dm::IAccept *ref) override;
+    virtual ResT isRefCountedField(vsc::dm::IAccept *ref) override;
     
     virtual void pushScope(arl::dm::ITypeProcStmtScope *s) override {
         m_scope_s.push_back(s);

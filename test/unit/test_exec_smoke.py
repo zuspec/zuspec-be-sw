@@ -298,6 +298,8 @@ class TestExecSmoke(TestBase):
                     addr_handle_t addr2 = make_handle_from_claim(claim, 4);
                     write32(addr, 0x01020304);
                     write32(addr2, 0x02030405);
+                    addr = addr2;
+                    write32(addr, 0x01020304);
                 }
             }
         }

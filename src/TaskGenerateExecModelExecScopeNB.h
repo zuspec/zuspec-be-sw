@@ -77,6 +77,7 @@ protected:
     IOutput                             *m_out;
     std::vector<OutputExecScope>        m_out_s;
     arl::dm::ITypeProcStmtVarDecl       *m_var;
+    vsc::dm::ITypeExpr                  *m_expr;
 
 };
 

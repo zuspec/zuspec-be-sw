@@ -30,6 +30,8 @@ namespace sw {
 
 class IGenRefExpr {
 public:
+    using ResT=std::pair<bool,vsc::dm::IDataType *>;
+public:
 
     virtual ~IGenRefExpr() { }
 
@@ -41,7 +43,7 @@ public:
 
     virtual bool isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) = 0;
 
-    virtual bool isRefCountedField(vsc::dm::IAccept *ref) = 0;
+    virtual ResT isRefCountedField(vsc::dm::IAccept *ref) = 0;
 
     virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
 

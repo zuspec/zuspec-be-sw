@@ -45,6 +45,8 @@ public:
 
     IOutput *decl() { return &m_decl; }
 
+    IOutput *init() { return &m_init; }
+
     IOutput *exec() { return &m_exec; }
 
     IOutput *dtor() { return &m_dtor; }
@@ -52,6 +54,7 @@ public:
 private:
     bool            m_new_scope;
     OutputStr       m_decl;
+    OutputStr       m_init;
     OutputStr       m_exec;
     OutputStr       m_dtor;
 

@@ -85,7 +85,7 @@ bool GenRefExprExecModel::isRefFieldRefExpr(vsc::dm::ITypeExpr *ref) {
     return m_isRefFieldRef;
 }
 
-bool GenRefExprExecModel::isRefCountedField(vsc::dm::IAccept *ref) {
+IGenRefExpr::ResT GenRefExprExecModel::isRefCountedField(vsc::dm::IAccept *ref) {
     DEBUG_ENTER("isRefCountedField");
     m_ret.clear();
     m_depth = 0;
@@ -94,7 +94,7 @@ bool GenRefExprExecModel::isRefCountedField(vsc::dm::IAccept *ref) {
     m_isRefCountedField = false;
     ref->accept(m_this);
     DEBUG_LEAVE("isRefCountedField");
-    return m_isRefCountedField;
+    return IGenRefExpr::ResT(m_isRefCountedField, m_type);
 }
 
 void GenRefExprExecModel::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
@@ -124,6 +124,8 @@ void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp
     m_isFieldRef = true;
     m_isRefFieldRef = false;
     m_type = var->getDataType();
+
+    m_type->accept(m_this);
 
     // Track whether the next deref will be a pointer
     m_isRef = false;

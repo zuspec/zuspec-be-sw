@@ -21,9 +21,11 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "GenRefExprExecModel.h"
 #include "TaskGenerateExecModel.h"
+#include "TaskGenerateExecModelExecVarInit.h"
 #include "TaskGenerateExecModelExecScopeNB.h"
 #include "TaskGenerateExecModelExprNB.h"
 #include "TaskGenerateExecModelVarType.h"
+#include "TaskGenerateExecModelUpdateRCField.h"
 
 
 namespace zsp {
@@ -35,7 +37,8 @@ TaskGenerateExecModelExecScopeNB::TaskGenerateExecModelExecScopeNB(
     TaskGenerateExecModel   *gen,
     IGenRefExpr             *refgen,
     IOutput                 *out) : 
-    m_dbg(0), m_gen(gen), m_refgen(refgen), m_out(out) {
+    m_dbg(0), m_gen(gen), m_refgen(refgen), m_out(out),
+    m_var(0), m_expr(0) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecScopeNB", gen->getDebugMgr());
 }
 
@@ -76,11 +79,13 @@ void TaskGenerateExecModelExecScopeNB::generate(
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
     DEBUG_ENTER("visitTypeProcStmtAssign");
     // if is a ref-counted field, dec ref of previous value
-    bool is_rc = m_refgen->isRefCountedField(s->getLhs());
+    IGenRefExpr::ResT is_rc = m_refgen->isRefCountedField(s->getLhs());
 
-    if (is_rc) {
-        m_out_s.back().exec()->println("zsp_rt_rc_dec(%s);",
-            m_refgen->genLval(s->getLhs()).c_str());
+    if (is_rc.first) {
+        TaskGenerateExecModelUpdateRCField(m_refgen).generate_release(
+            m_out_s.back().exec(),
+            is_rc.second,
+            s->getLhs());
     }
 
     m_out_s.back().exec()->indent();
@@ -93,9 +98,11 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypePro
     m_out_s.back().exec()->write(";\n");
 
     // if is a ref-counted field, inc ref of new value
-    if (is_rc) {
-        m_out_s.back().exec()->println("zsp_rt_rc_inc(%s);",
-            m_refgen->genLval(s->getLhs()).c_str());
+    if (is_rc.first) {
+        TaskGenerateExecModelUpdateRCField(m_refgen).generate_acquire(
+            m_out_s.back().exec(),
+            is_rc.second,
+            s->getLhs());
     }
     DEBUG_LEAVE("visitTypeProcStmtAssign");
 }
@@ -169,6 +176,8 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtIfElse(arl::dm::ITypePro
 
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) {
     DEBUG_ENTER("visitTypeProcStmtVarDecl %s", s->name().c_str());
+    IGenRefExpr::ResT is_rc = m_refgen->isRefCountedField(s->getDataType());
+
     m_out_s.back().decl()->indent();
     TaskGenerateExecModelVarType(
         m_gen, 
@@ -181,11 +190,24 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypePr
             m_gen, 
             m_refgen, 
             m_out_s.back().decl()).generate(s->getInit());
-        if (m_refgen->isRefCountedField(s->getDataType())) {
-            m_var = s;
-            s->getDataType()->accept(m_this);
+        if (is_rc.first) {
+            TaskGenerateExecModelUpdateRCField(m_refgen).generate_acquire(
+                m_out_s.back().init(),
+                s);
         }
+    } else {
+        // generate default initial value
+        TaskGenerateExecModelExecVarInit(
+            m_gen,
+            m_out_s.back().init()).generate(s);
     }
+
+    if (is_rc.first) {
+        TaskGenerateExecModelUpdateRCField(m_refgen).generate_release(
+            m_out_s.back().dtor(),
+            s);
+    }
+
     m_out_s.back().decl()->write(";\n"); 
     DEBUG_LEAVE("visitTypeProcStmtVarDecl");
 }

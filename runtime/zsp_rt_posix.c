@@ -182,6 +182,7 @@ void zsp_rt_reg_group_set_handle(zsp_rt_actor_t *actor, void **reg_h, zsp_rt_add
 }
 
 static void zsp_rt_addr_claim_dtor(zsp_rt_actor_t *actor, zsp_rt_addr_claim_impl_t *claim) {
+    zsp_rt_rc_dec(&claim->claim.store);
     claim->next = actor->impl->claim_free_l;
     actor->impl->claim_free_l = claim;
 }
@@ -257,6 +258,7 @@ void zsp_rt_alloc_claim(
     zsp_rt_claimspec_match_f    *match_f,
     void                        *match_ud) {
     fprintf(stdout, "alloc\n");
+#ifdef UNDEFINED
 //    uint32_t sizeof_trait = sizeof(zsp_rt_rc_t);
 //    uint64_t addr = *((uint64_t *)((uint8_t *)region+sizeof(zsp_rt_addr_region_t)+sizeof_trait));
     zsp_rt_addr_claim_t *claim_s = (zsp_rt_addr_claim_t *)malloc(sizeof(zsp_rt_addr_claim_t));
@@ -269,6 +271,10 @@ void zsp_rt_alloc_claim(
     claim_s->store.dtor = (zsp_rt_dtor_f)&zsp_rt_alloc_dtor;
     claim_s->hndl = 0x00000000;
     claim->claim = claim_s;
+#endif
+    // TODO: need an object to represent the address range
+    claim->claim->hndl = 0x00000000;
+    // TODO: need to link object to claim and probably rc
 
 //    claim->store = 
 }

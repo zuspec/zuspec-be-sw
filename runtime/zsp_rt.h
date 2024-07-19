@@ -46,7 +46,7 @@ void zsp_rt_rc_dtor(
     ((hndl).store && (hndl).store->count++)?hndl:hndl;
 
 #define zsp_rt_rc_dec(rc) \
-    if (((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))->count))) { \
+    if ((zsp_rt_rc_t *)(rc) && ((zsp_rt_rc_t *)(rc))->count && !(--(((zsp_rt_rc_t *)(rc))->count))) { \
         ((zsp_rt_rc_t *)(rc))->dtor( \
             ((zsp_rt_rc_t *)(rc))->actor, \
             ((zsp_rt_rc_t *)(rc))); \
@@ -160,6 +160,8 @@ static inline zsp_rt_task_t *zsp_rt_task_run(
     if (task_n && task != task_n) {
         // Allow the caller
         task_n->prev = task;
+    } else if (task->upper) {
+        task->upper->prev = task;
     }
 
     return task_n;
@@ -192,7 +194,7 @@ typedef struct zsp_rt_addr_claim_s {
 } zsp_rt_addr_claim_t;
 
 typedef struct zsp_rt_addr_claimspec_s {
-    zsp_rt_obj_t            obj;
+    zsp_rt_rc_t             base;
     zsp_rt_addr_claim_t     *claim;
 } zsp_rt_addr_claimspec_t;
 

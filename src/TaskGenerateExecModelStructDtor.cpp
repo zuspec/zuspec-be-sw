@@ -109,9 +109,14 @@ void TaskGenerateExecModelStructDtor::visitDataTypeStruct(vsc::dm::IDataTypeStru
 void TaskGenerateExecModelStructDtor::visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) { }
 
 void TaskGenerateExecModelStructDtor::visitTypeFieldAddrClaim(arl::dm::ITypeFieldAddrClaim *f) {
+    DEBUG_ENTER("visitTypeFieldAddrClaim");
+    m_out_c->println("zsp_rt_rc_dec((zsp_rt_rc_t *)this_p->%s.claim);", f->name().c_str());
+    /*
     m_field = f;
     f->getDataType()->accept(m_this);
     m_field = 0;
+     */
+    DEBUG_LEAVE("visitTypeFieldAddrClaim");
 }
     
 void TaskGenerateExecModelStructDtor::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) { 

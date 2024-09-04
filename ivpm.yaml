@@ -11,6 +11,14 @@ package:
     deps:
     - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git
+    - name: zuspec-arl-eval
+      url: https://github.com/zuspec/zuspec-arl-eval.git
+    - name: zuspec-parser
+      url: https://github.com/zuspec/zuspec-parser.git
+    - name: zuspec-fe-parser
+      url: https://github.com/zuspec/zuspec-fe-parser.git
+    - name: debug-mgr
+      url: https://github.com/mballance-utils/debug-mgr.git
     - name: ciostream
       src: pypi
 

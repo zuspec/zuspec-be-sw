@@ -309,11 +309,8 @@ setup(
     'debug-mgr'
   ],
   setup_requires=[
-    'ciostream',
-    'setuptools_scm',
-    'vsc-dm',
-    'debug-mgr',
     'cython',
+    'setuptools_scm',
   ],
   cmdclass={'build_ext': build_ext},
   ext_modules=[ ext ]

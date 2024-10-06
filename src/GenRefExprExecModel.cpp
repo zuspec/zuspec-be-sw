@@ -114,7 +114,8 @@ void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp
     arl::dm::ITypeProcStmtScope *scope = m_scope_s.at(
         m_scope_s.size()-e->getScopeOffset()-1
     );
-    arl::dm::ITypeProcStmtVarDecl *var = scope->getVariables().at(e->getSubFieldIndex()).get();
+    arl::dm::ITypeProcStmtVarDecl *var = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(
+        scope->getVariables().at(e->getSubFieldIndex()).get());
     DEBUG("var: %s", var->name().c_str());
     if (m_bupRef.size()) {
         m_ret.append(m_bupRef);

@@ -43,12 +43,14 @@ public:
     }
 
 	virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override {
-        m_var = t->getParamScope()->getVariables().at(m_var_off).get();
+        m_var = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(
+            t->getParamScope()->getVariables().at(m_var_off).get());
         m_var->getDataType()->accept(m_this);
     }
 
 	virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override {
-        m_var = s->getVariables().at(m_var_off).get();
+        m_var = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(
+            s->getVariables().at(m_var_off).get());
     }
 
 	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override {

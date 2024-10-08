@@ -20,7 +20,7 @@ package:
     - name: debug-mgr
       url: https://github.com/mballance-utils/debug-mgr.git
     - name: ciostream
-      src: pypi
+      url: https://github.com/mballance-utils/ciostream.git
 
   - name: default-dev
     deps:
@@ -34,6 +34,8 @@ package:
       url: https://github.com/zuspec/zuspec-fe-parser.git
     - name: debug-mgr
       url: https://github.com/mballance-utils/debug-mgr.git
+    - name: ciostream
+      url: https://github.com/mballance-utils/ciostream.git
     - name: ninja
       src: pypi
     - name: cython

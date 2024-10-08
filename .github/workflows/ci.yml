@@ -31,10 +31,13 @@ jobs:
           /io/scripts/build_linux.sh
       - name: Publish to PyPi
         if: startsWith(github.ref, 'refs/heads/main')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        env:
+            BUILD_NUM: ${{ github.run_id }}
+            TWINE_USERNAME: __token__
+            TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python3 -m pip instlal twine
+          python3 -m twine upload wheelhouse/*.whl
 #  ci-macos-arm64:
 #    runs-on: [self-hosted, macOS, ARM64]
 #    steps:

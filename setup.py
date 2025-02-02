@@ -73,6 +73,7 @@ setup_args = dict(
 
 if isSrcBuild:
     setup_args["ivpm_extdep_pkgs"] = [
+        "ciostream",
         "zuspec-arl-dm",
         "vsc-dm",
         "debug-mgr"]

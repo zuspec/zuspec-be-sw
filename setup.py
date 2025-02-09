@@ -9,11 +9,13 @@ proj_dir = os.path.dirname(os.path.abspath(__file__))
 
 try:
     sys.path.insert(0, os.path.join(proj_dir, "python/zsp_be_sw"))
-    from __version__ import VERSION
+    from __version__ import VERSION, BASE
+    base=BASE
     version=VERSION
 except ImportError as e:
     print("Import error: %s" % str(e))
-    version="0.0.1"
+    base="0.0.1"
+    version=base
 
 isSrcBuild = False
 
@@ -60,7 +62,7 @@ setup_args = dict(
   url = "https://github.com/zuspec/zuspec-be-sw",
   install_requires=[
     'ciostream',
-    'zuspec-arl-dm',
+    'zuspec-arl-dm>=%s' % base,
     'vsc-dm',
     'debug-mgr'
   ],

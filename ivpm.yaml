@@ -25,6 +25,25 @@ package:
   - name: default-dev
     deps:
     - name: zuspec-arl-dm
+      src: pypi
+    - name: zuspec-arl-eval
+      src: pypi
+    - name: zuspec-parser
+      src: pypi
+    - name: zuspec-fe-parser
+      src: pypi
+    - name: debug-mgr
+      url: https://github.com/mballance-utils/debug-mgr.git
+    - name: ciostream
+      src: pypi
+    - name: ninja
+      src: pypi
+    - name: cython
+      src: pypi
+
+  - name: default-dev-src
+    deps:
+    - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git
     - name: zuspec-arl-eval
       url: https://github.com/zuspec/zuspec-arl-eval.git

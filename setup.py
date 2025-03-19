@@ -67,8 +67,11 @@ setup_args = dict(
     'debug-mgr'
   ],
   setup_requires=[
+    'ciostream',
     'cython',
+    'ivpm',
     'setuptools_scm',
+    'zuspec-arl-dm'
   ],
   ext_modules=[ ext ]
 )

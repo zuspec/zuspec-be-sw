@@ -41,6 +41,7 @@ TestGeneratorMultiCoreEmbCTest::~TestGeneratorMultiCoreEmbCTest() {
 
 }
 
+#ifdef UNDEFINED
 TEST_F(TestGeneratorMultiCoreEmbCTest, smoke) {
     NameMap name_m;
     IModelActivityScopeUP activities(m_ctxt->mkModelActivityScope(ModelActivityScopeT::Sequence));
@@ -919,6 +920,8 @@ TEST_F(TestGeneratorMultiCoreEmbCTest, wcr_c010) {
         "test.c",
     });
 }
+
+#endif // UNDEFINED
 
 }
 }

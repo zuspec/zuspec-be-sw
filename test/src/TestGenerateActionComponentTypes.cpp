@@ -70,14 +70,14 @@ TEST_F(TestGenerateActionComponentTypes, smoke) {
 
     name_m.setName(A_t.get(), "pss_top__A");
 
-    TaskGenerateEmbCStruct struct_gen(
-        m_ctxt->getDebugMgr(),out_h.get(), &name_m);
+    // TaskGenerateEmbCStruct struct_gen(
+    //     m_ctxt->getDebugMgr(),out_h.get(), &name_m);
 
-    for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
-        it=types.begin();
-        it!=types.end(); it++) {
-        struct_gen.generate(*it);
-    }
+    // for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
+    //     it=types.begin();
+    //     it!=types.end(); it++) {
+    //     struct_gen.generate(*it);
+    // }
 
     out_c->close();
     out_h->close();

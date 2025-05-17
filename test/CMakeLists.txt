@@ -75,12 +75,13 @@ endif()
 
 target_link_libraries(test_zsp_be_sw 
   zsp-be-sw
+  zsp-be-sw-rt
   zsp-arl-dm
   vsc-dm
   debug-mgr
-	libgtest 
-	libgmock
-	)
+  libgtest 
+  libgmock
+  )
 add_dependencies(test_zsp_be_sw 
   zsp-be-sw
   GTEST

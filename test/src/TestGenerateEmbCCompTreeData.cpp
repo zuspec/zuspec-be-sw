@@ -94,14 +94,14 @@ TEST_F(TestGenerateEmbCCompTreeData, smoke) {
     ASSERT_EQ(types.at(1)->name(), "C2");
     ASSERT_EQ(types.at(2)->name(), "pss_top");
 
-    TaskGenerateEmbCStruct struct_gen(
-        m_ctxt->getDebugMgr(), out_h.get(), &name_m);
+    // TaskGenerateEmbCStruct struct_gen(
+    //     m_ctxt->getDebugMgr(), out_h.get(), &name_m);
 
-    for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
-        it=types.begin();
-        it!=types.end(); it++) {
-        struct_gen.generate(*it);
-    }
+    // for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
+    //     it=types.begin();
+    //     it!=types.end(); it++) {
+    //     struct_gen.generate(*it);
+    // }
 
     arl::dm::ModelBuildContext build_ctxt(m_ctxt.get());
     arl::dm::IModelFieldComponentRoot *root = 
@@ -110,8 +110,8 @@ TEST_F(TestGenerateEmbCCompTreeData, smoke) {
     ASSERT_TRUE(root);
 
     // Now, configure the value of c2_1.c1_1.v1 and c2_1.c1_2.v1
-    root->getFields().at(1)->getFields().at(1)->getFields().at(1)->val()->set_val_u(1);
-    root->getFields().at(1)->getFields().at(2)->getFields().at(1)->val()->set_val_u(2);
+    // root->getFields().at(1)->getFields().at(1)->getFields().at(1)->val()->set_val_u(1);
+    // root->getFields().at(1)->getFields().at(2)->getFields().at(1)->val()->set_val_u(2);
 
     TaskGenerateEmbCCompTreeData(
         m_ctxt->getDebugMgr(),

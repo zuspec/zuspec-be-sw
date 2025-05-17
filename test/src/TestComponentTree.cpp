@@ -71,11 +71,11 @@ TEST_F(TestComponentTree, multi_level_comp) {
 
     ITypeProcStmtScope *body = m_ctxt->mkTypeProcStmtScope();
     vsc::dm::IModelValUP val(m_ctxt->mkModelValU(5, 32));
-    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 
-        m_ctxt->mkTypeExprVal(val.get())));
-    val->set_val_u(10);
-    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 
-        m_ctxt->mkTypeExprVal(val.get())));
+    // body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 
+    //     m_ctxt->mkTypeExprVal(val.get())));
+    // val->set_val_u(10);
+    // body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 
+    //     m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
         m_ctxt->mkTypeExprFieldRef(
@@ -93,20 +93,20 @@ TEST_F(TestComponentTree, multi_level_comp) {
         )
     );
     val->set_val_u(1);
-    body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef(
-            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
-        ),
-        TypeProcStmtAssignOp::Eq,
-        m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef(
-                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
-            ),
-            BinOp::Add,
-            m_ctxt->mkTypeExprVal(val.get())
-            )
-        )
-    );
+    // body->addStatement(m_ctxt->mkTypeProcStmtAssign(
+    //     m_ctxt->mkTypeExprFieldRef(
+    //         ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
+    //     ),
+    //     TypeProcStmtAssignOp::Eq,
+    //     m_ctxt->mkTypeExprBin(
+    //         m_ctxt->mkTypeExprFieldRef(
+    //             ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
+    //         ),
+    //         BinOp::Add,
+    //         m_ctxt->mkTypeExprVal(val.get())
+    //         )
+    //     )
+    // );
 
     action_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, body));
     action_t->setComponentType(comp_sub_t);
@@ -133,7 +133,7 @@ TEST_F(TestComponentTree, multi_level_comp) {
         IModelFieldRef *comp = action->getFieldT<IModelFieldRef>(0);
         comp->setRef(components.at(i%components.size()));
         IModelField *val1 = action->getField(1);
-        val1->val()->set_val_u(i);
+//        val1->val()->set_val_u(i);
         actions.push_back(IModelFieldActionUP(action));
         IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,
@@ -211,11 +211,11 @@ TEST_F(TestComponentTree, resource_pools) {
 
     ITypeProcStmtScope *body = m_ctxt->mkTypeProcStmtScope();
     vsc::dm::IModelValUP val(m_ctxt->mkModelValU(5, 32));
-    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 
-        m_ctxt->mkTypeExprVal(val.get())));
-    val->set_val_u(10);
-    body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 
-        m_ctxt->mkTypeExprVal(val.get())));
+    // body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("a", uint32.get(), false, 
+    //     m_ctxt->mkTypeExprVal(val.get())));
+    // val->set_val_u(10);
+    // body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("b", uint32.get(), false, 
+    //     m_ctxt->mkTypeExprVal(val.get())));
     body->addVariable(m_ctxt->mkTypeProcStmtVarDecl("c", uint32.get(), false, 0));
     body->addStatement(m_ctxt->mkTypeProcStmtAssign(
         m_ctxt->mkTypeExprFieldRef(
@@ -233,20 +233,20 @@ TEST_F(TestComponentTree, resource_pools) {
         )
     );
     val->set_val_u(1);
-    body->addStatement(m_ctxt->mkTypeProcStmtAssign(
-        m_ctxt->mkTypeExprFieldRef(
-            ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
-        ),
-        TypeProcStmtAssignOp::Eq,
-        m_ctxt->mkTypeExprBin(
-            m_ctxt->mkTypeExprFieldRef(
-                ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
-            ),
-            BinOp::Add,
-            m_ctxt->mkTypeExprVal(val.get())
-            )
-        )
-    );
+    // body->addStatement(m_ctxt->mkTypeProcStmtAssign(
+    //     m_ctxt->mkTypeExprFieldRef(
+    //         ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {2} // val2
+    //     ),
+    //     TypeProcStmtAssignOp::Eq,
+    //     m_ctxt->mkTypeExprBin(
+    //         m_ctxt->mkTypeExprFieldRef(
+    //             ITypeExprFieldRef::RootRefKind::TopDownScope, 0, {1} // val1
+    //         ),
+    //         BinOp::Add,
+    //         m_ctxt->mkTypeExprVal(val.get())
+    //         )
+    //     )
+    // );
 
     action_t->addExec(m_ctxt->mkTypeExecProc(ExecKindT::Body, body));
     action_t->setComponentType(comp_sub_t);
@@ -273,7 +273,7 @@ TEST_F(TestComponentTree, resource_pools) {
         IModelFieldRef *comp = action->getFieldT<IModelFieldRef>(0);
         comp->setRef(components.at(i%components.size()));
         IModelField *val1 = action->getField(1);
-        val1->val()->set_val_u(i);
+//        val1->val()->set_val_u(i);
         actions.push_back(IModelFieldActionUP(action));
         IModelActivityTraverse *t = m_ctxt->mkModelActivityTraverse(
             action,

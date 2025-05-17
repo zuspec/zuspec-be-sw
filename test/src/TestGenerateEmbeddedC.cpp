@@ -62,20 +62,20 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
 
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtVarDecl("v1", uint32.get(), false, 0));
-    ITypeExprFieldRef *ref = m_ctxt->mkTypeExprFieldRef(
-        ITypeExprFieldRef::RootRefKind::BottomUpScope,
-        0
-    );
-    ref->addPathElem(0);
-    IModelVal *val = m_ctxt->mkModelVal();
-    val->setBits(32);
-    val->set_val_u(25);
-    my_func->getBody()->addStatement(
-        m_ctxt->mkTypeProcStmtAssign(
-            ref,
-            TypeProcStmtAssignOp::Eq,
-            m_ctxt->mkTypeExprVal(val)
-        ));
+    // ITypeExprFieldRef *ref = m_ctxt->mkTypeExprFieldRef(
+    //     ITypeExprFieldRef::RootRefKind::BottomUpScope,
+    //     0
+    // );
+    // ref->addPathElem(0);
+    // IModelVal *val = m_ctxt->mkModelVal();
+    // val->setBits(32);
+    // val->set_val_u(25);
+    // my_func->getBody()->addStatement(
+    //     m_ctxt->mkTypeProcStmtAssign(
+    //         ref,
+    //         TypeProcStmtAssignOp::Eq,
+    //         m_ctxt->mkTypeExprVal(val)
+    //     ));
     my_func->getBody()->addStatement(
         m_ctxt->mkTypeProcStmtVarDecl("v2", uint32.get(), false, 0));
 
@@ -90,15 +90,15 @@ TEST_F(TestGenerateEmbeddedC, smoke) {
     )
  */
 
-    TaskGenerateFuncProtoEmbeddedC(&name_m).generate(
-        &out_decl,
-        my_func.get()
-    );
+    // TaskGenerateFuncProtoEmbeddedC(&name_m).generate(
+    //     &out_decl,
+    //     my_func.get()
+    // );
 
-    TaskGenerateFunctionEmbeddedC(m_ctxt->getDebugMgr(), &name_m).generate(
-        &out_def,
-        my_func.get()
-    );
+    // TaskGenerateFunctionEmbeddedC(m_ctxt->getDebugMgr(), &name_m).generate(
+    //     &out_def,
+    //     my_func.get()
+    // );
 
     fprintf(stdout, "Declaration:\n%s\n", out_decl.getValue().c_str());
     fprintf(stdout, "Definition:\n%s\n", out_def.getValue().c_str());

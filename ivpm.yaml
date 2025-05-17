@@ -40,5 +40,7 @@ package:
       src: pypi
     - name: cython
       src: pypi
+    - name: vte
+      src: pypi
 
 

@@ -53,9 +53,11 @@ Context::Context(
     m_backend_funcs[(int)BackendFunctions::Write64] = ctxt->findDataTypeFunction("addr_reg_pkg::write64");
     m_name_m.setName(m_backend_funcs[(int)BackendFunctions::Write64], "write64");
 
+    /*
     for (uint32_t i=0; i<sizeof(m_backend_funcs)/sizeof(arl::dm::IDataTypeFunction *); i++) {
         fprintf(stdout, "Function[%d]: %p", i, m_backend_funcs[i]);
     }
+     */
 }
 
 Context::~Context() {

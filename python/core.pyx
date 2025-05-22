@@ -106,6 +106,21 @@ cdef class Factory(object):
             prv_h_s.stream()
         )
 
+    cpdef void generateType(
+        self,
+        Context                 ctxt,
+        vsc_dm.DataTypeStruct   type_t,
+        out_c,
+        out_h):
+        cdef ciostream.costream out_c_s = ciostream.costream(out_c)
+        cdef ciostream.costream out_h_s = ciostream.costream(out_h)
+        self._hndl.generateType(
+            ctxt._hndl,
+            type_t.asTypeStruct(),
+            out_c_s.stream(),
+            out_h_s.stream()
+        )
+
     cpdef void initContextC(self, arl_dm.Context ctxt):
         self._hndl.initContextC(ctxt.asContext())
 

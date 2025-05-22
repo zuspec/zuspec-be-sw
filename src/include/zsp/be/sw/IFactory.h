@@ -68,6 +68,13 @@ public:
         std::ostream                                    *out_h,
         std::ostream                                    *out_h_prv) = 0;
 
+    virtual void generateType(
+        IContext                                        *ctxt,
+        vsc::dm::IDataTypeStruct                        *comp_t,
+        std::ostream                                    *out_c,
+        std::ostream                                    *out_h) = 0;
+
+
 
     virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 

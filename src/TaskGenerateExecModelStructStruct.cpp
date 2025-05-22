@@ -42,7 +42,11 @@ TaskGenerateExecModelStructStruct::~TaskGenerateExecModelStructStruct() {
 void TaskGenerateExecModelStructStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
     m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
     m_out->inc_ind();
-    m_out->println("zsp_rt_rc_t base;");
+    if (i->getSuper()) {
+        m_out->write("%s_t super;\n", m_gen->getNameMap()->getName(i->getSuper()).c_str());
+    } else {
+        m_out->write("zsp_object_t super;\n");
+    }
 }
 
 void TaskGenerateExecModelStructStruct::generate(vsc::dm::IDataTypeStruct *i) {

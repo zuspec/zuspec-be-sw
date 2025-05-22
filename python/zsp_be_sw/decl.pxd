@@ -44,6 +44,11 @@ cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
             ciostream.ostream                               *pub_h,
             ciostream.ostream                               *prv_h)
 
+        void generateType(
+            IContext                                        *ctxt,
+            vsc_dm_decl.IDataTypeStructP                    type_t,
+            ciostream.ostream                               *out_c,
+            ciostream.ostream                               *out_h)
 
         void initContextC(arl_dm.IContext                   *ctxt)
 

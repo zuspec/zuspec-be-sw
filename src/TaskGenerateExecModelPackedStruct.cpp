@@ -29,9 +29,9 @@ namespace sw {
 
 
 TaskGenerateExecModelPackedStruct::TaskGenerateExecModelPackedStruct(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out_h,
-    IOutput                     *out_c) : m_gen(gen), m_out_h(out_h), m_out_c(out_c) {
+    IContext       *ctxt,
+    IOutput        *out_h,
+    IOutput        *out_c) : m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
 
 }
 
@@ -52,7 +52,7 @@ void TaskGenerateExecModelPackedStruct::generate(arl::dm::IDataTypePackedStruct 
         m_base_t = "uint8_t";
     }
 
-    m_out_h->println("typedef struct %s_s {", m_gen->getNameMap()->getName(t).c_str());
+    m_out_h->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(t).c_str());
     m_out_h->inc_ind();
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
         it=t->getFields().begin();
@@ -60,14 +60,14 @@ void TaskGenerateExecModelPackedStruct::generate(arl::dm::IDataTypePackedStruct 
         (*it)->accept(m_this);
     }
     m_out_h->dec_ind();
-    m_out_h->println("} %s_t;", m_gen->getNameMap()->getName(t).c_str());
+    m_out_h->println("} %s_t;", m_ctxt->nameMap()->getName(t).c_str());
     m_out_h->println("");
     m_out_h->println("typedef union {");
     m_out_h->inc_ind();
     m_out_h->println("%s v;", m_base_t.c_str());
-    m_out_h->println("%s_t s;", m_gen->getNameMap()->getName(t).c_str());
+    m_out_h->println("%s_t s;", m_ctxt->nameMap()->getName(t).c_str());
     m_out_h->dec_ind();
-    m_out_h->println("} %s_u;", m_gen->getNameMap()->getName(t).c_str());
+    m_out_h->println("} %s_u;", m_ctxt->nameMap()->getName(t).c_str());
 }
 
 void TaskGenerateExecModelPackedStruct::visitDataTypeBool(vsc::dm::IDataTypeBool *t) { 

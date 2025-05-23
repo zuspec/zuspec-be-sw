@@ -30,7 +30,7 @@ namespace sw {
 TaskGenerateExecModelActionDtor::TaskGenerateExecModelActionDtor(
         TaskGenerateExecModel           *gen,
         IOutput                         *out_h,
-        IOutput                         *out_c) : TaskGenerateExecModelStructDtor(gen, out_h, out_c) {
+        IOutput                         *out_c) : TaskGenerateStructDtor(0, out_c) {
 
 }
 

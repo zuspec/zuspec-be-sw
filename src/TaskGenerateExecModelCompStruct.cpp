@@ -29,9 +29,9 @@ namespace sw {
 
 
 TaskGenerateExecModelCompStruct::TaskGenerateExecModelCompStruct(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out) : 
-        TaskGenerateExecModelStructStruct(gen, out) {
+    IContext       *ctxt,
+    IOutput        *out) : 
+        TaskGenerateStructStruct(ctxt, out) {
 
 }
 
@@ -40,14 +40,14 @@ TaskGenerateExecModelCompStruct::~TaskGenerateExecModelCompStruct() {
 }
 
 void TaskGenerateExecModelCompStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
+    m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(i).c_str());
     m_out->inc_ind();
     m_out->println("zsp_rt_component_t comp;");
-    m_out->println("zsp_rt_aspace_idx_t __aspace[%d];", m_gen->getNumTraitTypes());
+//    m_out->println("zsp_rt_aspace_idx_t __aspace[%d];", m_gen->getNumTraitTypes());
 }
 
 void TaskGenerateExecModelCompStruct::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
-    m_out->write("%s_t ", m_gen->getNameMap()->getName(t).c_str());
+    m_out->write("%s_t ", m_ctxt->nameMap()->getName(t).c_str());
 }
 
 }

@@ -34,7 +34,7 @@
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "TaskGenerateStruct.h"
 #include "TypeCollection.h"
 
 
@@ -53,7 +53,6 @@ TaskGenerateType::TaskGenerateType(
         m_out_c(new Output(out_c, false)),
         m_out_h(new Output(out_h, false)) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateType", ctxt->getDebugMgr());
-    m_out_c->println("// Comment");
 }
 
 TaskGenerateType::~TaskGenerateType() {
@@ -62,11 +61,25 @@ TaskGenerateType::~TaskGenerateType() {
 
 void TaskGenerateType::generate(vsc::dm::IDataTypeStruct *type_t) {
     type_t->accept(this);
-
+    m_out_c->println("// Comment");
 }
 
 void TaskGenerateType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
+    DEBUG_ENTER("visitDataTypeComponent");
 
+    DEBUG_LEAVE("visitDataTypeComponent");
+}
+
+void TaskGenerateType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+    DEBUG_ENTER("visitDataTypeStruct");
+    TaskGenerateStruct(m_ctxt, m_out_c.get(), m_out_h.get()).generate(t);
+    DEBUG_LEAVE("visitDataTypeStruct");
+}
+
+void TaskGenerateType::visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) {
+    DEBUG_ENTER("visitDataTypeArlStruct");
+    visitDataTypeStruct(t);
+    DEBUG_LEAVE("visitDataTypeArlStruct");
 }
 
 dmgr::IDebug *TaskGenerateType::m_dbg = 0;

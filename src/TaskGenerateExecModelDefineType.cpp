@@ -29,7 +29,7 @@
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelPackedStruct.h"
 #include "TaskGenerateExecModelRegGroup.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "TaskGenerateStruct.h"
 
 
 namespace zsp {
@@ -102,19 +102,19 @@ void TaskGenerateExecModelDefineType::visitDataTypeFunction(arl::dm::IDataTypeFu
 
 void TaskGenerateExecModelDefineType::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
     DEBUG_ENTER("visitDataTypePackedStruct");
-    TaskGenerateExecModelPackedStruct(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelPackedStruct(m_gen, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypePackedStruct");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) {
     DEBUG_ENTER("visitDataTypeRegGroup");
-    TaskGenerateExecModelRegGroup(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelRegGroup(m_gen, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeRegGroup");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
-    TaskGenerateExecModelStruct(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelStruct(m_gen, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 } 
 

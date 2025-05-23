@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelCompStruct.h
+ * TaskGenerateStructType.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,9 +19,9 @@
  *     Author: 
  */
 #pragma once
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -29,20 +29,27 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelCompStruct : 
-    public virtual TaskGenerateStructStruct {
+class TaskGenerateStructType :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelCompStruct(
-        IContext   *gen,
-        IOutput    *out);
+    TaskGenerateStructType(
+        IContext                    *ctxt, 
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelCompStruct();
+    virtual ~TaskGenerateStructType();
 
-    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+    virtual void generate(vsc::dm::IDataTypeStruct *t);
 
-    virtual void generate_dtor(vsc::dm::IDataTypeStruct *i) override { }
+    virtual void generate_type_decl(vsc::dm::IDataTypeStruct *t);
 
-    virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
+    virtual void generate_type_inst(vsc::dm::IDataTypeStruct *t);
+
+protected:
+    dmgr::IDebug                    *m_dbg;
+    IContext                        *m_ctxt;    
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
 
 
 };

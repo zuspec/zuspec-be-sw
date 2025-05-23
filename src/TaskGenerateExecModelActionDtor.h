@@ -19,7 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateExecModelStructDtor.h"
+#include "TaskGenerateStructDtor.h"
 
 namespace zsp {
 namespace be {
@@ -28,7 +28,7 @@ namespace sw {
 
 
 class TaskGenerateExecModelActionDtor :
-    public virtual TaskGenerateExecModelStructDtor {
+    public virtual TaskGenerateStructDtor {
 public:
     TaskGenerateExecModelActionDtor(
         TaskGenerateExecModel           *gen,

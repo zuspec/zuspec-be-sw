@@ -31,7 +31,7 @@ namespace sw {
 TaskGenerateExecModelActionInit::TaskGenerateExecModelActionInit(
         TaskGenerateExecModel       *gen,
         IOutput                     *out) : 
-        TaskGenerateExecModelStructInit(gen/*, out*/) {
+        TaskGenerateStructInit(0, 0, 0) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionInit", gen->getDebugMgr());
 
@@ -42,9 +42,9 @@ TaskGenerateExecModelActionInit::~TaskGenerateExecModelActionInit() {
 }
 
 void TaskGenerateExecModelActionInit::generate_core(vsc::dm::IDataTypeStruct *i) {
-    TaskGenerateExecModelStructInit::generate_core(i);
-    m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
-        m_gen->getNameMap()->getName(i).c_str());
+    TaskGenerateStructInit::generate_core(i);
+    // m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
+    //     m_gen->getNameMap()->getName(i).c_str());
 
 }
 

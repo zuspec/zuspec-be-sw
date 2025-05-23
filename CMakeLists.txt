@@ -48,7 +48,7 @@ if (ENABLE_TESTING)
   # Testing is only enabled when libarl-be-sw is the top-level project
   enable_testing()
 
-  add_subdirectory(test)
+  add_subdirectory(tests)
 endif()
 
 

@@ -19,8 +19,9 @@
  *     Author: 
  */
 #pragma once
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateExecModelStructStruct.h"
+#include "TaskGenerateStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -29,12 +30,12 @@ namespace sw {
 
 
 class TaskGenerateExecModelRegGroup :
-    public virtual TaskGenerateExecModelStructStruct {
+    public virtual TaskGenerateStructStruct {
 public:
     TaskGenerateExecModelRegGroup(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out_h,
-        IOutput                     *out_c
+        IContext       *ctxt,
+        IOutput        *out_h,
+        IOutput        *out_c
     );
 
     virtual ~TaskGenerateExecModelRegGroup();

@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelStruct.h
+ * TaskGenerateStruct.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -22,6 +22,7 @@
 #include "dmgr/IDebugMgr.h"
 #include "vsc/dm/IDataTypeStruct.h"
 #include "zsp/be/sw/IOutput.h"
+#include "zsp/be/sw/IContext.h"
 
 namespace zsp {
 namespace be {
@@ -29,26 +30,40 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelStruct {
+class TaskGenerateStruct {
 public:
-    TaskGenerateExecModelStruct(
-        TaskGenerateExecModel       *gen,
+    TaskGenerateStruct(
+        IContext                    *ctxt, 
         IOutput                     *out_h,
         IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelStruct();
+    virtual ~TaskGenerateStruct();
 
     virtual void generate(vsc::dm::IDataTypeStruct *t);
 
-    virtual void generate_type(vsc::dm::IDataTypeStruct *t);
+    virtual void generate_header_includes(vsc::dm::IDataTypeStruct *t, IOutput *out);
 
-    virtual void generate_init(vsc::dm::IDataTypeStruct *t);
+    virtual void generate_header_typedefs(vsc::dm::IDataTypeStruct *t, IOutput *out);
 
-    virtual void generate_dtor(vsc::dm::IDataTypeStruct *t);
+    virtual void generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out);
+
+    virtual void generate_source_includes(vsc::dm::IDataTypeStruct *t, IOutput *out);
+
+    virtual void generate_type(
+        vsc::dm::IDataTypeStruct    *t, 
+        IOutput                     *out_h,
+        IOutput                     *out_c);
+
+    virtual void generate_init(
+        vsc::dm::IDataTypeStruct *t, 
+        IOutput                     *out_h,
+        IOutput                     *out_c);
+
+    virtual void generate_dtor(vsc::dm::IDataTypeStruct *t, IOutput *out);
 
 protected:
     dmgr::IDebug                    *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;    
     IOutput                         *m_out_h;
     IOutput                         *m_out_c;
 
@@ -57,5 +72,3 @@ protected:
 }
 }
 }
-
-

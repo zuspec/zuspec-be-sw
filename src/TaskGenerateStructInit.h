@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelStructInit.h
+ * TaskGenerateStructInit.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
@@ -29,11 +30,14 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelStructInit : public arl::dm::VisitorBase {
+class TaskGenerateStructInit : public arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelStructInit(TaskGenerateExecModel *gen);
+    TaskGenerateStructInit(
+        IContext                *ctxt,
+        IOutput                 *out_h,
+        IOutput                 *out_c);  
 
-    virtual ~TaskGenerateExecModelStructInit();
+    virtual ~TaskGenerateStructInit();
     
     virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
 
@@ -43,31 +47,32 @@ public:
 
     virtual void generate_suffix(vsc::dm::IDataTypeStruct *i);
 
-	virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+    virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
 
-	virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
+    virtual void visitDataTypeArray(vsc::dm::IDataTypeArray *t) override;
 
-	virtual void visitDataTypeBool(vsc::dm::IDataTypeBool *t) override;
+    virtual void visitDataTypeBool(vsc::dm::IDataTypeBool *t) override;
 
-	virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
+    virtual void visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) override;
 
-	virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
+    virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
 
-	virtual void visitDataTypePtr(vsc::dm::IDataTypePtr *t) override;
+    virtual void visitDataTypePtr(vsc::dm::IDataTypePtr *t) override;
 
-	virtual void visitDataTypeString(vsc::dm::IDataTypeString *t) override;
+    virtual void visitDataTypeString(vsc::dm::IDataTypeString *t) override;
 
-	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
-	virtual void visitTypeField(vsc::dm::ITypeField *f) override;
+    virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 
-	virtual void visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) override;
+    virtual void visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) override;
 
 protected:
     dmgr::IDebug                *m_dbg;
     vsc::dm::ITypeField         *m_field;
     int32_t                     m_depth;
-    TaskGenerateExecModel       *m_gen;
+    IContext                    *m_ctxt;    
+    IOutput                     *m_out_h;
     IOutput                     *m_out_c;
 
 };
@@ -75,5 +80,3 @@ protected:
 }
 }
 }
-
-

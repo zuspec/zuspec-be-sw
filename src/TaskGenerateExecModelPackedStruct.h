@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 
@@ -33,9 +34,9 @@ class TaskGenerateExecModelPackedStruct :
     public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModelPackedStruct(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out_h,
-        IOutput                     *out_c
+        IContext       *ctxt,
+        IOutput        *out_h,
+        IOutput        *out_c
     );
 
     virtual ~TaskGenerateExecModelPackedStruct();
@@ -57,7 +58,7 @@ public:
 
 private:
     static dmgr::IDebug         *m_dbg;
-    TaskGenerateExecModel       *m_gen;
+    IContext                    *m_ctxt;
     IOutput                     *m_out_h;
     IOutput                     *m_out_c;
     std::string                 m_base_t;

@@ -42,6 +42,7 @@ package:
       src: pypi
 
   - name: default-dev-src
+    default-dep-set: default-dev
     deps:
     - name: zuspec-arl-dm
       url: https://github.com/zuspec/zuspec-arl-dm.git

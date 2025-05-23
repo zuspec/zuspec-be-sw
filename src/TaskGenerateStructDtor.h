@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelStructDtor.h
+ * TaskGenerateStructDtor.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
@@ -29,16 +30,14 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelStructDtor :
+class TaskGenerateStructDtor :
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelStructDtor(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out_h,
-        IOutput                     *out_c
-    );
+    TaskGenerateStructDtor(
+        IContext     *gen,
+        IOutput      *out);
 
-    virtual ~TaskGenerateExecModelStructDtor();
+    virtual ~TaskGenerateStructDtor();
 
     void generate_enter(vsc::dm::IDataTypeStruct *t);
 
@@ -50,11 +49,11 @@ public:
 
     virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
-	virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;
+    virtual void visitDataTypeFlowObj(arl::dm::IDataTypeFlowObj *t) override;
 
-	virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
+    virtual void visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) override;
 
-	virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
     virtual void visitTypeFieldAddrClaim(arl::dm::ITypeFieldAddrClaim *f) override;
     
@@ -62,13 +61,10 @@ public:
 
     virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
-
-    
 private:
     dmgr::IDebug                *m_dbg;
-    TaskGenerateExecModel       *m_gen;
-    IOutput                     *m_out_h;
-    IOutput                     *m_out_c;
+    IContext                    *m_ctxt;
+    IOutput                     *m_out;
     vsc::dm::ITypeField         *m_field;
     bool                        m_field_ref;
 };
@@ -76,5 +72,3 @@ private:
 }
 }
 }
-
-

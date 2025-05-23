@@ -52,6 +52,10 @@ public:
 
     virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
+    virtual void visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) override;
+
 private:
     static dmgr::IDebug                 *m_dbg;
     IContext                            *m_ctxt;    

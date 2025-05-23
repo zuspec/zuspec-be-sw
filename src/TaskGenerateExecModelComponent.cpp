@@ -45,7 +45,7 @@ void TaskGenerateExecModelComponent::generate(arl::dm::IDataTypeComponent *comp_
     DEBUG_ENTER("generate");
 
     // Generate the component struct
-    TaskGenerateExecModelCompStruct(m_gen, m_gen->getOutHPrv()).generate(comp_t);
+//    TaskGenerateExecModelCompStruct(m_gen, m_gen->getOutHPrv()).generate(comp_t);
 
     TaskGenerateExecModelCompInit(m_gen).generate(comp_t);
 

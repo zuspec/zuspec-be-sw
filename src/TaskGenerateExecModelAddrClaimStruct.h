@@ -19,7 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateExecModelStructStruct.h"
+#include "TaskGenerateStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -28,7 +28,7 @@ namespace sw {
 
 
 class TaskGenerateExecModelAddrClaimStruct :
-    public virtual TaskGenerateExecModelStructStruct {
+    public virtual TaskGenerateStructStruct {
 public:
     TaskGenerateExecModelAddrClaimStruct(
         TaskGenerateExecModel       *gen,

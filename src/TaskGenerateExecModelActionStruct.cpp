@@ -29,10 +29,10 @@ namespace sw {
 
 
 TaskGenerateExecModelActionStruct::TaskGenerateExecModelActionStruct(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out) : TaskGenerateExecModelStructStruct(gen, out) {
+    IContext       *ctxt,
+    IOutput        *out) : TaskGenerateStructStruct(ctxt, out) {
     m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionStruct", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionStruct", ctxt->getDebugMgr());
 
 }
 
@@ -49,7 +49,7 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
     m_field_m.clear();
 
     m_out->println("typedef struct %s_s {", 
-        m_gen->getNameMap()->getName(action_t).c_str());
+        m_ctxt->nameMap()->getName(action_t).c_str());
     m_out->inc_ind();
     m_out->println("zsp_rt_task_t task;");
 
@@ -76,14 +76,14 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
 
     m_out->dec_ind();
     m_out->println("} %s_t;", 
-        m_gen->getNameMap()->getName(action_t).c_str());
+        m_ctxt->nameMap()->getName(action_t).c_str());
 
     DEBUG_LEAVE("generate");
 }
 
 void TaskGenerateExecModelActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef");
-    TaskGenerateExecModelStructStruct::visitTypeFieldRef(f);
+    TaskGenerateStructStruct::visitTypeFieldRef(f);
     DEBUG_LEAVE("visitTypeFieldRef");
 }
 

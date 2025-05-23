@@ -29,11 +29,11 @@ namespace sw {
 
 
 TaskGenerateExecModelRegGroup::TaskGenerateExecModelRegGroup(
-    TaskGenerateExecModel           *gen,
-    IOutput                         *out_h,
-    IOutput                         *out_c) : TaskGenerateExecModelStructStruct(gen, out_h) {
+    IContext           *ctxt,
+    IOutput            *out_h,
+    IOutput            *out_c) : TaskGenerateStructStruct(ctxt, out_h) {
     m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelRegGroup", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelRegGroup", ctxt->getDebugMgr());
 }
 
 TaskGenerateExecModelRegGroup::~TaskGenerateExecModelRegGroup() {
@@ -42,7 +42,7 @@ TaskGenerateExecModelRegGroup::~TaskGenerateExecModelRegGroup() {
 
 void TaskGenerateExecModelRegGroup::generate(vsc::dm::IDataType *t) {
     DEBUG_ENTER("generate");
-    m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(t).c_str());
+    m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(t).c_str());
     m_out->inc_ind();
     m_depth = 0;
     m_ptr = 0;
@@ -50,7 +50,7 @@ void TaskGenerateExecModelRegGroup::generate(vsc::dm::IDataType *t) {
     m_field_m.clear();
     t->accept(m_this);
     m_out->dec_ind();
-    m_out->println("} %s_t;", m_gen->getNameMap()->getName(t).c_str());
+    m_out->println("} %s_t;", m_ctxt->nameMap()->getName(t).c_str());
     DEBUG_LEAVE("generate");
 }
 

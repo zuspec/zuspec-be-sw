@@ -5,17 +5,21 @@ extern "C" {
 #endif
 
 struct zsp_object_s;
+struct zsp_actor_s;
+
+typedef void (*dtor_f)(struct zsp_actor_s *, struct zsp_object_s *);
 
 typedef struct zsp_object_type_s {
     struct zsp_object_type_s    *super;
     const char                  *name;
-    void (*dtor)(struct zsp_object_s *obj);
+    dtor_f                      dtor;
 } zsp_object_type_t;
 
 typedef struct zsp_object_s {
     zsp_object_type_t *type;
 
 } zsp_object_t;
+
 
 
 #ifdef __cplusplus

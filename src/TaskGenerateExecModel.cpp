@@ -34,7 +34,7 @@
 #include "TaskGenerateExecModelComponent.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
-#include "TaskGenerateExecModelStruct.h"
+#include "TaskGenerateStruct.h"
 #include "TypeCollection.h"
 
 

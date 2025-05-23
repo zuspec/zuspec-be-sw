@@ -57,7 +57,7 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         "true");
 
     // Declare the action struct
-    TaskGenerateExecModelActionStruct(m_gen, m_gen->getOutHPrv()).generate(action);
+//    TaskGenerateExecModelActionStruct(m_ctxt, m_gen->getOutHPrv()).generate(action);
 
 
     // Declare the action-init function

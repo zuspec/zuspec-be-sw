@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelStructStruct.cpp
+ * TaskGenerateStructStruct.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,8 +20,8 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelStructStruct.h"
-#include "TaskGenerateExecModelStructDtor.h"
+#include "TaskGenerateStructStruct.h"
+#include "TaskGenerateStructDtor.h"
 
 
 namespace zsp {
@@ -29,27 +29,28 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelStructStruct::TaskGenerateExecModelStructStruct(
-    TaskGenerateExecModel   *gen,
-    IOutput                 *out) : m_gen(gen), m_out(out) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelStructStruct", gen->getDebugMgr());
+TaskGenerateStructStruct::TaskGenerateStructStruct(
+    IContext       *ctxt,
+    IOutput        *out) : m_ctxt(ctxt), m_out(out) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateStructStruct", ctxt->getDebugMgr());
 }
 
-TaskGenerateExecModelStructStruct::~TaskGenerateExecModelStructStruct() {
+TaskGenerateStructStruct::~TaskGenerateStructStruct() {
 
 }
 
-void TaskGenerateExecModelStructStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    m_out->println("typedef struct %s_s {", m_gen->getNameMap()->getName(i).c_str());
+void TaskGenerateStructStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
+    m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(i).c_str());
     m_out->inc_ind();
     if (i->getSuper()) {
-        m_out->write("%s_t super;\n", m_gen->getNameMap()->getName(i->getSuper()).c_str());
+        m_out->println("%s_t super;", 
+            m_ctxt->nameMap()->getName(i->getSuper()).c_str());
     } else {
-        m_out->write("zsp_object_t super;\n");
+        m_out->println("zsp_object_t super;");
     }
 }
 
-void TaskGenerateExecModelStructStruct::generate(vsc::dm::IDataTypeStruct *i) {
+void TaskGenerateStructStruct::generate(vsc::dm::IDataTypeStruct *i) {
     DEBUG_ENTER("generate");
     generate_prefix(i);
     m_depth = 0;
@@ -92,29 +93,29 @@ void TaskGenerateExecModelStructStruct::generate(vsc::dm::IDataTypeStruct *i) {
     DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelStructStruct::generate_suffix(vsc::dm::IDataTypeStruct *i) {
+void TaskGenerateStructStruct::generate_suffix(vsc::dm::IDataTypeStruct *i) {
     m_out->dec_ind();
-    m_out->println("} %s_t;", m_gen->getNameMap()->getName(i).c_str());
+    m_out->println("} %s_t;", m_ctxt->nameMap()->getName(i).c_str());
 }
 
-void TaskGenerateExecModelStructStruct::generate_dtor(vsc::dm::IDataTypeStruct *i) {
-    TaskGenerateExecModelStructDtor(m_gen, m_gen->getOutHPrv(), m_out).generate(i);
+void TaskGenerateStructStruct::generate_dtor(vsc::dm::IDataTypeStruct *i) {
+//    TaskGenerateStructDtor(m_ctxt, m_out, m_out).generate(i);
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeArray(vsc::dm::IDataTypeArray *t) {
+void TaskGenerateStructStruct::visitDataTypeArray(vsc::dm::IDataTypeArray *t) {
     // Must handle this post-process
 
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
+void TaskGenerateStructStruct::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
     m_out->write("zsp_rt_bool_t%s", (m_depth==1)?" ":"");
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
+void TaskGenerateStructStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {
 
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
+void TaskGenerateStructStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     const char *tname = 0;
 
     if (t->getByteSize() > 4) {
@@ -131,31 +132,31 @@ void TaskGenerateExecModelStructStruct::visitDataTypeInt(vsc::dm::IDataTypeInt *
     m_out->write("%s ", tname);
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypePtr(vsc::dm::IDataTypePtr *t) {
+void TaskGenerateStructStruct::visitDataTypePtr(vsc::dm::IDataTypePtr *t) {
     m_ptr++;
     // TODO:
     m_ptr--;
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeString(vsc::dm::IDataTypeString *t) {
+void TaskGenerateStructStruct::visitDataTypeString(vsc::dm::IDataTypeString *t) {
     m_out->write("zsp_rt_string%s", (m_depth==1)?" ":"");
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+void TaskGenerateStructStruct::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct");
     m_out->write("struct %s_s%s",
-        m_gen->getNameMap()->getName(t).c_str(), " ");
+        m_ctxt->nameMap()->getName(t).c_str(), " ");
 //        (m_depth==1)?" ":"");
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 
-void TaskGenerateExecModelStructStruct::visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) {
+void TaskGenerateStructStruct::visitDataTypeWrapper(vsc::dm::IDataTypeWrapper *t) {
     DEBUG_ENTER("visitDataTypeWrapper");
     t->getDataTypeVirt()->accept(m_this);
     DEBUG_LEAVE("visitDataTypeWrapper");
 }
 
-void TaskGenerateExecModelStructStruct::visitTypeField(vsc::dm::ITypeField *f) {
+void TaskGenerateStructStruct::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_ENTER("visitField");
     m_field = f;
     m_out->indent();
@@ -168,7 +169,7 @@ void TaskGenerateExecModelStructStruct::visitTypeField(vsc::dm::ITypeField *f) {
         char tmp[64];
         sprintf(tmp, "%d", fit->second);
 
-        m_gen->getNameMap()->setName(f, m_field->name() + "__" + tmp);
+        m_ctxt->nameMap()->setName(f, m_field->name() + "__" + tmp);
         m_out->write("%s__%d", 
             m_field->name().c_str(), 
             fit->second);
@@ -183,7 +184,7 @@ void TaskGenerateExecModelStructStruct::visitTypeField(vsc::dm::ITypeField *f) {
     DEBUG_LEAVE("visitField");
 }
 
-void TaskGenerateExecModelStructStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
+void TaskGenerateStructStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef %s", f->name().c_str());
     m_field = f;
     m_out->indent();
@@ -198,7 +199,7 @@ void TaskGenerateExecModelStructStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef
         char tmp[64];
         sprintf(tmp, "%d", fit->second);
 
-        m_gen->getNameMap()->setName(f, m_field->name() + "__" + tmp);
+        m_ctxt->nameMap()->setName(f, m_field->name() + "__" + tmp);
         m_out->write(" *%s__%d", 
             m_field->name().c_str(), 
             fit->second);
@@ -213,7 +214,7 @@ void TaskGenerateExecModelStructStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef
     DEBUG_LEAVE("visitTypeFieldRef");
 }
 
-void TaskGenerateExecModelStructStruct::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {
+void TaskGenerateStructStruct::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {
     DEBUG_ENTER("visitTypeFieldRegGroup");
     m_out->indent();
     m_depth++;
@@ -223,7 +224,7 @@ void TaskGenerateExecModelStructStruct::visitTypeFieldRegGroup(arl::dm::ITypeFie
     DEBUG_LEAVE("visitTypeFieldRegGroup");
 }
 
-dmgr::IDebug *TaskGenerateExecModelStructStruct::m_dbg = 0;
+dmgr::IDebug *TaskGenerateStructStruct::m_dbg = 0;
 
 }
 }

@@ -32,7 +32,7 @@ namespace sw {
 TaskGenerateExecModelAddrClaim::TaskGenerateExecModelAddrClaim(
         TaskGenerateExecModel       *gen,
         IOutput                     *out_h,
-        IOutput                     *out_c) : TaskGenerateExecModelStruct(gen, out_h, out_c) {
+        IOutput                     *out_c) : TaskGenerateStruct(0, out_h, out_c) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelAddrClaim", gen->getDebugMgr());
 }
@@ -43,7 +43,7 @@ TaskGenerateExecModelAddrClaim::~TaskGenerateExecModelAddrClaim() {
 
 void TaskGenerateExecModelAddrClaim::generate_type(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("generate");
-    TaskGenerateExecModelAddrClaimStruct(m_gen, m_out_h).generate(t);
+//    TaskGenerateExecModelAddrClaimStruct(m_gen, m_out_h).generate(t);
     DEBUG_LEAVE("generate");
 }
 

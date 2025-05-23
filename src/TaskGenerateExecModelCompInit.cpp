@@ -31,7 +31,7 @@ namespace sw {
 
 
 TaskGenerateExecModelCompInit::TaskGenerateExecModelCompInit(
-    TaskGenerateExecModel *gen) : TaskGenerateExecModelStructInit(gen) {
+    TaskGenerateExecModel *gen) : TaskGenerateStructInit(0, 0, 0) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelCompInit", gen->getDebugMgr());
 
@@ -76,21 +76,21 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         }
          */
 
-        m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
-            m_gen->getNameMap()->getName(t).c_str(),
-            m_gen->getActorName().c_str(),
-            m_gen->getNameMap()->getName(t).c_str());
-        m_out_c->inc_ind();
-        m_depth++;
-        m_subcomp_init.clear();
-        m_subcomp_init.inc_ind();
-        for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
-            it=t->getFields().begin();
-            it!=t->getFields().end(); it++) {
-            (*it)->accept(m_this);
-        }
-        m_subcomp_init.dec_ind();
-        m_depth--;
+        // m_out_c->println("void %s__init(struct %s_s *actor, struct %s_s *this_p) {",
+        //     m_gen->getNameMap()->getName(t).c_str(),
+        //     m_gen->getActorName().c_str(),
+        //     m_gen->getNameMap()->getName(t).c_str());
+        // m_out_c->inc_ind();
+        // m_depth++;
+        // m_subcomp_init.clear();
+        // m_subcomp_init.inc_ind();
+        // for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
+        //     it=t->getFields().begin();
+        //     it!=t->getFields().end(); it++) {
+        //     (*it)->accept(m_this);
+        // }
+        // m_subcomp_init.dec_ind();
+        // m_depth--;
 
         /*
         if (init_down.size()) {
@@ -111,10 +111,10 @@ void TaskGenerateExecModelCompInit::visitDataTypeComponent(arl::dm::IDataTypeCom
         m_out_c->println("}");
     } else {
         // Call init for the compound field
-        m_subcomp_init.println("%s__init(actor, (struct %s_s *)&this_p->%s);",
-            m_gen->getNameMap()->getName(t).c_str(),
-            m_gen->getNameMap()->getName(t).c_str(),
-            m_field->name().c_str());
+        // m_subcomp_init.println("%s__init(actor, (struct %s_s *)&this_p->%s);",
+        //     m_gen->getNameMap()->getName(t).c_str(),
+        //     m_gen->getNameMap()->getName(t).c_str(),
+        //     m_field->name().c_str());
     }
 
     DEBUG_LEAVE("visitDataTypeComponent");

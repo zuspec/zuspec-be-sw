@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskBuildTypeInfo.h"
+#include "TaskGenerateExecBlockNB.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateStruct.h"
 #include "TaskGenerateStructDtor.h"
@@ -65,6 +66,7 @@ void TaskGenerateStruct::generate(vsc::dm::IDataTypeStruct *t) {
     generate_data_type(t, m_out_h);
     generate_source_includes(t, m_out_c);
     generate_dtor(t, m_out_c);
+    generate_exec_blocks(t, m_out_c);
     generate_type(t, m_out_h, m_out_c);
     generate_init(t, m_out_h, m_out_c);
     m_out_h->println("#endif /* INCLUDED_%s_H */", m_ctxt->nameMap()->getName(t).c_str());
@@ -132,6 +134,34 @@ void TaskGenerateStruct::generate_init(
 void TaskGenerateStruct::generate_dtor(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     TaskGenerateStructDtor(m_ctxt, out).generate(t);
     out->println("");
+}
+
+void TaskGenerateStruct::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out) {
+    DEBUG_ENTER("generate_exec_blocks");
+    arl::dm::IDataTypeArlStruct *arl_t = dynamic_cast<arl::dm::IDataTypeArlStruct *>(t);
+
+    if (arl_t) {
+        std::vector<arl::dm::ExecKindT> kinds = {
+            arl::dm::ExecKindT::PreSolve,
+            arl::dm::ExecKindT::PostSolve,
+            arl::dm::ExecKindT::PreBody
+        };
+        std::vector<std::string> names = {
+            "pre_solve",
+            "post_solve",
+            "pre_body"
+        };
+        for (auto kind = kinds.begin(); kind != kinds.end(); kind++) {
+            const std::vector<arl::dm::ITypeExecUP> &execs = arl_t->getExecs(*kind);
+            std::string tname = m_ctxt->nameMap()->getName(t);
+            std::string fname = names[(int)(kind-kinds.begin())];
+            TaskGenerateExecBlockNB(m_ctxt, 0, m_out_c).generate(
+                fname,
+                tname,
+                execs);
+        }
+    }
+    DEBUG_LEAVE("generate_exec_blocks");
 }
 
 }

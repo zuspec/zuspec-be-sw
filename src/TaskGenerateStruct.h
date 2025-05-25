@@ -65,6 +65,8 @@ public:
 
     virtual void generate_dtor(vsc::dm::IDataTypeStruct *t, IOutput *out);
 
+    virtual void generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out);
+
 protected:
     dmgr::IDebug                    *m_dbg;
     IContext                        *m_ctxt;    

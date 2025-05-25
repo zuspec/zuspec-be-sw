@@ -20,7 +20,7 @@
  */
 #pragma once
 #include "zsp/arl/dm/IDataTypeFunction.h"
-#include "TaskGenerateExecModelExecBlockNB.h"
+#include "TaskGenerateExecBlockNB.h"
 
 namespace zsp {
 namespace be {
@@ -28,7 +28,7 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelFuncNB : public TaskGenerateExecModelExecBlockNB {
+class TaskGenerateExecModelFuncNB : public TaskGenerateExecBlockNB {
 public:
     TaskGenerateExecModelFuncNB(
         TaskGenerateExecModel   *gen,

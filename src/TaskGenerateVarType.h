@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelVarType.h
+ * TaskGenerateVarType.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
@@ -29,16 +30,16 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelVarType :
+class TaskGenerateVarType :
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelVarType(
-        TaskGenerateExecModel       *gen,
+    TaskGenerateVarType(
+        IContext                    *ctxt,
         IOutput                     *out,
         bool                        fparam
     );
 
-    virtual ~TaskGenerateExecModelVarType();
+    virtual ~TaskGenerateVarType();
 
     void generate(vsc::dm::IDataType *t);
 
@@ -62,7 +63,7 @@ public:
 
 private:
     static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;
     IOutput                         *m_out;
     bool                            m_fparam;
 

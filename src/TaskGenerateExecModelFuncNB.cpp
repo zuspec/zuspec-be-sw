@@ -30,7 +30,7 @@ namespace sw {
 TaskGenerateExecModelFuncNB::TaskGenerateExecModelFuncNB(
     TaskGenerateExecModel       *gen,
     IGenRefExpr                 *refgen,
-    IOutput                     *out) : TaskGenerateExecModelExecBlockNB(gen, refgen, out) {
+    IOutput                     *out) : TaskGenerateExecBlockNB(0, refgen, out) {
 
 }
 

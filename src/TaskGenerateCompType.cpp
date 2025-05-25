@@ -1,5 +1,5 @@
 /*
- * TaskGenerateStructType.cpp
+ * TaskGenerateCompType.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
-#include "TaskGenerateStructType.h"
+#include "TaskGenerateCompType.h"
 
 
 namespace zsp {
@@ -27,22 +27,18 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateStructType::TaskGenerateStructType(
+TaskGenerateCompType::TaskGenerateCompType(
         IContext                    *ctxt, 
         IOutput                     *out_h,
-        IOutput                     *out_c) : 
-            m_dbg(0), m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateStructType", ctxt->getDebugMgr());
+        IOutput                     *out_c) : TaskGenerateStructType(ctxt, out_h, out_c) {
+
 }
 
-void TaskGenerateStructType::generate(vsc::dm::IDataTypeStruct *t) {
-    DEBUG_ENTER("generate");
-    generate_type_decl(t);
-    generate_type_inst(t);
-    DEBUG_LEAVE("generate");
+TaskGenerateCompType::~TaskGenerateCompType() {
+
 }
 
-void TaskGenerateStructType::generate_type_decl(vsc::dm::IDataTypeStruct *t) {
+void TaskGenerateCompType::generate_type_decl(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("generate_type_decl");
     m_out_h->println("typedef struct %s__type_s {", 
         m_ctxt->nameMap()->getName(t).c_str());
@@ -52,7 +48,7 @@ void TaskGenerateStructType::generate_type_decl(vsc::dm::IDataTypeStruct *t) {
         m_out_h->println("%s__type_t base;", 
             m_ctxt->nameMap()->getName(t->getSuper()).c_str());
     } else {
-        m_out_h->println("zsp_struct_type_t base;");
+        m_out_h->println("zsp_component_type_t base;");
     }
 
     // Must add method declarations (if applicable)
@@ -69,7 +65,7 @@ void TaskGenerateStructType::generate_type_decl(vsc::dm::IDataTypeStruct *t) {
     DEBUG_LEAVE("generate_type_decl");
 }
 
-void TaskGenerateStructType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
+void TaskGenerateCompType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("generate_type_inst");
 
     m_out_c->println("%s__type_t *%s__type() {",
@@ -91,6 +87,8 @@ void TaskGenerateStructType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
 
     m_out_c->println("((zsp_object_type_t *)&__type)->name = \"%s\";",
         m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_component_type_t *)&__type)->init = (zsp_component_init_f)&%s__init;",
+        m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("((zsp_object_type_t *)&__type)->dtor = (zsp_dtor_f)&%s__dtor;",
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("__init = 1;");
@@ -102,10 +100,6 @@ void TaskGenerateStructType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
     m_out_c->println("}");
 
     DEBUG_LEAVE("generate_type_inst");
-}
-
-TaskGenerateStructType::~TaskGenerateStructType() {
-
 }
 
 }

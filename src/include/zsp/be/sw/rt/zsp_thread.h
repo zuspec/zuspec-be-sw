@@ -1,3 +1,6 @@
+#ifndef INCLUDED_ZSP_THREAD_H
+#define INCLUDED_ZSP_THREAD_H
+
 #include <stdint.h>
 #include <stdarg.h>
 #include "zsp_alloc.h"
@@ -11,10 +14,10 @@ extern "C" {
 
 struct zsp_thread_s; 
 
-typedef struct zsp_frame_s *(zsp_task_func)(struct zsp_thread_s *, struct zsp_frame_s *, va_list *args);
+typedef struct zsp_frame_s *(*zsp_task_func)(struct zsp_thread_s *, struct zsp_frame_s *, va_list *args);
 
 typedef struct zsp_frame_s {
-    zsp_task_func       *func;
+    zsp_task_func       func;
     struct zsp_frame_s  *prev;
     uint32_t            sz;
     int32_t             idx;
@@ -48,16 +51,19 @@ typedef struct zsp_scheduler_s {
 } zsp_scheduler_t;
 
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc);
-zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func *func, ...);
+zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func func, ...);
 int zsp_scheduler_run(zsp_scheduler_t *sched);
-zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func *func, ...);
-zsp_frame_t *zsp_thread_alloc_frame( zsp_thread_t *thread, uint32_t sz, zsp_task_func *func);
+zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func func, ...);
+zsp_frame_t *zsp_thread_alloc_frame( zsp_thread_t *thread, uint32_t sz, zsp_task_func func);
 zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame);
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr_t ret);
-zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func *func, ...);
+zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_run(zsp_thread_t *thread);
 void zsp_thread_free(zsp_thread_t *thread);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* INCLUDED_ZSP_THREAD_H */
+

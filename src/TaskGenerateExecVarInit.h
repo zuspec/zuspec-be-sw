@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExecBlockNB.h
+ * TaskGenerateExecVarInit.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,11 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include <string>
-#include <vector>
-#include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
-#include "zsp/arl/dm/ITypeExec.h"
+#include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 
 namespace zsp {
@@ -32,26 +30,29 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExecBlockNB : 
+class TaskGenerateExecVarInit :
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelExecBlockNB(
-        TaskGenerateExecModel       *gen,
-        IGenRefExpr                 *refgen,
-        IOutput                     *out);
+    TaskGenerateExecVarInit(
+        IContext            *ctxt,
+        IOutput             *out
+    );
 
-    virtual ~TaskGenerateExecModelExecBlockNB();
+    virtual ~TaskGenerateExecVarInit();
 
-    void generate(
-        const std::string                           &fname,
-        const std::string                           &tname,
-        const std::vector<arl::dm::ITypeExecUP>     &execs);
+    virtual void generate(arl::dm::ITypeProcStmtVarDecl *var);
 
-protected:
-    static dmgr::IDebug         *m_dbg;
-    TaskGenerateExecModel       *m_gen;
-    IGenRefExpr                 *m_refgen;
-    IOutput                     *m_out;
+    virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;
+
+    virtual void visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) override;
+
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
+
+private:
+    IContext                            *m_ctxt;
+    IOutput                             *m_out;
+    arl::dm::ITypeProcStmtVarDecl       *m_var;
+
 };
 
 }

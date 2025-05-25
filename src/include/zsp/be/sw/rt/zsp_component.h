@@ -2,16 +2,24 @@
 #define INCLUDED_ZSP_COMPONENT_H
 #include <stdint.h>
 #include "zsp/be/sw/rt/zsp_alloc.h"
-#include "zsp/be/sw/rt/zsp_object.h"
+#include "zsp/be/sw/rt/zsp_struct.h"
 
 #ifdef _cplusplus
 extern "C" {
 #endif
 
 struct zsp_component_s;
+struct zsp_actor_s;
+
+typedef void (*zsp_component_init_f)(
+    struct zsp_actor_s *actor, 
+    struct zsp_component_s *comp,
+    const char *name,
+    struct zsp_component_s *parent);
 
 typedef struct zsp_component_type_s {
-    zsp_object_type_t   __base;
+    zsp_object_type_t       __base;
+    zsp_component_init_f    init;
 
     void (*init_down)(struct zsp_component_s *comp);
     void (*init_up)(struct zsp_component_s *comp);
@@ -27,7 +35,7 @@ typedef struct zsp_component_s {
 } zsp_component_t;
 
 void zsp_component_init(
-    zsp_alloc_t         *alloc,
+    struct zsp_actor_s  *actor,
     zsp_component_t     *comp,
     const char          *name,
     zsp_component_t     *parent);

@@ -23,7 +23,7 @@
 #include "GenRefExprExecModel.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelCompExecInit.h"
-#include "TaskGenerateExecModelExecBlockNB.h"
+#include "TaskGenerateExecBlockNB.h"
 
 
 namespace zsp {
@@ -53,23 +53,23 @@ void TaskGenerateExecModelCompExecInit::generate (arl::dm::IDataTypeComponent *t
     const std::vector<arl::dm::ITypeExecUP> &init_up = 
         t->getExecs(arl::dm::ExecKindT::InitUp);
 
-    // First, generate exec init_* functions if we'll be calling them
-    if (init_down.size()) {
-        // Invoke the init_down exec block
-        TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out).generate(
-            m_gen->getNameMap()->getName(t) + "__init_down",
-            "struct " + m_gen->getNameMap()->getName(t) + "_s",
-            init_down
-        );
-    }
-    if (init_up.size()) {
-        // Invoke the init_up exec block
-        TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out).generate(
-            m_gen->getNameMap()->getName(t) + "__init_up",
-            "struct " + m_gen->getNameMap()->getName(t) + "_s",
-            init_down
-        );
-    }
+    // // First, generate exec init_* functions if we'll be calling them
+    // if (init_down.size()) {
+    //     // Invoke the init_down exec block
+    //     TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out).generate(
+    //         m_gen->getNameMap()->getName(t) + "__init_down",
+    //         "struct " + m_gen->getNameMap()->getName(t) + "_s",
+    //         init_down
+    //     );
+    // }
+    // if (init_up.size()) {
+    //     // Invoke the init_up exec block
+    //     TaskGenerateExecModelExecBlockNB(m_gen, &refgen, m_out).generate(
+    //         m_gen->getNameMap()->getName(t) + "__init_up",
+    //         "struct " + m_gen->getNameMap()->getName(t) + "_s",
+    //         init_down
+    //     );
+    // }
 
     m_out->println("void %s__exec_init(%s_t *actor, %s_init_t *init_data, zsp_rt_aspace_idx_t *__aspace, %s_t *this_p) {",
         m_gen->getNameMap()->getName(t).c_str(),

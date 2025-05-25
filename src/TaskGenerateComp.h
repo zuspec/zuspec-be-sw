@@ -48,7 +48,19 @@ public:
 
 //    void generate(arl::dm::IDataTypeComponent *comp_t);
 
+    virtual void generate_init(
+        vsc::dm::IDataTypeStruct *t, 
+        IOutput                 *out_h,
+        IOutput                 *out_c) override;
+
+    virtual void generate_type(
+        vsc::dm::IDataTypeStruct    *t, 
+        IOutput                     *out_h,
+        IOutput                     *out_c) override;
+
     virtual void generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
+
+    virtual void generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
 
 //	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 

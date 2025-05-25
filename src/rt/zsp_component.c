@@ -1,4 +1,5 @@
 
+#include "zsp/be/sw/rt/zsp_actor.h"
 #include "zsp/be/sw/rt/zsp_component.h"
 #include <string.h>
 #include <stdlib.h>
@@ -35,7 +36,7 @@ zsp_component_type_t *zsp_component__type() {
 }
 
 void zsp_component_init(
-    zsp_alloc_t         *alloc,
+    zsp_actor_t         *actor,
     zsp_component_t     *comp,
     const char          *name,
     zsp_component_t     *parent) {

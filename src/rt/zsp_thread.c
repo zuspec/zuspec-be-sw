@@ -7,7 +7,7 @@ void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
     sched->tail = 0;
 }
 
-zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func *func, ...) {
+zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func func, ...) {
     va_list args;
     va_start(args, func);
     zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
@@ -80,7 +80,7 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     return (sched->next)?1:0;
 }
 
-zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func *func, ...) {
+zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func func, ...) {
     va_list args;
     va_start(args, func);
     zsp_thread_t *thread = (zsp_thread_t *)alloc->alloc(alloc, sizeof(zsp_thread_t));
@@ -108,7 +108,7 @@ void zsp_thread_free(zsp_thread_t *thread) {
 zsp_frame_t *zsp_thread_alloc_frame(
     zsp_thread_t    *thread, 
     uint32_t        sz,
-    zsp_task_func   *func) {
+    zsp_task_func   func) {
     zsp_frame_t *ret;
 
     uint32_t total_sz = sizeof(zsp_frame_t) + sz;
@@ -134,7 +134,7 @@ zsp_frame_t *zsp_thread_alloc_frame(
 }
 
 
-zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func *func, ...) {
+zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...) {
     va_list args;
     va_start(args, func);
     zsp_frame_t *ret;

@@ -22,7 +22,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecBlockB.h"
 #include "TaskGenerateExecModelExecScopeB.h"
-#include "TaskGenerateExecModelExecScopeNB.h"
+#include "TaskGenerateExecScopeNB.h"
 #include "TaskCheckIsExecBlocking.h"
 
 
@@ -109,8 +109,8 @@ void TaskGenerateExecModelExecBlockB::generate(
             m_out_c->println("    break;");
             m_out_c->println("}");
         } else {
-            TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out_c).generate(
-                exec->getBody(), false);
+            // TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out_c).generate(
+            //     exec->getBody(), false);
         }
 
         m_out_c->dec_ind();

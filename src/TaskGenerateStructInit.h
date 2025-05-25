@@ -23,6 +23,7 @@
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
+#include "TypeInfo.h"
 
 namespace zsp {
 namespace be {
@@ -30,7 +31,8 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateStructInit : public arl::dm::VisitorBase {
+class TaskGenerateStructInit : 
+    public arl::dm::VisitorBase {
 public:
     TaskGenerateStructInit(
         IContext                *ctxt,
@@ -38,10 +40,14 @@ public:
         IOutput                 *out_c);  
 
     virtual ~TaskGenerateStructInit();
-    
+
+    virtual const char *default_base_init() const { return "zsp_struct_init"; }
+
     virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
 
     virtual void generate_core(vsc::dm::IDataTypeStruct *i);
+
+    virtual void generate_default_init(vsc::dm::IDataTypeStruct *i);
 
     virtual void generate(vsc::dm::IDataTypeStruct *i);
 

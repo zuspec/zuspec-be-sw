@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExecScopeNB.h
+ * TaskGenerateExecScopeNB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -23,6 +23,8 @@
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/ITypeExec.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 #include "OutputExecScope.h"
 
@@ -33,14 +35,14 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExecScopeNB : public virtual arl::dm::VisitorBase {
+class TaskGenerateExecScopeNB : public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelExecScopeNB(
-        TaskGenerateExecModel   *gen,
+    TaskGenerateExecScopeNB(
+        IContext                *gen,
         IGenRefExpr             *refgen,
         IOutput                 *out);
 
-    virtual ~TaskGenerateExecModelExecScopeNB();
+    virtual ~TaskGenerateExecScopeNB();
 
     virtual void generate(
         arl::dm::ITypeExec                      *i,
@@ -72,7 +74,7 @@ public:
 
 protected:
     dmgr::IDebug                        *m_dbg;
-    TaskGenerateExecModel               *m_gen;
+    IContext                            *m_ctxt;
     IGenRefExpr                         *m_refgen;
     IOutput                             *m_out;
     std::vector<OutputExecScope>        m_out_s;

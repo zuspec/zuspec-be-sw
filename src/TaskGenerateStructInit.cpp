@@ -51,11 +51,22 @@ void TaskGenerateStructInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
     m_out_c->inc_ind();
+
+    if (i->getSuper()) {
+        m_out_c->println("%s__init(actor, &this_p->super);",
+            m_ctxt->nameMap()->getName(i->getSuper()).c_str());
+    } else {
+        m_out_c->println("%s(actor, &this_p->super);", default_base_init());
+    }
 }
 
 void TaskGenerateStructInit::generate_core(vsc::dm::IDataTypeStruct *i) {
     m_out_c->println("((zsp_object_t *)this_p)->type = (zsp_object_type_t *)%s__type();",
         m_ctxt->nameMap()->getName(i).c_str());
+}
+
+void TaskGenerateStructInit::generate_default_init(vsc::dm::IDataTypeStruct *i) {
+    m_out_c->println("zsp_struct_init(actor, &this_p->super);", default_base_init());
 }
 
 void TaskGenerateStructInit::generate(vsc::dm::IDataTypeStruct *i) {

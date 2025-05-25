@@ -1,3 +1,6 @@
+#ifndef INCLUDED_ZSP_ALLOC_H
+#define INCLUDED_ZSP_ALLOC_H
+
 #include <sys/types.h>
 
 #ifdef __cplusplus
@@ -20,3 +23,4 @@ void zsp_alloc_malloc_init(zsp_alloc_t *alloc);
 }
 #endif 
 
+#endif /* INCLUDED_ZSP_ALLOC_H */

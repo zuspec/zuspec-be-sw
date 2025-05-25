@@ -24,7 +24,7 @@
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecScopeB.h"
-#include "TaskGenerateExecModelExecScopeNB.h"
+#include "TaskGenerateExecScopeNB.h"
 
 
 namespace zsp {
@@ -102,10 +102,10 @@ void TaskGenerateExecModelExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcS
             if (is_b.check(it->get())) {
                 (*it)->accept(m_this);
             } else {
-                TaskGenerateExecModelExecScopeNB(
-                    m_gen, 
-                    m_refgen, 
-                    &out_c).generate(it->get(), false);
+                // TaskGenerateExecModelExecScopeNB(
+                //     m_gen, 
+                //     m_refgen, 
+                //     &out_c).generate(it->get(), false);
             }
 
             out_c.dec_ind();
@@ -134,10 +134,10 @@ void TaskGenerateExecModelExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcS
         m_out_c_s.back()->writes(out_c.getValue());
     } else {
         // This will always be an interior scope
-        TaskGenerateExecModelExecScopeNB(
-            m_gen, 
-            m_refgen, 
-            m_out_c_s.back()).generate(t, false);
+        // TaskGenerateExecModelExecScopeNB(
+        //     m_gen, 
+        //     m_refgen, 
+        //     m_out_c_s.back()).generate(t, false);
     }
 
     DEBUG_LEAVE("visitTypeProcStmtScope");

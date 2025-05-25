@@ -25,3 +25,8 @@ zsp_struct_type_t *zsp_struct__type(void) {
 
     return &__type;
 }
+
+void zsp_struct_init(struct zsp_actor_s *actor, struct zsp_struct_s *this_p) {
+
+}
+

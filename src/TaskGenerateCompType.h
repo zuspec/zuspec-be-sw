@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelCompInit.h
+ * TaskGenerateCompType.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateStructInit.h"
-#include "OutputStr.h"
+#include "TaskGenerateStructType.h"
 
 namespace zsp {
 namespace be {
@@ -28,26 +27,19 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelCompInit : public TaskGenerateStructInit {
+class TaskGenerateCompType :
+    public virtual TaskGenerateStructType {
 public:
-    TaskGenerateExecModelCompInit(TaskGenerateExecModel *gen);
+    TaskGenerateCompType(
+        IContext                    *ctxt, 
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelCompInit();
+    virtual ~TaskGenerateCompType();
 
-    // Components aren't destructed in the same way that 
-    virtual void generate_core(vsc::dm::IDataTypeStruct *i) override { }
+    virtual void generate_type_decl(vsc::dm::IDataTypeStruct *t) override;
 
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
-
-private:
-    enum class Mode {
-        DataFieldInit,
-        SubCompInit
-    };
-
-private:
-    OutputStr           m_subcomp_init;
-    Mode                m_mode;
+    virtual void generate_type_inst(vsc::dm::IDataTypeStruct *t) override;
 
 };
 

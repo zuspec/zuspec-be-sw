@@ -33,6 +33,8 @@ typedef struct zsp_struct_s {
 #define zsp_struct_post_solve(actor, this_p) \
     zsp_struct_call(post_solve, actor, this_p)
 
+void zsp_struct_init(struct zsp_actor_s *actor, struct zsp_struct_s *this_p);
+
 #ifdef __cplusplus
 }
 #endif

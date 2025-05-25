@@ -30,7 +30,7 @@
 #include "TaskGenerateExecModelActionStruct.h"
 #include "TaskGenerateExecModelActivity.h"
 #include "TaskGenerateExecModelExecBlockB.h"
-#include "TaskGenerateExecModelExecBlockNB.h"
+#include "TaskGenerateExecBlockNB.h"
 
 
 namespace zsp {
@@ -94,38 +94,38 @@ void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
         } else {
             DEBUG("Body is non-blocking");
             tname = "struct " + m_gen->getNameMap()->getName(action) + "_s";
-            TaskGenerateExecModelExecBlockNB(
-                m_gen, 
-                &refgen,
-                m_gen->getOutC()).generate(
-                    fname,
-                    tname,
-                    action->getExecs(arl::dm::ExecKindT::Body));
+            // TaskGenerateExecModelExecBlockNB(
+            //     m_gen, 
+            //     &refgen,
+            //     m_gen->getOutC()).generate(
+            //         fname,
+            //         tname,
+            //         action->getExecs(arl::dm::ExecKindT::Body));
         }
     }
     if (action->getExecs(arl::dm::ExecKindT::PreSolve).size()) {
         DEBUG("generate pre_solve function");
         std::string fname = m_gen->getNameMap()->getName(action) + "__pre_solve";
         std::string tname = "struct " + m_gen->getNameMap()->getName(action) + "_s";
-        TaskGenerateExecModelExecBlockNB(
-            m_gen, 
-            &refgen,
-            m_gen->getOutC()).generate(
-                fname,
-                tname,
-                action->getExecs(arl::dm::ExecKindT::PreSolve));
+        // TaskGenerateExecModelExecBlockNB(
+        //     m_gen, 
+        //     &refgen,
+        //     m_gen->getOutC()).generate(
+        //         fname,
+        //         tname,
+        //         action->getExecs(arl::dm::ExecKindT::PreSolve));
     }
     if (action->getExecs(arl::dm::ExecKindT::PostSolve).size()) {
         DEBUG("generate post_solve function");
         std::string fname = m_gen->getNameMap()->getName(action) + "__post_solve";
         std::string tname = "struct " + m_gen->getNameMap()->getName(action) + "_s";
-        TaskGenerateExecModelExecBlockNB(
-            m_gen, 
-            &refgen,
-            m_gen->getOutC()).generate(
-                fname,
-                tname,
-                action->getExecs(arl::dm::ExecKindT::PostSolve));
+        // TaskGenerateExecModelExecBlockNB(
+        //     m_gen, 
+        //     &refgen,
+        //     m_gen->getOutC()).generate(
+        //         fname,
+        //         tname,
+        //         action->getExecs(arl::dm::ExecKindT::PostSolve));
     }
     if (arl::dm::TaskActionHasMemClaim().check(action)) {
         TaskGenerateExecModelActionAlloc(m_gen, m_gen->getOutC()).generate(action);

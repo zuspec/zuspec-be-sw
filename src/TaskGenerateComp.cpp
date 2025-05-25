@@ -23,8 +23,10 @@
 #include "TaskGenerateComp.h"
 #include "TaskGenerateCompStruct.h"
 #include "TaskGenerateExecModelCompExecInit.h"
-#include "TaskGenerateExecModelCompInit.h"
+#include "TaskGenerateCompInit.h"
 #include "TaskGenerateCompStruct.h"
+#include "TaskGenerateCompType.h"
+#include "TaskGenerateExecBlockNB.h"
 
 
 namespace zsp {
@@ -45,10 +47,50 @@ TaskGenerateComp::~TaskGenerateComp() {
 
 }
 
+void TaskGenerateComp::generate_init(
+        vsc::dm::IDataTypeStruct *t, 
+        IOutput                 *out_h,
+        IOutput                 *out_c) {
+    TaskGenerateCompInit(m_ctxt, m_info, out_h, out_c).generate(t);
+}
+
 void TaskGenerateComp::generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     DEBUG_ENTER("generate_type");
     TaskGenerateCompStruct(m_ctxt, m_info, out).generate(t);
     DEBUG_LEAVE("generate_type");
+}
+
+void TaskGenerateComp::generate_type(
+        vsc::dm::IDataTypeStruct    *t, 
+        IOutput                     *out_h,
+        IOutput                     *out_c) {
+    TaskGenerateCompType(m_ctxt, out_h, out_c).generate(t);
+}
+
+void TaskGenerateComp::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out) {
+    DEBUG_ENTER("generate_exec_blocks");
+    arl::dm::IDataTypeArlStruct *arl_t = dynamic_cast<arl::dm::IDataTypeArlStruct *>(t);
+
+    if (arl_t) {
+        std::vector<arl::dm::ExecKindT> kinds = {
+            arl::dm::ExecKindT::InitDown,
+            arl::dm::ExecKindT::InitUp
+        };
+        std::vector<std::string> names = {
+            "init_down",
+            "init_up"
+        };
+        for (auto kind = kinds.begin(); kind != kinds.end(); kind++) {
+            const std::vector<arl::dm::ITypeExecUP> &execs = arl_t->getExecs(*kind);
+            std::string tname = m_ctxt->nameMap()->getName(t);
+            std::string fname = names[(int)(kind-kinds.begin())];
+            TaskGenerateExecBlockNB(m_ctxt, 0, m_out_c).generate(
+                fname,
+                tname,
+                execs);
+        }
+    }
+    DEBUG_LEAVE("generate_exec_blocks");
 }
 
 // void TaskGenerateComp::generate(arl::dm::IDataTypeComponent *comp_t) {

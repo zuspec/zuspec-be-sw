@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelVarType.cpp
+ * TaskGenerateVarType.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelVarType.h"
+#include "TaskGenerateVarType.h"
 
 
 namespace zsp {
@@ -28,36 +28,36 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelVarType::TaskGenerateExecModelVarType(
-    TaskGenerateExecModel       *gen,
+TaskGenerateVarType::TaskGenerateVarType(
+    IContext                    *ctxt,
     IOutput                     *out,
-    bool                        fparam) : m_gen(gen), m_out(out), m_fparam(fparam) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelVarType", gen->getDebugMgr());
+    bool                        fparam) : m_ctxt(ctxt), m_out(out), m_fparam(fparam) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateVarType", ctxt->getDebugMgr());
 }
 
-TaskGenerateExecModelVarType::~TaskGenerateExecModelVarType() {
+TaskGenerateVarType::~TaskGenerateVarType() {
 
 }
 
-void TaskGenerateExecModelVarType::generate(vsc::dm::IDataType *t) {
+void TaskGenerateVarType::generate(vsc::dm::IDataType *t) {
     DEBUG_ENTER("generate");
     t->accept(m_this);
     DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelVarType::visitDataTypeAction(arl::dm::IDataTypeAction *i) { }
+void TaskGenerateVarType::visitDataTypeAction(arl::dm::IDataTypeAction *i) { }
 
-void TaskGenerateExecModelVarType::visitDataTypeArray(vsc::dm::IDataTypeArray *t) { } 
+void TaskGenerateVarType::visitDataTypeArray(vsc::dm::IDataTypeArray *t) { } 
 
-void TaskGenerateExecModelVarType::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
+void TaskGenerateVarType::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
 
 }
 
-void TaskGenerateExecModelVarType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { }
+void TaskGenerateVarType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { }
 
-void TaskGenerateExecModelVarType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) { }
+void TaskGenerateVarType::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) { }
 
-void TaskGenerateExecModelVarType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) { 
+void TaskGenerateVarType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) { 
     DEBUG_ENTER("visitDataTypeInt");
     const char *tname = 0;
 
@@ -76,17 +76,17 @@ void TaskGenerateExecModelVarType::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     DEBUG_LEAVE("visitDataTypeInt");
 }
 
-void TaskGenerateExecModelVarType::visitDataTypePtr(vsc::dm::IDataTypePtr *t) { }
+void TaskGenerateVarType::visitDataTypePtr(vsc::dm::IDataTypePtr *t) { }
 
-void TaskGenerateExecModelVarType::visitDataTypeString(vsc::dm::IDataTypeString *t) { }
+void TaskGenerateVarType::visitDataTypeString(vsc::dm::IDataTypeString *t) { }
 
-void TaskGenerateExecModelVarType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) { 
+void TaskGenerateVarType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) { 
     m_out->write("struct %s_s%s",
-        m_gen->getNameMap()->getName(t).c_str(),
+        m_ctxt->nameMap()->getName(t).c_str(),
         (m_fparam)?" *":" ");
 }
 
-dmgr::IDebug *TaskGenerateExecModelVarType::m_dbg = 0;
+dmgr::IDebug *TaskGenerateVarType::m_dbg = 0;
 
 }
 }

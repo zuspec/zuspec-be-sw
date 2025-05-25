@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelExecBlockNB.cpp
+ * TaskGenerateExecBlockNB.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,8 +20,8 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelExecBlockNB.h"
-#include "TaskGenerateExecModelExecScopeNB.h"
+#include "TaskGenerateExecBlockNB.h"
+#include "TaskGenerateExecScopeNB.h"
 
 
 namespace zsp {
@@ -29,38 +29,37 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelExecBlockNB::TaskGenerateExecModelExecBlockNB(
-        TaskGenerateExecModel       *gen,
+TaskGenerateExecBlockNB::TaskGenerateExecBlockNB(
+        IContext                    *ctxt,
         IGenRefExpr                 *refgen,
         IOutput                     *out) : 
-        m_gen(gen), m_refgen(refgen), m_out(out) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecBlockNB", gen->getDebugMgr());
+        m_ctxt(ctxt), m_refgen(refgen), m_out(out) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecBlockNB", ctxt->getDebugMgr());
 }
 
-TaskGenerateExecModelExecBlockNB::~TaskGenerateExecModelExecBlockNB() {
+TaskGenerateExecBlockNB::~TaskGenerateExecBlockNB() {
 
 }
 
-void TaskGenerateExecModelExecBlockNB::generate(
+void TaskGenerateExecBlockNB::generate(
         const std::string                           &fname,
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
-    m_gen->getOutC()->println("static void %s(struct %s_s *actor, %s *this_p) {",
+    m_out->println("static void %s(actor_t *actor, %s *this_p) {",
         fname.c_str(),
-        m_gen->getActorName().c_str(),
         tname.c_str());
-    m_gen->getOutC()->inc_ind();
+    m_out->inc_ind();
 
-    TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out).generate(
+    TaskGenerateExecScopeNB(m_ctxt, m_refgen, m_out).generate(
         execs,
         false
     );
 
-    m_gen->getOutC()->dec_ind();
-    m_gen->getOutC()->println("}");
+    m_out->dec_ind();
+    m_out->println("}");
 }
 
-dmgr::IDebug *TaskGenerateExecModelExecBlockNB::m_dbg = 0;
+dmgr::IDebug *TaskGenerateExecBlockNB::m_dbg = 0;
 
 }
 }

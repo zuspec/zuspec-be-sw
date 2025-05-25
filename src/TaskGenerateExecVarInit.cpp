@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelExecVarInit.cpp
+ * TaskGenerateExecVarInit.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "zsp/arl/dm/ITypeProcStmtVarDecl.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelExecVarInit.h"
+#include "TaskGenerateExecVarInit.h"
 
 
 namespace zsp {
@@ -28,36 +28,36 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelExecVarInit::TaskGenerateExecModelExecVarInit(
-    TaskGenerateExecModel       *gen,
-    IOutput                     *out) : m_gen(gen), m_out(out) {
+TaskGenerateExecVarInit::TaskGenerateExecVarInit(
+    IContext       *ctxt,
+    IOutput        *out) : m_ctxt(ctxt), m_out(out) {
 
 }
 
-TaskGenerateExecModelExecVarInit::~TaskGenerateExecModelExecVarInit() {
+TaskGenerateExecVarInit::~TaskGenerateExecVarInit() {
 
 }
 
-void TaskGenerateExecModelExecVarInit::generate(arl::dm::ITypeProcStmtVarDecl *var) {
+void TaskGenerateExecVarInit::generate(arl::dm::ITypeProcStmtVarDecl *var) {
     m_var = var;
     var->getDataType()->accept(m_this);
 }
 
-void TaskGenerateExecModelExecVarInit::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
+void TaskGenerateExecVarInit::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
     /*
     m_out->println("%s = {.store=0, .offset=0};",
         m_var->name().c_str());
      */
 }
 
-void TaskGenerateExecModelExecVarInit::visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) {
+void TaskGenerateExecVarInit::visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *t) {
     m_out->println("%s = (zsp_rt_addr_handle_t){.store=0, .offset=0};",
         m_var->name().c_str());
 }
 
-void TaskGenerateExecModelExecVarInit::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
+void TaskGenerateExecVarInit::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     m_out->println("%s__init(actor, &%s);",
-        m_gen->getNameMap()->getName(t).c_str(),
+        m_ctxt->nameMap()->getName(t).c_str(),
         m_var->name().c_str());
 }
 

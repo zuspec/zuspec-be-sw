@@ -23,7 +23,7 @@
 #include "zsp/arl/dm/impl/TaskIsPackedStruct.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelRegRwCall.h"
-#include "TaskGenerateExecModelExprNB.h"
+#include "TaskGenerateExprNB.h"
 
 
 namespace zsp {
@@ -100,7 +100,7 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
 
     out->write("%s(&", func);
 
-    TaskGenerateExecModelExprNB(gen, refgen, out).generate(
+    TaskGenerateExprNB(gen, refgen, out).generate(
         call->getContext());
     if (call->getParameters().size()) {
         out->write(", ");
@@ -112,7 +112,7 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
         if (it != call->getParameters().begin()) {
             out->write(", ");
         }
-        TaskGenerateExecModelExprNB(gen, refgen, out).generate(it->get());
+        TaskGenerateExprNB(gen, refgen, out).generate(it->get());
 
         if (write && sval && it+1 == call->getParameters().end()) {
             out->write(".val");

@@ -23,6 +23,7 @@
 #include "vsc/dm/IDataTypeStruct.h"
 #include "zsp/be/sw/IOutput.h"
 #include "zsp/be/sw/IContext.h"
+#include "TypeInfo.h"
 
 namespace zsp {
 namespace be {
@@ -33,7 +34,8 @@ class TaskGenerateExecModel;
 class TaskGenerateStruct {
 public:
     TaskGenerateStruct(
-        IContext                    *ctxt, 
+        IContext                    *ctxt,
+        TypeInfo                    *info,
         IOutput                     *out_h,
         IOutput                     *out_c);
 
@@ -59,11 +61,14 @@ public:
         IOutput                     *out_h,
         IOutput                     *out_c);
 
+    virtual const char *default_base_header() const { return "zsp_struct.h"; }
+
     virtual void generate_dtor(vsc::dm::IDataTypeStruct *t, IOutput *out);
 
 protected:
     dmgr::IDebug                    *m_dbg;
     IContext                        *m_ctxt;    
+    TypeInfo                        *m_info;
     IOutput                         *m_out_h;
     IOutput                         *m_out_c;
 

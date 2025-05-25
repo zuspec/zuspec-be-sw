@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelExprVal.cpp
+ * TaskGenerateExprVal.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -27,51 +27,56 @@
 #include "vsc/dm/impl/ValRefStr.h"
 #include "vsc/dm/impl/ValRefStruct.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelExprVal.h"
+#include "TaskGenerateExprVal.h"
 
 
 namespace zsp {
 namespace be {
 namespace sw {
 
+TaskGenerateExprVal::TaskGenerateExprVal(
+        IContext       *ctxt,
+        IOutput        *out) : m_ctxt(ctxt), m_out(out) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExprVal", ctxt->getDebugMgr());
+}
 
-TaskGenerateExecModelExprVal::TaskGenerateExecModelExprVal(
+TaskGenerateExprVal::TaskGenerateExprVal(
         TaskGenerateExecModel       *gen,
-        IOutput                     *out) : m_gen(gen), m_out(out) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExprVal", gen->getDebugMgr());
+        IOutput                     *out) : m_ctxt(0), m_out(out) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExprVal", gen->getDebugMgr());
 }
 
-TaskGenerateExecModelExprVal::~TaskGenerateExecModelExprVal() {
+TaskGenerateExprVal::~TaskGenerateExprVal() {
 
 }
 
-void TaskGenerateExecModelExprVal::generate(vsc::dm::ITypeExprVal *e) {
+void TaskGenerateExprVal::generate(vsc::dm::ITypeExprVal *e) {
     DEBUG_ENTER("generate");
     m_val = e->val();
     e->type()->accept(m_this);
     DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypeArray(vsc::dm::IDataTypeArray *t) { 
+void TaskGenerateExprVal::visitDataTypeArray(vsc::dm::IDataTypeArray *t) { 
     DEBUG_ENTER("visitDataTypeArray");
     DEBUG("TODO: visitDataTypeArray");
     DEBUG_LEAVE("visitDataTypeArray");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypeBool(vsc::dm::IDataTypeBool *t) { 
+void TaskGenerateExprVal::visitDataTypeBool(vsc::dm::IDataTypeBool *t) { 
     DEBUG_ENTER("visitDataTypeBool");
     vsc::dm::ValRefBool vb(m_val);
     m_out->write("%s", vb.get_val()?"true":"false");
     DEBUG_LEAVE("visitDataTypeBool");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) { 
+void TaskGenerateExprVal::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) { 
     DEBUG_ENTER("visitDataTypeEnum");
     DEBUG("TODO: visitDataTypeEnum");
     DEBUG_LEAVE("visitDataTypeEnum");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypeInt(vsc::dm::IDataTypeInt *t) { 
+void TaskGenerateExprVal::visitDataTypeInt(vsc::dm::IDataTypeInt *t) { 
     DEBUG_ENTER("visitDataTypeInt");
     vsc::dm::ValRefInt vi(m_val);
     if (t->isSigned()) {
@@ -82,20 +87,20 @@ void TaskGenerateExecModelExprVal::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     DEBUG_LEAVE("visitDataTypeInt");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypePtr(vsc::dm::IDataTypePtr *t) { 
+void TaskGenerateExprVal::visitDataTypePtr(vsc::dm::IDataTypePtr *t) { 
     DEBUG_ENTER("visitDataTypePtr");
     DEBUG("TODO: visitDataTypePtr");
     DEBUG_LEAVE("visitDataTypePtr");
 }
 
-void TaskGenerateExecModelExprVal::visitDataTypeString(vsc::dm::IDataTypeString *t) { 
+void TaskGenerateExprVal::visitDataTypeString(vsc::dm::IDataTypeString *t) { 
     DEBUG_ENTER("visitDataTypeString");
     vsc::dm::ValRefStr vs(m_val);
     m_out->write("\"%s\"", vs.val());
     DEBUG_LEAVE("visitDataTypeString");
 }
 
-dmgr::IDebug *TaskGenerateExecModelExprVal::m_dbg = 0;
+dmgr::IDebug *TaskGenerateExprVal::m_dbg = 0;
 
 }
 }

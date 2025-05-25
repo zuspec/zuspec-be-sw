@@ -1,5 +1,5 @@
-/**
- * TaskGenerateExecModelCompStruct.h
+/*
+ * TypeInfo.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,39 +16,32 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "zsp/be/sw/IContext.h"
-#include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateStructStruct.h"
+#include "TypeInfo.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+TypeInfo::TypeInfo(vsc::dm::IDataTypeStruct *t) : m_type(t) {
 
-class TaskGenerateExecModelCompStruct : 
-    public virtual TaskGenerateStructStruct {
-public:
-    TaskGenerateExecModelCompStruct(
-        IContext   *gen,
-        IOutput    *out);
+}
 
-    virtual ~TaskGenerateExecModelCompStruct();
+TypeInfo::~TypeInfo() {
 
-    virtual void generate_prefix(vsc::dm::IDataTypeStruct *i) override;
+}
 
-    virtual void generate_dtor(vsc::dm::IDataTypeStruct *i) override { }
+bool TypeInfo::addReferencedValType(vsc::dm::IDataTypeStruct *t) {
+    return m_referenced_val_types.insert(t).second;
+}
 
-    virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
-
-
-};
+bool TypeInfo::addReferencedRefType(vsc::dm::IDataTypeStruct *t) {
+    return m_referenced_val_types.insert(t).second;
+}
 
 }
 }
 }
-
-

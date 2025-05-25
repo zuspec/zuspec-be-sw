@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelComponent.h
+ * TaskGenerateComp.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -26,6 +26,7 @@
 #include "zsp/arl/dm/IDataTypeAction.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "OutputStr.h"
+#include "TaskGenerateStruct.h"
 
 namespace zsp {
 namespace be {
@@ -34,15 +35,24 @@ namespace sw {
 class TaskGenerateExecModel;
 
 
-class TaskGenerateExecModelComponent : public virtual arl::dm::VisitorBase {
+class TaskGenerateComp : 
+    public virtual TaskGenerateStruct {
 public:
-    TaskGenerateExecModelComponent(TaskGenerateExecModel *gen);
+    TaskGenerateComp(
+        IContext        *ctxt,
+        TypeInfo        *info,
+        IOutput         *out_h,
+        IOutput         *out_c);
 
-    virtual ~TaskGenerateExecModelComponent();
+    virtual ~TaskGenerateComp();
 
-    void generate(arl::dm::IDataTypeComponent *comp_t);
+//    void generate(arl::dm::IDataTypeComponent *comp_t);
 
-	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+    virtual void generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
+
+//	virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+    virtual const char *default_base_header() const { return "zsp_component.h"; }
 
 private:
     enum class Mode {
@@ -52,10 +62,6 @@ private:
 
 private:
     static dmgr::IDebug                         *m_dbg;
-    TaskGenerateExecModel                       *m_gen;
-    IOutput                                     *m_out_c;
-    IOutput                                     *m_out_h;
-    IOutput                                     *m_out_h_prv;
     Mode                                        m_mode;
     std::unordered_set<vsc::dm::IDataType *>    m_decl_s;
 

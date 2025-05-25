@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExprParamNB.h
+ * TaskGenerateCompStruct.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateExprNB.h"
+#include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
+#include "TaskGenerateStructStruct.h"
 
 namespace zsp {
 namespace be {
@@ -27,21 +29,22 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelExprParamNB :
-    public virtual TaskGenerateExprNB{
+class TaskGenerateCompStruct : 
+    public virtual TaskGenerateStructStruct {
 public:
-    TaskGenerateExecModelExprParamNB(
-    TaskGenerateExecModel       *gen,
-    IGenRefExpr                 *refgen,
-    IOutput                     *out);
+    TaskGenerateCompStruct(
+        IContext   *gen,
+        TypeInfo   *info,
+        IOutput    *out);
 
-    virtual ~TaskGenerateExecModelExprParamNB();
+    virtual ~TaskGenerateCompStruct();
 
-	virtual void visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) override;
+    virtual const char *default_base_type() const { return "zsp_component_t"; }
 
-	virtual void visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *e) override;
+    virtual void generate_dtor(vsc::dm::IDataTypeStruct *i) override { }
 
-    virtual void visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) override;
+    virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
+
 
 };
 

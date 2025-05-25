@@ -36,7 +36,7 @@ TaskGenerateExecModelExprParamNB::TaskGenerateExecModelExprParamNB(
     TaskGenerateExecModel       *gen,
     IGenRefExpr                 *refgen,
     IOutput                     *out) : 
-    TaskGenerateExecModelExprNB(gen, refgen, out) {
+    TaskGenerateExprNB(gen, refgen, out) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExprParamNB", gen->getDebugMgr());
 }
@@ -51,7 +51,7 @@ void TaskGenerateExecModelExprParamNB::visitTypeExprRefBottomUp(
     if (!m_depth && m_refgen->isFieldRefExpr(e) && !m_refgen->isRefFieldRefExpr(e)) {
         m_out->write("&");
     }
-    TaskGenerateExecModelExprNB::visitTypeExprRefBottomUp(e);
+    TaskGenerateExprNB::visitTypeExprRefBottomUp(e);
     DEBUG_LEAVE("visitTypeExprRefBottomUp (depth=%d)", m_depth);
 }
 
@@ -61,7 +61,7 @@ void TaskGenerateExecModelExprParamNB::visitTypeExprRefTopDown(
     if (!m_depth && m_refgen->isFieldRefExpr(e) && !m_refgen->isRefFieldRefExpr(e)) {
         m_out->write("&");
     }
-    TaskGenerateExecModelExprNB::visitTypeExprRefTopDown(e);
+    TaskGenerateExprNB::visitTypeExprRefTopDown(e);
     DEBUG_LEAVE("visitTypeExprRefTopDown (depth=%d)", m_depth);
 }
 
@@ -70,7 +70,7 @@ void TaskGenerateExecModelExprParamNB::visitTypeExprSubField(vsc::dm::ITypeExprS
     if (!m_depth && m_refgen->isFieldRefExpr(e) && !m_refgen->isRefFieldRefExpr(e)) {
         m_out->write("&");
     }
-    TaskGenerateExecModelExprNB::visitTypeExprSubField(e);
+    TaskGenerateExprNB::visitTypeExprSubField(e);
     DEBUG_LEAVE("visitTypeExprSubField");
 }
 

@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExprNB.h
+ * TaskGenerateExprNB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 
@@ -30,15 +31,21 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExprNB : public virtual arl::dm::VisitorBase {
+class TaskGenerateExprNB : public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelExprNB(
+    TaskGenerateExprNB(
+        IContext                    *ctxt,  
+        IGenRefExpr                 *refgen,
+        IOutput                     *out
+    );
+
+    TaskGenerateExprNB(
         TaskGenerateExecModel       *gen,
         IGenRefExpr                 *refgen,
         IOutput                     *out
     );
 
-    virtual ~TaskGenerateExecModelExprNB();
+    virtual ~TaskGenerateExprNB();
 
     void generate(vsc::dm::ITypeExpr *e);
 
@@ -70,7 +77,7 @@ public:
 
 protected:
     dmgr::IDebug                    *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;    
     IGenRefExpr                     *m_refgen;
     IOutput                         *m_out;
     int32_t                         m_depth;

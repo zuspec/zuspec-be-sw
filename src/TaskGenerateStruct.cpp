@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateStruct.h"
 #include "TaskGenerateStructDtor.h"
@@ -32,9 +33,10 @@ namespace sw {
 
 TaskGenerateStruct::TaskGenerateStruct(
     IContext                *ctxt, 
+    TypeInfo                *info,   
     IOutput                 *out_h,
     IOutput                 *out_c) : 
-    m_dbg(0), m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
+    m_dbg(0), m_ctxt(ctxt), m_info(info), m_out_h(out_h), m_out_c(out_c) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateStruct", ctxt->getDebugMgr());
 }
 
@@ -44,6 +46,7 @@ TaskGenerateStruct::~TaskGenerateStruct() {
 
 void TaskGenerateStruct::generate(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("generate");
+
     // Header file is organized as follows
     // 1. Data-type declaration (struct <type>_s)
     // 2. Data-type type declaration (struct <type>__type_s)
@@ -70,7 +73,7 @@ void TaskGenerateStruct::generate(vsc::dm::IDataTypeStruct *t) {
 
 void TaskGenerateStruct::generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     DEBUG_ENTER("generate_type");
-    TaskGenerateStructStruct(m_ctxt, out).generate(t);
+    TaskGenerateStructStruct(m_ctxt, m_info, out).generate(t);
     DEBUG_LEAVE("generate_type");
 }
 
@@ -79,10 +82,13 @@ void TaskGenerateStruct::generate_header_includes(vsc::dm::IDataTypeStruct *t, I
     // TODO: collect all non-handle types
     // Standard includes
     out->println("#include <stdint.h>");
-    if (t->getSuper()) {
-        out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(t->getSuper()).c_str());
-    } else {
-        out->println("#include \"zsp/rt/zsp_object.h\"");
+    if (!t->getSuper()) {
+        out->println("#include \"zsp/be/sw/rt/%s\"", default_base_header());
+    }
+    for (std::set<vsc::dm::IDataTypeStruct *>::const_iterator
+         it=m_info->referencedValTypes().begin();
+         it!=m_info->referencedValTypes().end(); it++) {
+        out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(*it).c_str());
     }
 
     DEBUG_LEAVE("generate_header_includes");

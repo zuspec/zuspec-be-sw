@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelCompStruct.cpp
+ * TaskGenerateCompStruct.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelCompStruct.h"
+#include "TaskGenerateCompStruct.h"
 
 
 namespace zsp {
@@ -28,25 +28,19 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelCompStruct::TaskGenerateExecModelCompStruct(
+TaskGenerateCompStruct::TaskGenerateCompStruct(
     IContext       *ctxt,
+    TypeInfo       *info,
     IOutput        *out) : 
-        TaskGenerateStructStruct(ctxt, out) {
+        TaskGenerateStructStruct(ctxt, info, out) {
 
 }
 
-TaskGenerateExecModelCompStruct::~TaskGenerateExecModelCompStruct() {
+TaskGenerateCompStruct::~TaskGenerateCompStruct() {
 
 }
 
-void TaskGenerateExecModelCompStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(i).c_str());
-    m_out->inc_ind();
-    m_out->println("zsp_rt_component_t comp;");
-//    m_out->println("zsp_rt_aspace_idx_t __aspace[%d];", m_gen->getNumTraitTypes());
-}
-
-void TaskGenerateExecModelCompStruct::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
+void TaskGenerateCompStruct::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
     m_out->write("%s_t ", m_ctxt->nameMap()->getName(t).c_str());
 }
 

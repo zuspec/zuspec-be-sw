@@ -30,7 +30,7 @@ namespace sw {
 
 TaskGenerateExecModelActionStruct::TaskGenerateExecModelActionStruct(
     IContext       *ctxt,
-    IOutput        *out) : TaskGenerateStructStruct(ctxt, out) {
+    IOutput        *out) : TaskGenerateStructStruct(ctxt, 0, out) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionStruct", ctxt->getDebugMgr());
 

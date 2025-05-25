@@ -20,15 +20,19 @@ static void zsp_component_init_down(zsp_component_t *comp) {
 static void zsp_component_init_up(zsp_component_t *comp) {
 }
 
-static zsp_component_type_t __zsp_component_type = {
-    .__base = {
-        .super = 0,
-        .name = "zsp_component",
-        .dtor = (void (*)(zsp_object_t *))&zsp_component_dtor,
-    },
-    .init_down = &zsp_component_init_down,
-    .init_up = &zsp_component_init_up
-};
+zsp_component_type_t *zsp_component__type() {
+    static int __init = 0;
+    static zsp_component_type_t __type;
+    if (__init == 0) {
+        ((zsp_object_type_t *)&__type)->super = 0;
+        ((zsp_object_type_t *)&__type)->name = "zsp_component";
+        ((zsp_object_type_t *)&__type)->dtor = (zsp_dtor_f)&zsp_component_dtor;
+        __type.init_down = &zsp_component_init_down;
+        __type.init_up = &zsp_component_init_up;
+        __init = 1;
+    }
+    return &__type;
+}
 
 void zsp_component_init(
     zsp_alloc_t         *alloc,
@@ -38,7 +42,7 @@ void zsp_component_init(
     comp->parent = parent;
     comp->sibling = 0;
     comp->children = 0;
-    comp->base.type = (zsp_object_type_t *)&__zsp_component_type;
+    ((zsp_object_t *)comp)->type = (zsp_object_type_t *)zsp_component__type();
 
     if (parent) {
         // Connect ourselves in as a child
@@ -50,7 +54,7 @@ void zsp_component_init(
 }
 
 void zsp_component_do_init(zsp_component_t *comp) {
-    zsp_component_type(comp)->init_down(comp);
+    zsp_component_type(comp)->init_down((struct zsp_component_s *)comp);
 
     if (comp->sibling) {
         zsp_component_do_init(comp->sibling);

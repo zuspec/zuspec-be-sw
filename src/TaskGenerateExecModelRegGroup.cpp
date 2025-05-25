@@ -31,7 +31,7 @@ namespace sw {
 TaskGenerateExecModelRegGroup::TaskGenerateExecModelRegGroup(
     IContext           *ctxt,
     IOutput            *out_h,
-    IOutput            *out_c) : TaskGenerateStructStruct(ctxt, out_h) {
+    IOutput            *out_c) : TaskGenerateStructStruct(ctxt, 0, out_h) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelRegGroup", ctxt->getDebugMgr());
 }

@@ -73,6 +73,11 @@ public:
         std::ostream                                    *out_c,
         std::ostream                                    *out_h) override;
 
+    virtual void generateTypes(
+        IContext                                        *ctxt,
+        vsc::dm::IDataTypeStruct                        *root,
+        const std::string                               &outdir) override;
+
     virtual void initContextC(arl::dm::IContext *ctxt) override;
 
     virtual IOutput *mkFileOutput(const std::string &path) override;

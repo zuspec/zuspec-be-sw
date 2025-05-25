@@ -50,6 +50,11 @@ cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
             ciostream.ostream                               *out_c,
             ciostream.ostream                               *out_h)
 
+        void generateTypes(
+            IContext                                        *ctxt,
+            vsc_dm_decl.IDataTypeStructP                    type_t,
+            const cpp_string                                &outdir)
+
         void initContextC(arl_dm.IContext                   *ctxt)
 
         IOutput *mkFileOutput(const cpp_string &path)

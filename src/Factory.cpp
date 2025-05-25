@@ -27,6 +27,7 @@
 #include "TaskGenerateC.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateType.h"
+#include "TaskGenerateTypes.h"
 #include "TaskInitContextC.h"
 
 
@@ -102,6 +103,13 @@ void Factory::generateType(
         std::ostream                                    *out_c,
         std::ostream                                    *out_h) {
     TaskGenerateType(ctxt, out_c, out_h).generate(comp_t);
+}
+
+void Factory::generateTypes(
+        IContext                                        *ctxt,
+        vsc::dm::IDataTypeStruct                        *root,
+        const std::string                               &outdir) {
+    TaskGenerateTypes(ctxt, outdir).generate(root);
 }
 
 

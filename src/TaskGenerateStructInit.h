@@ -65,13 +65,18 @@ public:
 
     virtual void visitTypeField(vsc::dm::ITypeField *f) override;
 
+    virtual void visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) override;
+
+    virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
     virtual void visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) override;
 
 protected:
     dmgr::IDebug                *m_dbg;
     vsc::dm::ITypeField         *m_field;
     int32_t                     m_depth;
-    IContext                    *m_ctxt;    
+    bool                        m_is_ref;
+    IContext                    *m_ctxt;
     IOutput                     *m_out_h;
     IOutput                     *m_out_c;
 

@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateStructInit.h"
+#include "TaskGenerateExprNB.h"
 
 
 namespace zsp {
@@ -32,7 +33,8 @@ TaskGenerateStructInit::TaskGenerateStructInit(
     IContext                *ctxt,
     IOutput                 *out_h,
     IOutput                 *out_c) : 
-        m_dbg(0), m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
+        m_dbg(0), m_ctxt(ctxt), m_depth(0), m_is_ref(false), 
+        m_out_h(out_h), m_out_c(out_c) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateStructInit", ctxt->getDebugMgr());
 }
 
@@ -45,7 +47,7 @@ void TaskGenerateStructInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
 
-    m_out_c->println("void %s__init(actor_t *actor, struct %s_s *this_p) {",
+    m_out_c->println("void %s__init(zsp_actor_t *actor, struct %s_s *this_p) {",
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
     m_out_c->inc_ind();
@@ -97,7 +99,15 @@ void TaskGenerateStructInit::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {}
 
 void TaskGenerateStructInit::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (m_depth) {
-        m_out_c->println("this_p->%s = 0;", m_ctxt->nameMap()->getName(m_field).c_str());
+        vsc::dm::ITypeFieldPhy *f = dynamic_cast<vsc::dm::ITypeFieldPhy *>(m_field);
+        m_out_c->indent();
+        m_out_c->write("this_p->%s = ", m_ctxt->nameMap()->getName(m_field).c_str());
+        if (f->getInit()) {
+            TaskGenerateExprNB(m_ctxt, 0, m_out_c).generate(f->getInit());
+        } else {
+            m_out_c->write("0");
+        }
+        m_out_c->write(";\n");
     }
 }
 
@@ -108,7 +118,12 @@ void TaskGenerateStructInit::visitDataTypeString(vsc::dm::IDataTypeString *t) {}
 void TaskGenerateStructInit::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct");
     if (m_depth) {
-//        m_out_c->println("%s__init(actor, )")
+        if (!m_is_ref) {
+            m_out_c->println("%s__init(actor, &this_p->%s);",
+                m_ctxt->nameMap()->getName(t).c_str(),
+                m_ctxt->nameMap()->getName(m_field).c_str(),
+                m_ctxt->nameMap()->getName(t).c_str());
+        }
     }
     DEBUG_LEAVE("visitDataTypeStruct");
 }
@@ -118,6 +133,22 @@ void TaskGenerateStructInit::visitTypeField(vsc::dm::ITypeField *f) {
     m_field = f;
     f->getDataType()->accept(m_this);
     DEBUG_LEAVE("visitTypeField %s", f->name().c_str());
+}
+
+void TaskGenerateStructInit::visitTypeFieldPhy(vsc::dm::ITypeFieldPhy *f) {
+    DEBUG_ENTER("visitTypeFieldPhy %s", f->name().c_str());
+    m_field = f;
+    m_is_ref = false;
+    f->getDataType()->accept(m_this);
+    DEBUG_LEAVE("visitTypeFieldPhy %s", f->name().c_str());
+}
+
+void TaskGenerateStructInit::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
+    DEBUG_ENTER("visitTypeFieldRef %s", f->name().c_str());
+    m_field = f;
+    m_is_ref = true;
+    f->getDataType()->accept(m_this);
+    DEBUG_LEAVE("visitTypeFieldRef %s", f->name().c_str());
 }
 
 void TaskGenerateStructInit::visitTypeFieldRegGroup(arl::dm::ITypeFieldRegGroup *f) {

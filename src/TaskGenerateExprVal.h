@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExprVal.h
+ * TaskGenerateExprVal.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
@@ -30,14 +31,18 @@ namespace sw {
 class TaskGenerateExecModel;
 
 
-class TaskGenerateExecModelExprVal :
+class TaskGenerateExprVal :
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelExprVal(
+    TaskGenerateExprVal(
         TaskGenerateExecModel       *gen,
         IOutput                     *out);
 
-    virtual ~TaskGenerateExecModelExprVal();
+    TaskGenerateExprVal(
+        IContext                    *ctxt,
+        IOutput                     *out);
+
+    virtual ~TaskGenerateExprVal();
 
     void generate(vsc::dm::ITypeExprVal *e);
 
@@ -55,7 +60,7 @@ public:
 
 private:
     static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;
     IOutput                         *m_out;
     vsc::dm::ValRef                 m_val;
 

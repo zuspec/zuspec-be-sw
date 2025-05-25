@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateStructStruct.h"
 #include "TaskGenerateStructDtor.h"
@@ -31,7 +32,8 @@ namespace sw {
 
 TaskGenerateStructStruct::TaskGenerateStructStruct(
     IContext       *ctxt,
-    IOutput        *out) : m_ctxt(ctxt), m_out(out) {
+    TypeInfo       *info,
+    IOutput        *out) : m_ctxt(ctxt), m_info(info), m_out(out) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateStructStruct", ctxt->getDebugMgr());
 }
 
@@ -43,10 +45,14 @@ void TaskGenerateStructStruct::generate_prefix(vsc::dm::IDataTypeStruct *i) {
     m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(i).c_str());
     m_out->inc_ind();
     if (i->getSuper()) {
+        m_out->println("union {");
+        m_out->inc_ind();
         m_out->println("%s_t super;", 
             m_ctxt->nameMap()->getName(i->getSuper()).c_str());
+        m_out->println("struct {");
+        m_out->inc_ind();
     } else {
-        m_out->println("zsp_object_t super;");
+        m_out->println("%s super;", default_base_type());
     }
 }
 
@@ -60,6 +66,8 @@ void TaskGenerateStructStruct::generate(vsc::dm::IDataTypeStruct *i) {
     // We're processing the root type
 
     // Might benefit from a breadcrumb about inheritance
+
+    TypeInfoUP type_info(TaskBuildTypeInfo(m_ctxt).build(i));
 
     // Setup to handle shadowed variables
     for (std::vector<vsc::dm::ITypeFieldUP>::const_reverse_iterator
@@ -94,6 +102,12 @@ void TaskGenerateStructStruct::generate(vsc::dm::IDataTypeStruct *i) {
 }
 
 void TaskGenerateStructStruct::generate_suffix(vsc::dm::IDataTypeStruct *i) {
+    if (i->getSuper()) {
+        m_out->dec_ind();
+        m_out->println("};");
+        m_out->dec_ind();
+        m_out->println("};");
+    }
     m_out->dec_ind();
     m_out->println("} %s_t;", m_ctxt->nameMap()->getName(i).c_str());
 }
@@ -108,7 +122,7 @@ void TaskGenerateStructStruct::visitDataTypeArray(vsc::dm::IDataTypeArray *t) {
 }
 
 void TaskGenerateStructStruct::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
-    m_out->write("zsp_rt_bool_t%s", (m_depth==1)?" ":"");
+    m_out->write("zsp_bool_t%s", (m_depth==1)?" ":"");
 }
 
 void TaskGenerateStructStruct::visitDataTypeEnum(vsc::dm::IDataTypeEnum *t) {

@@ -31,7 +31,7 @@
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
-#include "TaskGenerateExecModelComponent.h"
+#include "TaskGenerateComp.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
 #include "TaskGenerateStruct.h"

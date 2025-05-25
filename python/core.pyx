@@ -121,6 +121,16 @@ cdef class Factory(object):
             out_h_s.stream()
         )
 
+    cpdef void generateTypes(
+        self,
+        Context                 ctxt,
+        vsc_dm.DataTypeStruct   type_t,
+        outdir):
+        self._hndl.generateTypes(
+            ctxt._hndl,
+            type_t.asTypeStruct(),
+            outdir.encode())
+
     cpdef void initContextC(self, arl_dm.Context ctxt):
         self._hndl.initContextC(ctxt.asContext())
 

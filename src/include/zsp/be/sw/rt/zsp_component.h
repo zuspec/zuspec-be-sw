@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+struct zsp_component_s;
+
 typedef struct zsp_component_type_s {
     zsp_object_type_t   __base;
 
@@ -29,6 +31,8 @@ void zsp_component_init(
     zsp_component_t     *comp,
     const char          *name,
     zsp_component_t     *parent);
+
+zsp_component_type_t *zsp_component__type();
 
 #define zsp_component_type(comp) \
     ((zsp_component_type_t *)((comp)->base.type))

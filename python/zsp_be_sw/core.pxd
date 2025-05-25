@@ -56,6 +56,12 @@ cdef class Factory(object):
         out_c,
         out_h)
 
+    cpdef void generateTypes(
+        self,
+        Context                                  ctxt,
+        vsc_dm.DataTypeStruct                    type_t,
+        outdir)
+
     cpdef void initContextC(self, arl_dm.Context ctxt)
 
     cpdef Output mkFileOutput(self, path)

@@ -1,84 +1,127 @@
-import pytest
 import io
+import os
+import pytest
+import shutil
+import subprocess
+
+from .single_type_utils import run_single_type_test
 
 
 def test_smoke(tmpdir):
     pss_top = """
-struct my_s {
-    int a;
+struct my_data_type_s {
+    int a = 2;
 }
 """
 
-    import debug_mgr.core as dmgr
-    dmgr_f = dmgr.Factory.inst()
-    dmgr_i = dmgr_f.getDebugMgr()
-    dmgr_i.enable(True)
+    test_c = """
+#include <stdio.h>
+#include "zsp/be/sw/rt/zsp_actor.h"
+#include "my_data_type_s.h"
 
-    import vsc_dm.core as vsc_dm
-    import zsp_arl_dm.core as arl_dm
-    arl_ctxt = arl_dm.Factory().inst().mkContext(
-        vsc_dm.Factory().inst().mkContext()
-    )
-    import zsp_be_sw.core as be_sw
-    be_f = be_sw.Factory.inst()
-    be_ctxt = be_f.mkContext(arl_ctxt)
+int main() {
+    my_data_type_s_t data;
+    zsp_actor_t *actor = 0;
 
-    import zsp_parser.core as parser
-    parser_f = parser.Factory.inst()
+    my_data_type_s__init(actor, &data);
+    fprintf(stdout, "RES: my_s.a = %d\\n", data.a);
+    return 0;
+}
+"""
 
-    marker_c = parser_f.mkMarkerCollector()
-    ast_builder = parser_f.mkAstBuilder(marker_c)
-    ast_linker = parser_f.mkAstLinker()
+    exp = """
+RES: my_s.a = 2
+"""
 
-    import zsp_fe_parser.core as fe_parser
-    zsp_fe_f = fe_parser.Factory.inst()
+    run_single_type_test(
+        os.path.join(tmpdir), 
+        pss_top, 
+        "my_data_type_s", 
+        test_c,
+        exp,
+        debug=False)
 
-    ast_l = []
+def test_inheritance(tmpdir):
+    pss_top = """
+struct my_base_type_s {
+    int a = 1;
+}
 
-    core_lib = parser_f.getAstFactory().mkGlobalScope(len(ast_l))
-    parser_f.loadStandardLibrary(ast_builder, core_lib)
-    ast_l.append(core_lib)
+struct my_data_type_s : my_base_type_s {
+    int b = 2;
+}
+"""
 
-    ast_root = parser_f.getAstFactory().mkGlobalScope(len(ast_l))
+    test_c = """
+#include <stdio.h>
+#include "zsp/be/sw/rt/zsp_actor.h"
+#include "my_data_type_s.h"
 
-    ast_builder.build(ast_root, io.StringIO(pss_top))
-    ast_l.append(ast_root)
+int main() {
+    my_data_type_s_t data;
+    zsp_actor_t *actor = 0;
 
-    status = 0
+    my_data_type_s__init(actor, &data);
+    fprintf(stdout, "RES: my_s.a=%d my_s.b=%d\\n", data.a, data.b);
+    return 0;
+}
+"""
 
-    for m in marker_c.markers():
-        print("Marker")
+    exp = """
+RES: my_s.a=1 my_s.b=2
+"""
 
-    if status == 0:
-        linked_root = ast_linker.link(marker_c, ast_l)
+    run_single_type_test(
+        os.path.join(tmpdir), 
+        pss_top, 
+        "my_data_type_s", 
+        test_c,
+        exp,
+        debug=False)
 
-    if status == 0:
-        import zsp_fe_parser.core as fe_parser
-        zsp_fe_f = fe_parser.Factory.inst()
-        ast2arl_builder = zsp_fe_f.mkAst2ArlBuilder()
-        ast2arl_ctxt = zsp_fe_f.mkAst2ArlContext(
-            arl_ctxt,
-            linked_root,
-            marker_c)
-    
-        ast2arl_builder.build(linked_root, ast2arl_ctxt)
 
-    if status == 0:
-        pss_top = arl_ctxt.findDataTypeStruct("my_s")
+def test_struct_field(tmpdir):
+    pss_top = """
 
-        assert pss_top is not None
+struct s1 {
+    int x = 10;
+}
 
-        out_c = io.StringIO()
-        out_h = io.StringIO()
+struct s2 {
+    int x = 20;
+}
 
-        print("pss_top")
-        be_f.generateType(be_ctxt, pss_top, out_h, out_c)
+struct my_data_type_s {
+    int a = 2;
+    s1 b;
+    s2 c;
+}
+"""
 
-        print("H:\n%s" % out_h.getvalue())
-        print("C:\n%s" % out_c.getvalue())
-        pass
-        
+    test_c = """
+#include <stdio.h>
+#include "zsp/be/sw/rt/zsp_actor.h"
+#include "my_data_type_s.h"
 
-#    import zsp_fe_parser.core as fe_parser
-#    fe_parser_ctxt = fe_parser.Factory().inst().mkContext(be_ctxt)
+int main() {
+    my_data_type_s_t data;
+    zsp_actor_t *actor = 0;
+
+    my_data_type_s__init(actor, &data);
+    fprintf(stdout, "RES: my_s.a=%d my_s.b.x=%d\\n", data.a, data.b.x);
+    return 0;
+}
+"""
+
+    exp = """
+RES: my_s.a=2 my_s.b.x=10
+"""
+
+    run_single_type_test(
+        os.path.join(tmpdir), 
+        pss_top, 
+        "my_data_type_s", 
+        test_c,
+        exp,
+        debug=False)
 

@@ -30,7 +30,7 @@ namespace sw {
 
 TaskGenerateExecModelAddrClaimStruct::TaskGenerateExecModelAddrClaimStruct(
     TaskGenerateExecModel       *gen,
-    IOutput                     *out) : TaskGenerateStructStruct(0, out) {
+    IOutput                     *out) : TaskGenerateStructStruct(0, 0, out) {
     m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelAddrClaimStruct", gen->getDebugMgr());
 }

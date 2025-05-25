@@ -23,7 +23,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExecVarInit.h"
 #include "TaskGenerateExecModelExecScopeNB.h"
-#include "TaskGenerateExecModelExprNB.h"
+#include "TaskGenerateExprNB.h"
 #include "TaskGenerateExecModelVarType.h"
 #include "TaskGenerateExecModelUpdateRCField.h"
 
@@ -91,7 +91,7 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypePro
     m_out_s.back().exec()->indent();
     m_out_s.back().exec()->write("%s = ",
         m_refgen->genLval(s->getLhs()).c_str());
-    TaskGenerateExecModelExprNB(
+    TaskGenerateExprNB(
         m_gen, 
         m_refgen, 
         m_out_s.back().exec()).generate(s->getRhs());
@@ -110,7 +110,7 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtAssign(arl::dm::ITypePro
 void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
     DEBUG_ENTER("visitTypeProcStmtExpr");
     m_out_s.back().exec()->indent();
-    TaskGenerateExecModelExprNB(
+    TaskGenerateExprNB(
         m_gen, 
         m_refgen, 
         m_out_s.back().exec()).generate(s->getExpr());
@@ -142,7 +142,7 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtIfElse(arl::dm::ITypePro
         }
 
         m_out_s.back().exec()->write("if (");
-        TaskGenerateExecModelExprNB(
+        TaskGenerateExprNB(
             m_gen, 
             m_refgen, 
             m_out_s.back().exec()).generate((*it)->getCond());
@@ -186,7 +186,7 @@ void TaskGenerateExecModelExecScopeNB::visitTypeProcStmtVarDecl(arl::dm::ITypePr
     m_out_s.back().decl()->write("%s", s->name().c_str());
     if (s->getInit()) {
         m_out_s.back().decl()->write(" = "); 
-        TaskGenerateExecModelExprNB(
+        TaskGenerateExprNB(
             m_gen, 
             m_refgen, 
             m_out_s.back().decl()).generate(s->getInit());

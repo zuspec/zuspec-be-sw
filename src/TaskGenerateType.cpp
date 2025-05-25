@@ -25,13 +25,14 @@
 #include "NameMap.h"
 #include "Output.h"
 #include "TaskBuildTypeCollection.h"
+#include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecModelAddrHandle.h"
 #include "TaskGenerateExecModelCoreMethodCall.h"
 #include "TaskGenerateExecModelMemRwCall.h"
 #include "TaskGenerateExecModelRegRwCall.h"
 #include "TaskGenerateExecModelAction.h"
 #include "TaskGenerateExecModelActivity.h"
-#include "TaskGenerateExecModelComponent.h"
+#include "TaskGenerateComp.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
 #include "TaskGenerateStruct.h"
@@ -66,13 +67,15 @@ void TaskGenerateType::generate(vsc::dm::IDataTypeStruct *type_t) {
 
 void TaskGenerateType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
-
+    TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
+    TaskGenerateComp(m_ctxt, type_info.get(), m_out_c.get(), m_out_h.get()).generate(t);
     DEBUG_LEAVE("visitDataTypeComponent");
 }
 
 void TaskGenerateType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct");
-    TaskGenerateStruct(m_ctxt, m_out_c.get(), m_out_h.get()).generate(t);
+    TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
+    TaskGenerateStruct(m_ctxt, type_info.get(), m_out_c.get(), m_out_h.get()).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 

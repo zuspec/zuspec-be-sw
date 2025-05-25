@@ -23,6 +23,7 @@
 #include "zsp/be/sw/IContext.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IOutput.h"
+#include "TypeInfo.h"
 
 namespace zsp {
 namespace be {
@@ -32,9 +33,12 @@ class TaskGenerateStructStruct : public arl::dm::VisitorBase {
 public:
     TaskGenerateStructStruct(
         IContext            *gen,
+        TypeInfo            *info,
         IOutput             *out);
 
     virtual ~TaskGenerateStructStruct();
+
+    virtual const char *default_base_type() const { return "zsp_struct_t"; }
 
     virtual void generate_prefix(vsc::dm::IDataTypeStruct *i);
 
@@ -74,6 +78,7 @@ protected:
 protected:
     static dmgr::IDebug             *m_dbg;
     IContext                        *m_ctxt;
+    TypeInfo                        *m_info;
     vsc::dm::ITypeField             *m_field;
     uint32_t                        m_depth;
     uint32_t                        m_ptr;

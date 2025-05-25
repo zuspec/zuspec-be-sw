@@ -74,7 +74,10 @@ public:
         std::ostream                                    *out_c,
         std::ostream                                    *out_h) = 0;
 
-
+    virtual void generateTypes(
+        IContext                                        *ctxt,
+        vsc::dm::IDataTypeStruct                        *root,
+        const std::string                               &outdir) = 0;
 
     virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 

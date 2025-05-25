@@ -68,6 +68,7 @@ int main() {
         0, 
         (zsp_component_type_t *)pss_top__type(), 
         (zsp_action_type_t *)0);
+    zsp_actor_elab((zsp_actor_t *)&pss_top);
     fprintf(stdout, "RES: comp.a=%d\\n", pss_top.comp.a);
 
 }
@@ -86,3 +87,58 @@ RES: comp.a=10
         debug=True
     )        
 
+def test_init_down_subcomp(tmpdir):
+    pss_top = """
+import std_pkg::*;
+
+component subcomp {
+    int a = 5;
+
+    exec init_down {
+        a = 20;
+    }
+}
+
+component pss_top {
+    int a = 5;
+    subcomp s1, s2;
+
+    exec init_down {
+        a = 10;
+    }
+}
+"""
+
+    test_c = """
+#include <stdio.h>
+#include "zsp/be/sw/rt/zsp_actor.h"
+#include "pss_top.h"
+
+int main() {
+    zsp_actor(pss_top) pss_top;
+
+    zsp_actor_init(
+        (zsp_actor_t *)&pss_top, 
+        0, 
+        (zsp_component_type_t *)pss_top__type(), 
+        (zsp_action_type_t *)0);
+    zsp_actor_elab((zsp_actor_t *)&pss_top);
+    fprintf(stdout, "RES: comp.a=%d\\n", pss_top.comp.a);
+    fprintf(stdout, "RES: comp.s1.a=%d\\n", pss_top.comp.s1.a);
+
+}
+"""
+
+    exp = """
+RES: comp.a=10
+RES: comp.s1.a=20
+"""
+
+    run_single_type_test(
+        os.path.join(tmpdir), 
+        pss_src=pss_top, 
+        typename="pss_top", 
+        c_src=test_c,
+        exp=exp,
+        debug=True
+    )  

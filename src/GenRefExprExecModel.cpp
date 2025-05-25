@@ -31,15 +31,15 @@ namespace sw {
 
 
 GenRefExprExecModel::GenRefExprExecModel(
-        TaskGenerateExecModel       *gen,
+        dmgr::IDebugMgr             *dmgr,
         vsc::dm::IDataTypeStruct    *ctxt,
         const std::string           &ctxtRef,
         bool                        ctxtPtr,
         const std::string           &bupRef,
         bool                        bupPtr) :
-        m_gen(gen), m_ctxt(ctxt), m_ctxtRef(ctxtRef), m_ctxtPtr(ctxtPtr),
+        m_gen(0), m_ctxt(ctxt), m_ctxtRef(ctxtRef), m_ctxtPtr(ctxtPtr),
         m_bupRef(bupRef), m_bupPtr(bupPtr) {
-    DEBUG_INIT("zsp::be::sw::GenRefExprExecModel", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::GenRefExprExecModel", dmgr);
 
 }
 

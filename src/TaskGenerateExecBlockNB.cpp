@@ -45,7 +45,7 @@ void TaskGenerateExecBlockNB::generate(
         const std::string                           &fname,
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
-    m_out->println("static void %s(actor_t *actor, %s *this_p) {",
+    m_out->println("static void %s(zsp_actor_t *actor, %s_t *this_p) {",
         fname.c_str(),
         tname.c_str());
     m_out->inc_ind();

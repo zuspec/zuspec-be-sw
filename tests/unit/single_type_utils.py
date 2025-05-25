@@ -116,7 +116,7 @@ def run_single_type_test(rundir, pss_src, typename, c_src, exp, prefix="RES: ", 
 
         for i,c_src in enumerate(c_srcs):
             cmd = [
-                gcc, "-c", c_src,
+                gcc, "-g", "-c", c_src,
                 "-I%s" % os.path.join(rundir),
                 "-I%s" % zsp_be_sw_incdir]
             
@@ -141,7 +141,7 @@ def run_single_type_test(rundir, pss_src, typename, c_src, exp, prefix="RES: ", 
                 raise e
 
         link_cmd = [
-            gcc, "-o", os.path.join(rundir, "test.exe"),
+            gcc, "-g", "-o", os.path.join(rundir, "test.exe"),
         ]
         for i,c_src in enumerate(c_srcs):
             c_obj = os.path.basename(c_src).replace(".c", ".o")

@@ -63,6 +63,8 @@ void TaskGenerateStruct::generate(vsc::dm::IDataTypeStruct *t) {
     m_out_h->println("#define INCLUDED_%s_H", m_ctxt->nameMap()->getName(t).c_str());
     generate_header_includes(t, m_out_h);
     generate_header_typedefs(t, m_out_h);
+
+
     generate_data_type(t, m_out_h);
     generate_source_includes(t, m_out_c);
     generate_dtor(t, m_out_c);
@@ -99,6 +101,7 @@ void TaskGenerateStruct::generate_header_includes(vsc::dm::IDataTypeStruct *t, I
 void TaskGenerateStruct::generate_header_typedefs(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     DEBUG_ENTER("generate_header_typedefs");
     // TODO: collect all handle types
+    out->println("struct zsp_actor_s;");
 
     DEBUG_LEAVE("generate_header_typedefs");
 }

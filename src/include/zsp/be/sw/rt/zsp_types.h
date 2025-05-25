@@ -12,4 +12,5 @@ typedef enum {
 } zsp_bool_t;
 #endif
 
+
 #endif /* INCLUDED_ZSP_TYPES_H */

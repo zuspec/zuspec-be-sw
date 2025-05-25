@@ -51,7 +51,7 @@ TaskGenerateExecModelAction::~TaskGenerateExecModelAction() {
 void TaskGenerateExecModelAction::generate(arl::dm::IDataTypeAction *action) {
     DEBUG_ENTER("generate");
     GenRefExprExecModel refgen(
-        m_gen,
+        m_gen->getDebugMgr(),
         action,
         "this_p",
         "true");

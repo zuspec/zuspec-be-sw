@@ -11,6 +11,7 @@ typedef struct zsp_actor_base_s {
     // Example member variables (to be defined as needed):
     // int actor_id;          // Unique identifier for the actor
     // const char *name;      // Name of the actor
+    zsp_bool_t              is_elab;
 } zsp_actor_base_t;
 
 #endif /* INCLUDED_ZSP_ACTOR_BASE_H */

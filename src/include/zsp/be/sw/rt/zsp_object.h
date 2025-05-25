@@ -24,6 +24,9 @@ typedef struct zsp_object_s {
 
 zsp_object_type_t *zsp_object__type(void);
 
+#define zsp_object_type(obj) \
+    ((zsp_object_type_t *)(((zsp_object_t *)(obj))->type))
+
 
 #ifdef __cplusplus
 }

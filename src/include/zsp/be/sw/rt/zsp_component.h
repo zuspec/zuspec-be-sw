@@ -21,8 +21,8 @@ typedef struct zsp_component_type_s {
     zsp_object_type_t       __base;
     zsp_component_init_f    init;
 
-    void (*init_down)(struct zsp_component_s *comp);
-    void (*init_up)(struct zsp_component_s *comp);
+    zsp_solve_exec_f        do_init;
+
 } zsp_component_type_t;
 
 typedef struct zsp_component_s {
@@ -43,9 +43,7 @@ void zsp_component_init(
 zsp_component_type_t *zsp_component__type();
 
 #define zsp_component_type(comp) \
-    ((zsp_component_type_t *)((comp)->base.type))
-
-void zsp_component_do_init(zsp_component_t *comp);
+    ((zsp_component_type_t *)zsp_object_type(comp))
 
 #ifdef _cplusplus
 }

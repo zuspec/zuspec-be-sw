@@ -46,12 +46,17 @@ public:
 
     virtual ~TaskGenerateComp();
 
-//    void generate(arl::dm::IDataTypeComponent *comp_t);
+    virtual void generate(vsc::dm::IDataTypeStruct *t) override;
 
     virtual void generate_init(
         vsc::dm::IDataTypeStruct *t, 
         IOutput                 *out_h,
         IOutput                 *out_c) override;
+
+    virtual void generate_do_init(
+        vsc::dm::IDataTypeStruct *t, 
+        IOutput                 *out_h,
+        IOutput                 *out_c);
 
     virtual void generate_type(
         vsc::dm::IDataTypeStruct    *t, 

@@ -19,8 +19,10 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "GenRefExprExecModel.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateComp.h"
+#include "TaskGenerateCompDoInit.h"
 #include "TaskGenerateCompStruct.h"
 #include "TaskGenerateExecModelCompExecInit.h"
 #include "TaskGenerateCompInit.h"
@@ -47,11 +49,33 @@ TaskGenerateComp::~TaskGenerateComp() {
 
 }
 
+void TaskGenerateComp::generate(vsc::dm::IDataTypeStruct *t) {
+    m_out_h->println("#ifndef INCLUDED_%s_H", m_ctxt->nameMap()->getName(t).c_str());
+    m_out_h->println("#define INCLUDED_%s_H", m_ctxt->nameMap()->getName(t).c_str());
+    generate_header_includes(t, m_out_h);
+    generate_header_typedefs(t, m_out_h);
+    generate_data_type(t, m_out_h);
+    generate_source_includes(t, m_out_c);
+    generate_dtor(t, m_out_c);
+    generate_exec_blocks(t, m_out_c);
+    generate_do_init(t, m_out_h, m_out_c);
+    generate_type(t, m_out_h, m_out_c);
+    generate_init(t, m_out_h, m_out_c);
+    m_out_h->println("#endif /* INCLUDED_%s_H */", m_ctxt->nameMap()->getName(t).c_str());
+}
+
 void TaskGenerateComp::generate_init(
         vsc::dm::IDataTypeStruct *t, 
         IOutput                 *out_h,
         IOutput                 *out_c) {
     TaskGenerateCompInit(m_ctxt, m_info, out_h, out_c).generate(t);
+}
+
+void TaskGenerateComp::generate_do_init(
+        vsc::dm::IDataTypeStruct *t, 
+        IOutput                 *out_h,
+        IOutput                 *out_c) {
+    TaskGenerateCompDoInit(m_ctxt, m_info, out_h, out_c).generate(t);
 }
 
 void TaskGenerateComp::generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) {
@@ -80,11 +104,13 @@ void TaskGenerateComp::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput
             "init_down",
             "init_up"
         };
+        GenRefExprExecModel refgen(m_ctxt->getDebugMgr(), t, "this_p", true);
+
         for (auto kind = kinds.begin(); kind != kinds.end(); kind++) {
             const std::vector<arl::dm::ITypeExecUP> &execs = arl_t->getExecs(*kind);
             std::string tname = m_ctxt->nameMap()->getName(t);
-            std::string fname = names[(int)(kind-kinds.begin())];
-            TaskGenerateExecBlockNB(m_ctxt, 0, m_out_c).generate(
+            std::string fname = m_ctxt->nameMap()->getName(t) + "__" + names[(int)(kind-kinds.begin())];
+            TaskGenerateExecBlockNB(m_ctxt, &refgen, m_out_c).generate(
                 fname,
                 tname,
                 execs);

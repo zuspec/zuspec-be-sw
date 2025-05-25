@@ -35,7 +35,7 @@ class GenRefExprExecModel :
     public virtual arl::dm::VisitorBase {
 public:
     GenRefExprExecModel(
-        TaskGenerateExecModel       *gen,
+        dmgr::IDebugMgr             *dmgr,
         vsc::dm::IDataTypeStruct    *ctxt,
         const std::string           &ctxtRef,
         bool                        ctxtPtr,

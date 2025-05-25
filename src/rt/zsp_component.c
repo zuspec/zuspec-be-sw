@@ -15,12 +15,6 @@ static void zsp_component_dtor(zsp_component_t *comp) {
     free(comp);
 }
 
-static void zsp_component_init_down(zsp_component_t *comp) {
-}
-
-static void zsp_component_init_up(zsp_component_t *comp) {
-}
-
 zsp_component_type_t *zsp_component__type() {
     static int __init = 0;
     static zsp_component_type_t __type;
@@ -28,8 +22,7 @@ zsp_component_type_t *zsp_component__type() {
         ((zsp_object_type_t *)&__type)->super = 0;
         ((zsp_object_type_t *)&__type)->name = "zsp_component";
         ((zsp_object_type_t *)&__type)->dtor = (zsp_dtor_f)&zsp_component_dtor;
-        __type.init_down = &zsp_component_init_down;
-        __type.init_up = &zsp_component_init_up;
+        __type.do_init = 0;
         __init = 1;
     }
     return &__type;
@@ -51,19 +44,5 @@ void zsp_component_init(
         parent->children = comp;
     }
 
-    comp->name = strdup(name);
-}
-
-void zsp_component_do_init(zsp_component_t *comp) {
-    zsp_component_type(comp)->init_down((struct zsp_component_s *)comp);
-
-    if (comp->sibling) {
-        zsp_component_do_init(comp->sibling);
-    }
-
-    if (comp->children) {
-        zsp_component_do_init(comp->children);
-    }
-
-    zsp_component_type(comp)->init_up(comp);
+//    comp->name = strdup(name);
 }

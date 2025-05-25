@@ -43,7 +43,7 @@ TaskGenerateExecModelCompExecInit::~TaskGenerateExecModelCompExecInit() {
 
 void TaskGenerateExecModelCompExecInit::generate (arl::dm::IDataTypeComponent *t) {
     GenRefExprExecModel refgen(
-        m_gen, 
+        m_gen->getDebugMgr(), 
         t,
         "this_p",
         true);

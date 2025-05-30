@@ -33,12 +33,11 @@ namespace sw {
 
 
 TaskGenerateExecModelExprParamNB::TaskGenerateExecModelExprParamNB(
-    TaskGenerateExecModel       *gen,
+    IContext                    *ctxt,
     IGenRefExpr                 *refgen,
-    IOutput                     *out) : 
-    TaskGenerateExprNB(gen, refgen, out) {
+    IOutput                     *out) : TaskGenerateExprNB(ctxt, refgen, out) {
     m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExprParamNB", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExprParamNB", ctxt->getDebugMgr());
 }
 
 TaskGenerateExecModelExprParamNB::~TaskGenerateExecModelExprParamNB() {

@@ -37,38 +37,38 @@ TaskGenerateExecModelCustomGenBase::~TaskGenerateExecModelCustomGenBase() {
 }
 
 void TaskGenerateExecModelCustomGenBase::genExprMethodCallStaticB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) { }
 
 void TaskGenerateExecModelCustomGenBase::genExprMethodCallStaticNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) { }
 
 void TaskGenerateExecModelCustomGenBase::genExprMethodCallContextB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) { }
 
 void TaskGenerateExecModelCustomGenBase::genExprMethodCallContextNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) { }
         
 void TaskGenerateExecModelCustomGenBase::genFwdDecl(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         vsc::dm::IDataType                  *type) {
-    TaskGenerateExecModelFwdDecl(gen, out).generate_dflt(type);
+    TaskGenerateExecModelFwdDecl(ctxt, out).generate_dflt(type);
 }
 
 void TaskGenerateExecModelCustomGenBase::genDefinition(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out_h,
         IOutput                             *out_c,
         vsc::dm::IDataType                  *type) {

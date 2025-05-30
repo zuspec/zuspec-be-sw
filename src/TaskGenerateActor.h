@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExprParamNB.h
+ * TaskGenerateActor.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateExprNB.h"
+#include "dmgr/IDebugMgr.h"
+#include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -27,21 +29,26 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelExprParamNB :
-    public virtual TaskGenerateExprNB {
+class TaskGenerateActor {
 public:
-    TaskGenerateExecModelExprParamNB(
-    IContext                    *ctxt,
-    IGenRefExpr                 *refgen,
-    IOutput                     *out);
+    TaskGenerateActor(
+        IContext    *ctxt, 
+        IOutput     *out_h,
+        IOutput     *out_c);
 
-    virtual ~TaskGenerateExecModelExprParamNB();
+    virtual ~TaskGenerateActor();
 
-	virtual void visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) override;
+    virtual void generate(
+        arl::dm::IDataTypeComponent *comp_t,
+        arl::dm::IDataTypeAction    *action_t);
 
-	virtual void visitTypeExprRefTopDown(vsc::dm::ITypeExprRefTopDown *e) override;
 
-    virtual void visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) override;
+
+private:
+    static dmgr::IDebug     *m_dbg;
+    IContext                *m_ctxt;
+    IOutput                 *m_out_h;
+    IOutput                 *m_out_c;
 
 };
 

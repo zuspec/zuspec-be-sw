@@ -7,19 +7,21 @@ void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
     sched->tail = 0;
 }
 
-zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func func, ...) {
-    va_list args;
-    va_start(args, func);
-    zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
-        sched->alloc, sizeof(zsp_thread_t));
+void zsp_scheduler_init_threadv(
+    zsp_scheduler_t *sched, 
+    zsp_thread_t *thread, 
+    zsp_task_func func, 
+    zsp_thread_flags_e flags,
+    va_list *args) {
+
     thread->block = 0;
     thread->leaf = 0;
     thread->next = 0;
     thread->alloc = sched->alloc;
+    thread->flags = flags;
     zsp_frame_t *ret;
 
-    ret = func(thread, 0, &args);
-    va_end(args);
+    ret = func(thread, 0, args);
 
     thread->leaf = ret;
 
@@ -36,6 +38,33 @@ zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func 
         sched->next = thread;
         sched->tail = thread;
     }
+}
+
+void zsp_scheduler_thread_init(
+    zsp_scheduler_t     *sched, 
+    zsp_thread_t        *thread, 
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags,
+    ...) {
+    va_list args;
+    va_start(args, flags);
+
+    zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
+
+    va_end(args);
+}
+
+zsp_thread_t *zsp_scheduler_create_thread(
+    zsp_scheduler_t     *sched, 
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags,
+    ...) {
+    va_list args;
+    va_start(args, flags);
+    zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
+        sched->alloc, sizeof(zsp_thread_t));
+   
+    zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
 
     return thread;
 }

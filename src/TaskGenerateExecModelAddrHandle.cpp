@@ -36,7 +36,7 @@ TaskGenerateExecModelAddrHandle::~TaskGenerateExecModelAddrHandle() {
 }
 
 void TaskGenerateExecModelAddrHandle::genFwdDecl(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         vsc::dm::IDataType                  *type) {
     // Do nothing

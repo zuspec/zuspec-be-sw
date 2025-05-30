@@ -30,19 +30,42 @@ void zsp_actor_elab(zsp_actor_t *actor) {
 
 }
 
-struct zsp_frame_s *zsp_actor_run(
-    zsp_actor_t             *actor, 
-    struct zsp_thread_s     *thread,
-    struct zsp_frame_s      *frame,
-    ...) {
-    if (!frame) {
-        // Initial
-        va_list args;
-        va_start(args, frame);
+static struct zsp_frame_s *zsp_actor_trampoline(
+    struct zsp_thread_s *thread,
+    struct zsp_frame_s  *frame,
+    va_list             *args) {
+    int initial = (frame == 0);
 
-        va_end(args);
-    }
-
-
-    return frame;
 }
+
+/**
+ * Start a new thread 
+ */
+struct zsp_thread_s *zsp_actor_start(
+    zsp_actor_t     *actor,
+    zsp_scheduler_t *sched,
+    zsp_task_func   actor_task,
+    void            *action_args) {
+    struct zsp_thread_s *thread;
+
+    // Start a new thread
+    zsp_scheduler_thread_init(
+        sched,
+        &actor->base.thread, 
+        actor_task,
+        ZSP_THREAD_FLAGS_NONE,
+        action_args);
+
+    return thread;
+}
+
+// User-facing actor is:
+// - comp
+// - action
+// - ? action parameters 
+
+// Services API as:
+// - global functions
+// - API context functions
+//
+// 

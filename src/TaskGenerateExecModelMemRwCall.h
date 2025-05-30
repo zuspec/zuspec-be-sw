@@ -35,13 +35,13 @@ public:
     virtual ~TaskGenerateExecModelMemRwCall();
 
     virtual void genExprMethodCallStaticB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) override;
 
     virtual void genExprMethodCallStaticNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) override;

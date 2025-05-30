@@ -35,7 +35,7 @@ public:
     virtual ~TaskGenerateExecModelAddrHandle();
 
     virtual void genFwdDecl(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         vsc::dm::IDataType                  *type) override;
 

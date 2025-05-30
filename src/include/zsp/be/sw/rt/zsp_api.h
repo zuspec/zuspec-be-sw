@@ -8,6 +8,7 @@ struct zsp_frame_s;
 struct zsp_thread_s;
 
 typedef struct zsp_api_s {
+    // Platform services
     void (*print)(struct zsp_api_s *self, const char *fmt, ...);
 
     // zsp_task_func       write64;

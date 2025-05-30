@@ -43,7 +43,7 @@ TaskGenerateExecModelCoreMethodCall::~TaskGenerateExecModelCoreMethodCall() {
 }
 
 void TaskGenerateExecModelCoreMethodCall::genExprMethodCallContextNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) {
@@ -56,7 +56,7 @@ void TaskGenerateExecModelCoreMethodCall::genExprMethodCallContextNB(
         cast_idx++;
     }
 
-    TaskGenerateExecModelExprParamNB(gen, refgen, out).generate(call->getContext());
+    TaskGenerateExecModelExprParamNB(ctxt, refgen, out).generate(call->getContext());
 
     if (call->getParameters().size()) {
         out->write(", ");
@@ -72,7 +72,7 @@ void TaskGenerateExecModelCoreMethodCall::genExprMethodCallContextNB(
             out->write("(%s)", m_types.at(cast_idx).c_str());
             cast_idx++;
         }
-        TaskGenerateExecModelExprParamNB(gen, refgen, out).generate(it->get());
+        TaskGenerateExecModelExprParamNB(ctxt, refgen, out).generate(it->get());
     }
 
     out->write(")");
@@ -80,7 +80,7 @@ void TaskGenerateExecModelCoreMethodCall::genExprMethodCallContextNB(
 }
 
 void TaskGenerateExecModelCoreMethodCall::genExprMethodCallStaticNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) {
@@ -96,7 +96,7 @@ void TaskGenerateExecModelCoreMethodCall::genExprMethodCallStaticNB(
             out->write("(%s)", m_types.at(cast_idx).c_str());
             cast_idx++;
         }
-        TaskGenerateExecModelExprParamNB(gen, refgen, out).generate(it->get());
+        TaskGenerateExecModelExprParamNB(ctxt, refgen, out).generate(it->get());
     }
 
     out->write(")");

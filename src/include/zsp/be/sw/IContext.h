@@ -64,6 +64,16 @@ struct ExecScopeVarInfo {
     ExecScopeVarFlags                   flags;
 };
 
+enum class FunctionLinkE {
+    Global,
+    Context
+};
+
+enum class TaskImplE {
+    Coroutine,
+    Function
+};
+
 class IContext {
 public:
 
@@ -74,6 +84,16 @@ public:
     virtual arl::dm::IContext *ctxt() const = 0;
 
     virtual INameMap *nameMap() = 0;
+
+    virtual const std::string &getModelName() const = 0;
+
+    virtual void setModelName(const std::string &name) = 0;
+
+    virtual FunctionLinkE getImportLink(arl::dm::IDataTypeFunction *f=0) const = 0;
+
+    virtual FunctionLinkE getExportLink(arl::dm::IDataTypeFunction *f=0) const = 0;
+
+    virtual TaskImplE getTaskImpl(arl::dm::IDataTypeFunction *f=0) const = 0;
 
     virtual arl::dm::IDataTypeFunction *getBackendFunction(
         BackendFunctions    func) = 0;

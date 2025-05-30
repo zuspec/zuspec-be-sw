@@ -64,6 +64,18 @@ Context::~Context() {
 
 }
 
+FunctionLinkE Context::getImportLink(arl::dm::IDataTypeFunction *f) const {
+    return FunctionLinkE::Global;
+}
+
+FunctionLinkE Context::getExportLink(arl::dm::IDataTypeFunction *f) const {
+    return FunctionLinkE::Global;
+}
+
+TaskImplE Context::getTaskImpl(arl::dm::IDataTypeFunction *f) const {
+    return TaskImplE::Coroutine;
+}
+
 void Context::pushTypeScope(vsc::dm::IDataTypeStruct *t) {
     m_typescope_s.push_back(t);
 }

@@ -37,7 +37,7 @@ public:
     virtual ~TaskGenerateExecModelCallSetHandle();
 
     virtual void genExprMethodCallContextNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) override;

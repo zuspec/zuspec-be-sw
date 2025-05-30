@@ -39,12 +39,6 @@ public:
         IOutput                     *out
     );
 
-    TaskGenerateExprNB(
-        TaskGenerateExecModel       *gen,
-        IGenRefExpr                 *refgen,
-        IOutput                     *out
-    );
-
     virtual ~TaskGenerateExprNB();
 
     void generate(vsc::dm::ITypeExpr *e);

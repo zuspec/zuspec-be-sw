@@ -19,6 +19,8 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "GenRefExprExecModel.h"
+#include "TaskGenerateStruct.h"
 #include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecBlockNB.h"
 #include "TaskGenerateExecModel.h"
@@ -154,11 +156,13 @@ void TaskGenerateStruct::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutp
             "post_solve",
             "pre_body"
         };
+
+        GenRefExprExecModel refgen(m_ctxt->getDebugMgr(), t, "this_p", true);
         for (auto kind = kinds.begin(); kind != kinds.end(); kind++) {
             const std::vector<arl::dm::ITypeExecUP> &execs = arl_t->getExecs(*kind);
             std::string tname = m_ctxt->nameMap()->getName(t);
             std::string fname = names[(int)(kind-kinds.begin())];
-            TaskGenerateExecBlockNB(m_ctxt, 0, m_out_c).generate(
+            TaskGenerateExecBlockNB(m_ctxt, &refgen, m_out_c).generate(
                 fname,
                 tname,
                 execs);

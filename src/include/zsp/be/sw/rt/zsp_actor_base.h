@@ -3,6 +3,9 @@
 #define INCLUDED_ZSP_ACTOR_BASE_H
 
 typedef struct zsp_actor_base_s {
+    // Actor main thread. Actor is-a thread
+    zsp_thread_t            thread; // Actor main thread
+
     // Base class for all actors, providing common functionality
     // and properties that all actors will inherit.
     // This can include methods for initialization, destruction,

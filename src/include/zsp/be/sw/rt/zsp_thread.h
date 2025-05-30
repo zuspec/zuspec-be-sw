@@ -16,6 +16,12 @@ struct zsp_thread_s;
 
 typedef struct zsp_frame_s *(*zsp_task_func)(struct zsp_thread_s *, struct zsp_frame_s *, va_list *args);
 
+typedef enum {
+  ZSP_THREAD_FLAGS_NONE = 0,
+  ZSP_THREAD_FLAGS_SUSPEND = 0x1
+} zsp_thread_flags_e;
+
+
 typedef struct zsp_frame_s {
     zsp_task_func       func;
     struct zsp_frame_s  *prev;
@@ -38,9 +44,11 @@ typedef struct zsp_stack_block_s {
 
 typedef struct zsp_thread_s {
     zsp_alloc_t         *alloc;
+    void                *user_data;
     zsp_stack_block_t   *block;
     struct zsp_thread_s *next;
     struct zsp_frame_s  *leaf;
+    zsp_thread_flags_e  flags;
     uintptr_t           rval;
 } zsp_thread_t;
 
@@ -50,8 +58,23 @@ typedef struct zsp_scheduler_s {
     zsp_thread_t       *tail;
 } zsp_scheduler_t;
 
+#define zsp_thread_clear_flags_transient(thread) \
+    ((zsp_thread_t *)(thread))->flags &= ~(ZSP_THREAD_FLAGS_SUSPEND)
+
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc);
-zsp_thread_t *zsp_scheduler_create_thread(zsp_scheduler_t *sched, zsp_task_func func, ...);
+
+zsp_thread_t *zsp_scheduler_create_thread(
+    zsp_scheduler_t *sched, 
+    zsp_task_func func, 
+    zsp_thread_flags_e flags, ...);
+
+void zsp_scheduler_thread_init(
+    zsp_scheduler_t *sched, 
+    zsp_thread_t *thread, 
+    zsp_task_func func, 
+    zsp_thread_flags_e flags, 
+    ...);
+
 int zsp_scheduler_run(zsp_scheduler_t *sched);
 zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_alloc_frame( zsp_thread_t *thread, uint32_t sz, zsp_task_func func);

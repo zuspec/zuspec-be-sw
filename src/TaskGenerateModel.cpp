@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelCallSetHandle.cpp
+ * TaskGenerateModel.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -18,8 +18,7 @@
  * Created on:
  *     Author:
  */
-#include "dmgr/impl/DebugMacros.h"
-#include "TaskGenerateExecModelCallSetHandle.h"
+#include "TaskGenerateModel.h"
 
 
 namespace zsp {
@@ -27,20 +26,25 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelCallSetHandle::TaskGenerateExecModelCallSetHandle(
-    dmgr::IDebugMgr         *dmgr) : TaskGenerateExecModelCustomGenBase(dmgr) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelCallSetHandle", dmgr);
-}
-
-TaskGenerateExecModelCallSetHandle::~TaskGenerateExecModelCallSetHandle() {
+TaskGenerateModel::TaskGenerateModel(
+    IContext            *ctxt,
+    const std::string   &name,
+    const std::string   &outdir) : m_ctxt(ctxt), m_name(name), m_outdir(outdir) {
 
 }
 
-void TaskGenerateExecModelCallSetHandle::genExprMethodCallContextNB(
-        IContext                            *ctxt,
-        IOutput                             *out,
-        IGenRefExpr                         *refgen,
-        arl::dm::ITypeExprMethodCallContext *call) {
+TaskGenerateModel::~TaskGenerateModel() {
+
+}
+
+void TaskGenerateModel::generate(
+    arl::dm::IDataTypeComponent                     *pss_top,
+    const std::vector<arl::dm::IDataTypeAction *>   &actions) {
+    m_ctxt->setModelName(m_name);
+
+    if (actions.size()) {
+        // TODO: go find exported actions
+    }
 
 }
 

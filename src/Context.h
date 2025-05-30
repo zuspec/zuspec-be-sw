@@ -48,6 +48,20 @@ public:
         return &m_name_m;
     }
 
+    virtual const std::string &getModelName() const override {
+        return m_model_name;
+    }
+
+    virtual void setModelName(const std::string &name) override {
+        m_model_name = name;
+    }
+
+    virtual FunctionLinkE getImportLink(arl::dm::IDataTypeFunction *f=0) const override;
+
+    virtual FunctionLinkE getExportLink(arl::dm::IDataTypeFunction *f=0) const override;
+
+    virtual TaskImplE getTaskImpl(arl::dm::IDataTypeFunction *f=0) const override;
+
     virtual arl::dm::IDataTypeFunction *getBackendFunction(
         BackendFunctions    func) override {
         return m_backend_funcs[(int)func];
@@ -78,6 +92,7 @@ public:
 private:
     dmgr::IDebugMgr                                 *m_dmgr;
     arl::dm::IContext                               *m_ctxt;
+    std::string                                     m_model_name;
     NameMap                                         m_name_m;
     arl::dm::IDataTypeFunction                      *m_backend_funcs[(int)BackendFunctions::NumFuncs];
     std::vector<vsc::dm::IDataTypeStruct *>         m_typescope_s;

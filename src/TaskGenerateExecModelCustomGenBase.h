@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/be/sw/IContext.h"
 #include "ITaskGenerateExecModelCustomGen.h"
 
 namespace zsp {
@@ -38,36 +39,36 @@ public:
     virtual ~TaskGenerateExecModelCustomGenBase();
 
     virtual void genExprMethodCallStaticB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) override;
 
     virtual void genExprMethodCallStaticNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallStatic  *call) override;
 
     virtual void genExprMethodCallContextB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) override;
 
     virtual void genExprMethodCallContextNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) override;
 
     virtual void genFwdDecl(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         vsc::dm::IDataType                  *type) override;
 
     virtual void genDefinition(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out_h,
         IOutput                             *out_c,
         vsc::dm::IDataType                  *type) override;

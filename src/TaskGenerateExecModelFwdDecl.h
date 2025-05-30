@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
@@ -32,7 +33,7 @@ class TaskGenerateExecModel;
 class TaskGenerateExecModelFwdDecl : public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecModelFwdDecl(
-        TaskGenerateExecModel   *gen,
+        IContext                *ctxt,
         IOutput                 *out);
 
     virtual ~TaskGenerateExecModelFwdDecl();
@@ -55,7 +56,7 @@ public:
 
 private:
     static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;
     IOutput                         *m_out;
 
 

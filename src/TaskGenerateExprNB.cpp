@@ -41,14 +41,6 @@ TaskGenerateExprNB::TaskGenerateExprNB(
     DEBUG_INIT("zsp::be::sw::TaskGenerateExprNB", ctxt->getDebugMgr());
 }
 
-TaskGenerateExprNB::TaskGenerateExprNB(
-        TaskGenerateExecModel       *gen,
-        IGenRefExpr                 *refgen,
-        IOutput                     *out
-    ) : m_dbg(0), m_ctxt(0), m_refgen(refgen), m_out(out), m_depth(0) {
-
-}
-
 TaskGenerateExprNB::~TaskGenerateExprNB() {
 
 }
@@ -111,7 +103,7 @@ void TaskGenerateExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethod
     DEBUG("custom_gen: %p (%p)", custom_gen, e->getTarget()->getAssociatedData());
     if (custom_gen) {
         custom_gen->genExprMethodCallContextNB(
-            0 /*m_gen*/,
+            m_ctxt,
             m_out,
             m_refgen,
             e);
@@ -125,7 +117,7 @@ void TaskGenerateExprNB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethod
             if (it != e->getParameters().begin()) {
                 m_out->write(", ");
             }
-            TaskGenerateExecModelExprParamNB(0/*m_gen*/, m_refgen, m_out).generate(
+            TaskGenerateExecModelExprParamNB(m_ctxt, m_refgen, m_out).generate(
                 it->get()
             );
         }
@@ -143,7 +135,7 @@ void TaskGenerateExprNB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodC
 
     if (custom_gen) {
         custom_gen->genExprMethodCallStaticNB(
-            0/*m_gen*/,
+            m_ctxt,
             m_out,
             m_refgen,
             e);
@@ -157,7 +149,7 @@ void TaskGenerateExprNB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodC
             if (it != e->getParameters().begin()) {
                 m_out->write(", ");
             }
-            TaskGenerateExecModelExprParamNB(0/*m_gen*/, m_refgen, m_out).generate(it->get());
+            TaskGenerateExecModelExprParamNB(m_ctxt, m_refgen, m_out).generate(it->get());
         }
         m_out->write(")");
     }

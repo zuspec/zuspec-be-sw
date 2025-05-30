@@ -79,6 +79,12 @@ public:
         vsc::dm::IDataTypeStruct                        *root,
         const std::string                               &outdir) = 0;
 
+    virtual void generateModel(
+        IContext                                        *ctxt,
+        const std::string                               &name,
+        arl::dm::IDataTypeComponent                     *pss_top,
+        const std::string                               &outdir) = 0;
+
     virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 
     virtual IOutput *mkFileOutput(const std::string &path) = 0;

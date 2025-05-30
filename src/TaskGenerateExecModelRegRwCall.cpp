@@ -41,7 +41,7 @@ TaskGenerateExecModelRegRwCall::~TaskGenerateExecModelRegRwCall() {
 }
 
 void TaskGenerateExecModelRegRwCall::genExprMethodCallContextB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) {
@@ -50,7 +50,7 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextB(
 }
 
 void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
-        TaskGenerateExecModel               *gen,
+        IContext                            *ctxt,
         IOutput                             *out,
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) {
@@ -93,14 +93,14 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
         sval = true;
     } else if (name.find("read") != -1) {
         if (is_packed) {
-            out->write("((%s_u){.v=", gen->getNameMap()->getName(reg_t).c_str());
+            out->write("((%s_u){.v=", ctxt->nameMap()->getName(reg_t).c_str());
         }
         snprintf(func, sizeof(func), "zsp_rt_read%d", width);
     }
 
     out->write("%s(&", func);
 
-    TaskGenerateExprNB(gen, refgen, out).generate(
+    TaskGenerateExprNB(ctxt, refgen, out).generate(
         call->getContext());
     if (call->getParameters().size()) {
         out->write(", ");
@@ -112,7 +112,7 @@ void TaskGenerateExecModelRegRwCall::genExprMethodCallContextNB(
         if (it != call->getParameters().begin()) {
             out->write(", ");
         }
-        TaskGenerateExprNB(gen, refgen, out).generate(it->get());
+        TaskGenerateExprNB(ctxt, refgen, out).generate(it->get());
 
         if (write && sval && it+1 == call->getParameters().end()) {
             out->write(".val");

@@ -38,10 +38,10 @@ namespace sw {
 
 
 TaskGenerateExecModelDefineType::TaskGenerateExecModelDefineType(
-    TaskGenerateExecModel       *gen,
+    IContext                    *ctxt,
     IOutput                     *out_h,
-    IOutput                     *out_c) : m_gen(gen), m_out_h(out_h), m_out_c(out_c) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelDefineType", gen->getDebugMgr());
+    IOutput                     *out_c) : m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelDefineType", ctxt->getDebugMgr());
 }
 
 TaskGenerateExecModelDefineType::~TaskGenerateExecModelDefineType() {
@@ -49,10 +49,10 @@ TaskGenerateExecModelDefineType::~TaskGenerateExecModelDefineType() {
 }
 
 void TaskGenerateExecModelDefineType::generate(vsc::dm::IDataType *item) {
-    ITaskGenerateExecModelCustomGen *custom_gen = 
+    ITaskGenerateExecModelCustomGen *custom_ctxt = 
         dynamic_cast<ITaskGenerateExecModelCustomGen *>(item->getAssociatedData());
-    if (custom_gen) {
-        custom_gen->genDefinition(m_gen, m_out_h, m_out_c, item);
+    if (custom_ctxt) {
+        custom_ctxt->genDefinition(m_ctxt, m_out_h, m_out_c, item);
     } else {
         item->accept(m_this);
     }
@@ -64,37 +64,37 @@ void TaskGenerateExecModelDefineType::generate_dflt(vsc::dm::IDataType *item) {
 
 void TaskGenerateExecModelDefineType::visitDataTypeAction(arl::dm::IDataTypeAction *i) { 
     DEBUG_ENTER("visitDataTypeAction %s", i->name().c_str());
-    TaskGenerateExecModelAction(m_gen).generate(i);
+//    TaskGenerateExecModelAction(m_ctxt).generate(i);
     DEBUG_LEAVE("visitDataTypeAction");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) { 
     DEBUG_ENTER("visitDataTypeActivity");
-    TaskGenerateExecModelActivity(m_gen).generate(t);
+//    TaskGenerateExecModelActivity(m_ctxt).generate(t);
     DEBUG_LEAVE("visitDataTypeActivity");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) {
     DEBUG_ENTER("visitDataTypeAddrClaim");
-    TaskGenerateExecModelAddrClaim(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelAddrClaim(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeAddrClaim");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeAddrSpaceC(arl::dm::IDataTypeAddrSpaceC *t) {
     DEBUG_ENTER("visitDataTypeAddrSpaceC");
-    TaskGenerateExecModelAddrSpace(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelAddrSpace(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeAddrSpaceC");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
     DEBUG_ENTER("visitDataTypeAddrSpaceTransparentC");
-    TaskGenerateExecModelAddrSpace(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelAddrSpace(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeAddrSpaceTransparentC");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) { 
     DEBUG_ENTER("visitDataTypeComponent");
-//    TaskGenerateExecModelComponent(m_gen).generate(t);
+//    TaskGenerateExecModelComponent(m_ctxt).generate(t);
     DEBUG_LEAVE("visitDataTypeComponent");
 }
 
@@ -102,19 +102,19 @@ void TaskGenerateExecModelDefineType::visitDataTypeFunction(arl::dm::IDataTypeFu
 
 void TaskGenerateExecModelDefineType::visitDataTypePackedStruct(arl::dm::IDataTypePackedStruct *t) {
     DEBUG_ENTER("visitDataTypePackedStruct");
-//    TaskGenerateExecModelPackedStruct(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelPackedStruct(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypePackedStruct");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeRegGroup(arl::dm::IDataTypeRegGroup *t) {
     DEBUG_ENTER("visitDataTypeRegGroup");
-//    TaskGenerateExecModelRegGroup(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelRegGroup(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeRegGroup");
 }
 
 void TaskGenerateExecModelDefineType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
-//    TaskGenerateExecModelStruct(m_gen, m_out_h, m_out_c).generate(t);
+//    TaskGenerateExecModelStruct(m_ctxt, m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 } 
 

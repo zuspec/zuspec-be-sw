@@ -101,8 +101,8 @@ void TaskGenerateExecModel::generate(
     for (std::vector<int32_t>::const_iterator
         it=sorted.begin();
         it!=sorted.end(); it++) {
-        TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(
-            type_c->getType(*it));
+//        TaskGenerateExecModelFwdDecl(this, getOutHPrv()).generate(
+//            type_c->getType(*it));
         getOutHPrv()->println("");
     }
 
@@ -110,8 +110,8 @@ void TaskGenerateExecModel::generate(
     for (std::vector<int32_t>::const_iterator
         it=sorted.begin();
         it!=sorted.end(); it++) {
-        TaskGenerateExecModelDefineType(this, getOutHPrv(), getOutC()).generate(
-            type_c->getType(*it));
+//        TaskGenerateExecModelDefineType(this, getOutHPrv(), getOutC()).generate(
+//            type_c->getType(*it));
         getOutHPrv()->println("");
     }
 

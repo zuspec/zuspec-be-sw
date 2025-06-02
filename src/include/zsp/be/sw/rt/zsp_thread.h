@@ -32,7 +32,10 @@ typedef struct zsp_frame_s {
 typedef struct zsp_frame_wrap_s {
     zsp_frame_t         frame;
     uintptr_t           locals;
-} frame_wrap_t;
+} zsp_frame_wrap_t;
+
+#define zsp_frame_size(t) \
+    sizeof(struct {zsp_frame_t __f; t __locals;})
 
 typedef struct zsp_stack_block_s {
     struct zsp_stack_block_s    *prev;
@@ -44,9 +47,14 @@ typedef struct zsp_stack_block_s {
 
 typedef struct zsp_thread_s {
     zsp_alloc_t         *alloc;
+    void *(*alloca)(struct zsp_thread_s *, size_t sz);
     void                *user_data;
     zsp_stack_block_t   *block;
-    struct zsp_thread_s *next;
+    // sched handle is valid when thread is executing
+    union {
+        struct zsp_thread_s *next;
+        struct zsp_scheduler_s *sched;
+    };
     struct zsp_frame_s  *leaf;
     zsp_thread_flags_e  flags;
     uintptr_t           rval;
@@ -76,8 +84,9 @@ void zsp_scheduler_thread_init(
     ...);
 
 int zsp_scheduler_run(zsp_scheduler_t *sched);
-zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func func, ...);
+zsp_thread_t *zsp_thread_start(zsp_thread_t *thread, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_alloc_frame( zsp_thread_t *thread, uint32_t sz, zsp_task_func func);
+void *zsp_thread_alloca(zsp_thread_t *thread, size_t sz);
 zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame);
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr_t ret);
 zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);

@@ -23,6 +23,7 @@
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateComp.h"
 #include "TaskGenerateCompDoInit.h"
+#include "TaskGenerateCompDoRunStart.h"
 #include "TaskGenerateCompStruct.h"
 #include "TaskGenerateExecModelCompExecInit.h"
 #include "TaskGenerateCompInit.h"
@@ -59,6 +60,7 @@ void TaskGenerateComp::generate(vsc::dm::IDataTypeStruct *t) {
     generate_dtor(t, m_out_c);
     generate_exec_blocks(t, m_out_c);
     generate_do_init(t, m_out_h, m_out_c);
+    TaskGenerateCompDoRunStart(m_ctxt, m_info, m_out_h, m_out_c).generate(t);
     generate_type(t, m_out_h, m_out_c);
     generate_init(t, m_out_h, m_out_c);
     m_out_h->println("#endif /* INCLUDED_%s_H */", m_ctxt->nameMap()->getName(t).c_str());

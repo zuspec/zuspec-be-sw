@@ -110,6 +110,8 @@ void TaskGenerateStruct::generate_header_typedefs(vsc::dm::IDataTypeStruct *t, I
 
 void TaskGenerateStruct::generate_source_includes(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     DEBUG_ENTER("generate_source_includes");
+    out->println("#include \"zsp/be/sw/rt/zsp_executor.h\"");
+    out->println("#include \"zsp/be/sw/rt/zsp_thread.h\"");
     out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(t).c_str());
     // TODO: need to include *our* actor...
     out->println("#include \"zsp/be/sw/rt/zsp_actor.h\"");

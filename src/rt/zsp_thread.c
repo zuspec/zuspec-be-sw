@@ -80,6 +80,7 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     }
 
     if (thread) {
+        thread->sched = sched;
         thread->leaf = thread->leaf->func(
             thread,
             thread->leaf, 
@@ -109,22 +110,24 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     return (sched->next)?1:0;
 }
 
-zsp_thread_t *zsp_thread_create(zsp_alloc_t *alloc, zsp_task_func func, ...) {
+zsp_thread_t *zsp_thread_start(zsp_thread_t *thread, zsp_task_func func, ...) {
     va_list args;
     va_start(args, func);
-    zsp_thread_t *thread = (zsp_thread_t *)alloc->alloc(alloc, sizeof(zsp_thread_t));
-    thread->block = 0;
-    thread->leaf = 0;
-    thread->next = 0;
-    thread->alloc = alloc;
+    zsp_thread_t *new_thread = (zsp_thread_t *)thread->alloc->alloc(
+        thread->alloc, sizeof(zsp_thread_t));
+    new_thread->block = 0;
+    new_thread->leaf = 0;
+    new_thread->sched = thread->sched;
+    // TODO: new thread dictates new thread-specific allocator
+    new_thread->alloc = thread->alloc;
     zsp_frame_t *ret;
 
-    ret = func(thread, 0, &args);
+    ret = func(new_thread, 0, &args);
     va_end(args);
 
-    thread->leaf = ret;
+    new_thread->leaf = ret;
 
-    return thread;
+    return new_thread;
 }
 
 void zsp_thread_free(zsp_thread_t *thread) {
@@ -162,6 +165,27 @@ zsp_frame_t *zsp_thread_alloc_frame(
     return ret;
 }
 
+void *zsp_thread_alloca(
+    zsp_thread_t    *thread, 
+    uint32_t        sz) {
+    void *ret;
+
+    uint32_t total_sz = sz;
+    if (!thread->block || (thread->block->idx + total_sz) > thread->block->sz) {
+        zsp_stack_block_t *block = (zsp_stack_block_t *)
+            thread->alloc->alloc(thread->alloc, sizeof(zsp_stack_block_t));
+        block->sz = sz;
+        block->idx = 0;
+
+        block->prev = thread->block;
+        thread->block = block;
+    }
+
+    ret = &thread->block->data[thread->block->idx];
+    thread->block->idx += total_sz;
+
+    return ret;
+}
 
 zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...) {
     va_list args;

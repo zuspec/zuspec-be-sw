@@ -36,6 +36,7 @@ void zsp_component_init(
     comp->parent = parent;
     comp->sibling = 0;
     comp->children = 0;
+    comp->default_executor = 0;
     ((zsp_object_t *)comp)->type = (zsp_object_type_t *)zsp_component__type();
 
     if (parent) {

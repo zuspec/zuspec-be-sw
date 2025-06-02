@@ -94,6 +94,8 @@ void TaskGenerateCompType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
     
     m_out_c->println("((zsp_component_type_t *)&__type)->do_init = (zsp_solve_exec_f)&%s__do_init;",
             m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_component_type_t *)&__type)->do_run_start = (zsp_task_func)&%s__do_run_start;",
+            m_ctxt->nameMap()->getName(t).c_str());
 
     m_out_c->println("__init = 1;");
     m_out_c->dec_ind();

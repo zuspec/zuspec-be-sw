@@ -3,13 +3,15 @@
 #include <stdint.h>
 #include "zsp/be/sw/rt/zsp_alloc.h"
 #include "zsp/be/sw/rt/zsp_struct.h"
+#include "zsp/be/sw/rt/zsp_thread.h"
 
 #ifdef _cplusplus
 extern "C" {
 #endif
 
-struct zsp_component_s;
 struct zsp_actor_s;
+struct zsp_component_s;
+struct zsp_executor_s;
 
 typedef void (*zsp_component_init_f)(
     struct zsp_actor_s *actor, 
@@ -22,6 +24,7 @@ typedef struct zsp_component_type_s {
     zsp_component_init_f    init;
 
     zsp_solve_exec_f        do_init;
+    zsp_task_func           do_run_start;
 
 } zsp_component_type_t;
 
@@ -32,6 +35,7 @@ typedef struct zsp_component_s {
     struct zsp_component_s  *sibling;
     struct zsp_component_s  *children;
     const char              *name;
+    struct zsp_executor_s   *default_executor;
 } zsp_component_t;
 
 void zsp_component_init(
@@ -43,7 +47,7 @@ void zsp_component_init(
 zsp_component_type_t *zsp_component__type();
 
 #define zsp_component_type(comp) \
-    ((zsp_component_type_t *)zsp_object_type(comp))
+    ((zsp_component_type_t *)zsp_object_type( (comp) ))
 
 #ifdef _cplusplus
 }

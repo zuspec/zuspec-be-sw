@@ -49,9 +49,9 @@ struct zsp_thread_s *zsp_actor_start(
     struct zsp_thread_s *thread;
 
     // Start a new thread
-    zsp_scheduler_thread_init(
+    thread = zsp_thread_create(
         sched,
-        &actor->base.thread, 
+//        &actor->base.thread, 
         actor_task,
         ZSP_THREAD_FLAGS_NONE,
         action_args);

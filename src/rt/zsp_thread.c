@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include "zsp/be/sw/rt/zsp_thread.h"
 
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
@@ -17,7 +18,7 @@ void zsp_scheduler_init_threadv(
     thread->block = 0;
     thread->leaf = 0;
     thread->next = 0;
-    thread->alloc = sched->alloc;
+    thread->sched = sched;
     thread->flags = flags;
     zsp_frame_t *ret;
 
@@ -40,34 +41,34 @@ void zsp_scheduler_init_threadv(
     }
 }
 
-void zsp_scheduler_thread_init(
-    zsp_scheduler_t     *sched, 
-    zsp_thread_t        *thread, 
-    zsp_task_func       func, 
-    zsp_thread_flags_e  flags,
-    ...) {
-    va_list args;
-    va_start(args, flags);
+// void zsp_scheduler_thread_init(
+//     zsp_scheduler_t     *sched, 
+//     zsp_thread_t        *thread, 
+//     zsp_task_func       func, 
+//     zsp_thread_flags_e  flags,
+//     ...) {
+//     va_list args;
+//     va_start(args, flags);
 
-    zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
+//     zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
 
-    va_end(args);
-}
+//     va_end(args);
+// }
 
-zsp_thread_t *zsp_scheduler_create_thread(
-    zsp_scheduler_t     *sched, 
-    zsp_task_func       func, 
-    zsp_thread_flags_e  flags,
-    ...) {
-    va_list args;
-    va_start(args, flags);
-    zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
-        sched->alloc, sizeof(zsp_thread_t));
+// zsp_thread_t *zsp_scheduler_create_thread(
+//     zsp_scheduler_t     *sched, 
+//     zsp_task_func       func, 
+//     zsp_thread_flags_e  flags,
+//     ...) {
+//     va_list args;
+//     va_start(args, flags);
+//     zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
+//         sched->alloc, sizeof(zsp_thread_t));
    
-    zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
+//     zsp_scheduler_init_threadv(sched, thread, func, flags, &args);
 
-    return thread;
-}
+//     return thread;
+// }
 
 int zsp_scheduler_run(zsp_scheduler_t *sched) {
     // TODO: Mutex this
@@ -110,31 +111,50 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     return (sched->next)?1:0;
 }
 
-zsp_thread_t *zsp_thread_start(zsp_thread_t *thread, zsp_task_func func, ...) {
+zsp_thread_t *zsp_thread_create(
+    zsp_scheduler_t     *sched, 
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags, ...) {
     va_list args;
-    va_start(args, func);
-    zsp_thread_t *new_thread = (zsp_thread_t *)thread->alloc->alloc(
-        thread->alloc, sizeof(zsp_thread_t));
-    new_thread->block = 0;
-    new_thread->leaf = 0;
-    new_thread->sched = thread->sched;
+    va_start(args, flags);
+    zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
+        sched->alloc, sizeof(zsp_thread_t));
+    thread->block = 0;
+    thread->leaf = 0;
+    thread->sched = sched;
+    thread->flags = flags;
     // TODO: new thread dictates new thread-specific allocator
-    new_thread->alloc = thread->alloc;
+//    new_thread->alloc = thread->alloc;
     zsp_frame_t *ret;
 
-    ret = func(new_thread, 0, &args);
+    ret = func(thread, 0, &args);
     va_end(args);
 
-    new_thread->leaf = ret;
+    // Clean up automatically, so the thread doesn't need to do this
+    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
-    return new_thread;
+    thread->leaf = ret;
+
+    if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+        // Schedule the thread
+        thread->next = 0;
+        if (sched->next) {
+            sched->tail->next = thread;
+            sched->tail = thread;
+        } else {
+            sched->next = thread;
+            sched->tail = thread;
+        }
+    }
+
+    return thread;
 }
 
 void zsp_thread_free(zsp_thread_t *thread) {
     if (thread->block) {
-        thread->alloc->free(thread->alloc, thread->block);
+        thread->sched->alloc->free(thread->sched->alloc, thread->block);
     }
-    thread->alloc->free(thread->alloc, thread);
+    thread->sched->alloc->free(thread->sched->alloc, thread);
 }
 
 zsp_frame_t *zsp_thread_alloc_frame(
@@ -144,18 +164,21 @@ zsp_frame_t *zsp_thread_alloc_frame(
     zsp_frame_t *ret;
 
     uint32_t total_sz = sizeof(zsp_frame_t) + sz;
-    if (!thread->block || (thread->block->idx + total_sz) > thread->block->sz) {
+    if (!thread->block || ((thread->block->base+total_sz) >= thread->block->limit)) {
+        uint32_t block_sz = 4096; // TODO:
         zsp_stack_block_t *block = (zsp_stack_block_t *)
-            thread->alloc->alloc(thread->alloc, sizeof(zsp_stack_block_t));
-        block->sz = sz;
-        block->idx = 0;
+            thread->sched->alloc->alloc(
+                thread->sched->alloc, 
+                (sizeof(zsp_stack_block_t)+block_sz));
+        block->base = (uintptr_t)&block->base+sizeof(uintptr_t);
+        block->limit = block->base+block_sz-1;
 
         block->prev = thread->block;
         thread->block = block;
     }
 
-    ret = (zsp_frame_t *)&thread->block->data[thread->block->idx];
-    thread->block->idx += total_sz;
+    ret = (zsp_frame_t *)thread->block->base;
+    thread->block->base += total_sz;
 
     ret->func = func;
     ret->prev = thread->leaf;
@@ -167,22 +190,24 @@ zsp_frame_t *zsp_thread_alloc_frame(
 
 void *zsp_thread_alloca(
     zsp_thread_t    *thread, 
-    uint32_t        sz) {
+    size_t          sz) {
     void *ret;
 
     uint32_t total_sz = sz;
-    if (!thread->block || (thread->block->idx + total_sz) > thread->block->sz) {
+    if (!thread->block || (thread->block->base+total_sz) >= thread->block->limit) {
         zsp_stack_block_t *block = (zsp_stack_block_t *)
-            thread->alloc->alloc(thread->alloc, sizeof(zsp_stack_block_t));
-        block->sz = sz;
-        block->idx = 0;
+            thread->sched->alloc->alloc(thread->sched->alloc, sizeof(zsp_stack_block_t));
+        uint32_t block_sz = 4096; // TODO: 
+        block->base = (uintptr_t)&block->base+sizeof(uintptr_t);
+        block->limit = block->base+block_sz-1;
 
         block->prev = thread->block;
         thread->block = block;
+        fprintf(stdout, "New block: %p\n", thread->block);
     }
 
-    ret = &thread->block->data[thread->block->idx];
-    thread->block->idx += total_sz;
+    ret = (void *)thread->block->base;
+    thread->block->base += total_sz;
 
     return ret;
 }
@@ -204,20 +229,53 @@ zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame) {
 }
 
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr_t rval) {
-    zsp_frame_t *ret = 0;
-
+    uintptr_t frame_v = (uintptr_t)frame;
     thread->rval = rval;
+
+    // First, remove blocks until we find the one containing the frame
+    while (thread->block) {
+        if (frame_v >= (uintptr_t)thread->block && frame_v <= thread->block->limit) {
+            break;
+        } else {
+            zsp_stack_block_t *prev = thread->block->prev;
+            thread->sched->alloc->free(thread->sched->alloc, thread->block);
+            thread->block = prev;
+        }
+    }
+
+    // if (frame_v >= (uintptr_t)thread->block && frame_v <= thread->block->limit) {
+    //     fprintf(stdout, "Entire frame in single block (%p %p %p)\n",
+    //         frame_v, (uintptr_t)thread->block, thread->block->limit);
+    // } else {
+    //     fprintf(stdout, "Frame spans multiple blocks (%p %p %p)\n",
+    //         frame_v, (uintptr_t)thread->block, thread->block->limit);
+    // }
+
     if (frame->prev) {
+        // Simple:
+        // - each frame has a base pointer (itself)
+        // - a 'limit' pointer where its allocation ends
+        // 
+        // On rollback
+        // Must be block-aware:
+        // - new frame and old frame may be in same block
+        // -> adjust block to end after prev
+        // - new frame may be in different block
+        // -> free blocks until we find the one with 'prev'
+        // - frames are in 
         zsp_frame_t *prev = frame->prev;
 //        frame->sz += 
 //        free(frame);
+        // active block 'base' is the limit of the stack
+        // 
         thread->leaf = prev;
-        ret = prev->func(thread, prev, 0);
+        thread->leaf = prev->func(thread, prev, 0);
+
     } else {
         thread->leaf = 0;
     }
 
-    return ret;
+    return thread->leaf;
 }
 
 zsp_frame_t *zsp_thread_run(zsp_thread_t *thread) {

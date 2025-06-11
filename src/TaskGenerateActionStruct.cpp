@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelActionStruct.cpp
+ * TaskGenerateActionStruct.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelActionStruct.h"
+#include "TaskGenerateActionStruct.h"
 
 
 namespace zsp {
@@ -28,19 +28,20 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActionStruct::TaskGenerateExecModelActionStruct(
+TaskGenerateActionStruct::TaskGenerateActionStruct(
     IContext       *ctxt,
-    IOutput        *out) : TaskGenerateStructStruct(ctxt, 0, out) {
+    TypeInfo       *info,
+    IOutput        *out_h) : TaskGenerateStructStruct(ctxt, info, out_h) {
     m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionStruct", ctxt->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateActionStruct", ctxt->getDebugMgr());
 
 }
 
-TaskGenerateExecModelActionStruct::~TaskGenerateExecModelActionStruct() {
+TaskGenerateActionStruct::~TaskGenerateActionStruct() {
 
 }
 
-void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
+void TaskGenerateActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
     DEBUG_ENTER("generate");
 
     m_depth = 0;
@@ -81,7 +82,7 @@ void TaskGenerateExecModelActionStruct::generate(arl::dm::IDataTypeAction *actio
     DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
+void TaskGenerateActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     DEBUG_ENTER("visitTypeFieldRef");
     TaskGenerateStructStruct::visitTypeFieldRef(f);
     DEBUG_LEAVE("visitTypeFieldRef");

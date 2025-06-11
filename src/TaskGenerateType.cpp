@@ -30,8 +30,9 @@
 #include "TaskGenerateExecModelCoreMethodCall.h"
 #include "TaskGenerateExecModelMemRwCall.h"
 #include "TaskGenerateExecModelRegRwCall.h"
-#include "TaskGenerateExecModelAction.h"
+#include "TaskGenerateAction.h"
 #include "TaskGenerateExecModelActivity.h"
+#include "TaskGenerateAction.h"
 #include "TaskGenerateComp.h"
 #include "TaskGenerateExecModelDefineType.h"
 #include "TaskGenerateExecModelFwdDecl.h"
@@ -63,6 +64,13 @@ TaskGenerateType::~TaskGenerateType() {
 void TaskGenerateType::generate(vsc::dm::IDataTypeStruct *type_t) {
     type_t->accept(this);
     m_out_c->println("// Comment");
+}
+
+void TaskGenerateType::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
+    DEBUG_ENTER("visitDataTypeAction");
+    TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
+    TaskGenerateAction(m_ctxt, type_info.get(), m_out_c.get(), m_out_h.get()).generate(t);
+    DEBUG_LEAVE("visitDataTypeAction");
 }
 
 void TaskGenerateType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {

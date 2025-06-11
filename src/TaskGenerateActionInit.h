@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActionDtor.h
+ * TaskGenerateActionInit.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateStructDtor.h"
+#include "TaskGenerateStructInit.h"
 
 namespace zsp {
 namespace be {
@@ -27,15 +27,17 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelActionDtor :
-    public virtual TaskGenerateStructDtor {
+class TaskGenerateActionInit :
+    public virtual TaskGenerateStructInit {
 public:
-    TaskGenerateExecModelActionDtor(
-        TaskGenerateExecModel           *gen,
-        IOutput                         *out_h,
-        IOutput                         *out_c);
+    TaskGenerateActionInit(
+        IContext                    *ctxt,
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelActionDtor();
+    virtual ~TaskGenerateActionInit();
+
+    virtual void generate_core(vsc::dm::IDataTypeStruct *i) override;
 
 };
 

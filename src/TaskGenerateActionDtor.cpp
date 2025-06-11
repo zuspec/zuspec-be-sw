@@ -1,5 +1,5 @@
-/**
- * TaskGenerateExecModelActionStruct.h
+/*
+ * TaskGenerateActionDtor.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,41 +16,28 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IContext.h"
-#include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateStructStruct.h"
+#include "TaskGenerateExecModel.h"
+#include "TaskGenerateActionDtor.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+TaskGenerateActionDtor::TaskGenerateActionDtor(
+    IContext                        *ctxt, 
+    IOutput                         *out_h,
+    IOutput                         *out_c) : TaskGenerateStructDtor(ctxt, out_c) {
 
-class TaskGenerateExecModelActionStruct : 
-    public virtual TaskGenerateStructStruct {
-public:
-    TaskGenerateExecModelActionStruct(
-        IContext       *ctxt,
-        IOutput        *out
-    );
+}
 
-    virtual ~TaskGenerateExecModelActionStruct();
+TaskGenerateActionDtor::~TaskGenerateActionDtor() {
 
-    void generate(arl::dm::IDataTypeAction *action_t);
-
-    virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
-
-protected:
-
-
-};
+}
 
 }
 }
 }
-
-

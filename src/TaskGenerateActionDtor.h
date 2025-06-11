@@ -1,5 +1,5 @@
-/*
- * TaskGenerateExecModelActionDtor.cpp
+/**
+ * TaskGenerateActionDtor.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,28 +16,31 @@
  * limitations under the License.
  *
  * Created on:
- *     Author:
+ *     Author: 
  */
-#include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelActionDtor.h"
-
+#pragma once
+#include "TaskGenerateStructDtor.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActionDtor::TaskGenerateExecModelActionDtor(
-        TaskGenerateExecModel           *gen,
+
+class TaskGenerateActionDtor :
+    public virtual TaskGenerateStructDtor {
+public:
+    TaskGenerateActionDtor(
+        IContext                        *ctxt,
         IOutput                         *out_h,
-        IOutput                         *out_c) : TaskGenerateStructDtor(0, out_c) {
+        IOutput                         *out_c);
+
+    virtual ~TaskGenerateActionDtor();
+
+};
 
 }
-
-TaskGenerateExecModelActionDtor::~TaskGenerateExecModelActionDtor() {
-
+}
 }
 
-}
-}
-}
+

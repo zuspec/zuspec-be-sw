@@ -15,6 +15,9 @@ component pss_top {
     }
 
     action Inner {
+        exec post_solve {
+            print("-- post_solve\\n");
+        }
     }
 
     activity {
@@ -25,6 +28,7 @@ component pss_top {
         int v;
         exec pre_solve {
             v = 10;
+            print("-- Entry::pre_solve\\n");
         }
     }
 }
@@ -81,8 +85,8 @@ static zsp_frame_t *pss_top__Entry_actor_entry(
 
     switch (frame->idx) {
         case 0: {
+            fprintf(stdout, "case 0 (%d)\\n", frame->idx);
             frame->idx++;
-            fprintf(stdout, "case 0\\n");
             ret = zsp_thread_call(thread, 
                 zsp_component_type(&actor->comp)->do_run_start,
                 &actor->comp, 
@@ -90,6 +94,11 @@ static zsp_frame_t *pss_top__Entry_actor_entry(
             if (ret) {
                 break;
             }
+        }
+        case 1: {
+            fprintf(stdout, "case 1 (%d)\\n", frame->idx);
+            frame->idx++;
+            // Run the root activity
         }
         default: {
             ret = zsp_thread_return(thread, frame, 0);
@@ -114,7 +123,7 @@ zsp_thread_t *pss_top__Entry_actor_start(pss_top__Entry_actor_t *actor, zsp_sche
 
     zsp_actor_elab((zsp_actor_t *)actor);
 
-    zsp_scheduler_thread_init(
+    thread = zsp_thread_init(
         scheduler, 
         (zsp_thread_t *)actor, 
         &pss_top__Entry_actor_entry, 
@@ -136,6 +145,8 @@ int main() {
     pss_top__Entry_actor_t actor;
     zsp_scheduler_t scheduler;
     zsp_thread_t *thread;
+    int i;
+
     zsp_alloc_t alloc = {
         .alloc = &local_malloc,
         .free = &local_free
@@ -148,6 +159,17 @@ int main() {
     thread = pss_top__Entry_actor_start(&actor, &scheduler);
 
     fprintf(stdout, "RES: comp.a=%d\\n", actor.comp.a);
+
+    // Spin until the actor has finished executing
+    for (i=0; i<1000 && thread->leaf; i++) {
+        zsp_scheduler_run(&scheduler);
+    }
+
+    if (thread->leaf) {
+        fprintf(stdout, "Actor did not finish executing\\n");
+    } else {
+        fprintf(stdout, "Actor finished executing\\n");
+    }
 }
 """
 

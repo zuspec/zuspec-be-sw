@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelActionInit.cpp
+ * TaskGenerateActionInit.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,7 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelActionInit.h"
+#include "TaskGenerateActionInit.h"
 
 
 namespace zsp {
@@ -28,20 +28,21 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelActionInit::TaskGenerateExecModelActionInit(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out) : 
-        TaskGenerateStructInit(0, 0, 0) {
+TaskGenerateActionInit::TaskGenerateActionInit(
+    IContext                     *ctxt,
+    IOutput                      *out_h,
+    IOutput                      *out_c) : 
+        TaskGenerateStructInit(ctxt, out_h, out_c) {
     m_dbg = 0;
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelActionInit", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateActionInit", ctxt->getDebugMgr());
 
 }
 
-TaskGenerateExecModelActionInit::~TaskGenerateExecModelActionInit() {
+TaskGenerateActionInit::~TaskGenerateActionInit() {
 
 }
 
-void TaskGenerateExecModelActionInit::generate_core(vsc::dm::IDataTypeStruct *i) {
+void TaskGenerateActionInit::generate_core(vsc::dm::IDataTypeStruct *i) {
     TaskGenerateStructInit::generate_core(i);
     // m_gen->getOutC()->println("this_p->task.func = (zsp_rt_task_f)&%s__run;",
     //     m_gen->getNameMap()->getName(i).c_str());

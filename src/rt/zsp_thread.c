@@ -111,6 +111,44 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     return (sched->next)?1:0;
 }
 
+zsp_thread_t *zsp_thread_init(
+    zsp_scheduler_t     *sched, 
+    zsp_thread_t        *thread,
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags, ...) {
+    va_list args;
+    va_start(args, flags);
+    thread->block = 0;
+    thread->leaf = 0;
+    thread->sched = sched;
+    thread->flags = flags;
+    // TODO: new thread dictates new thread-specific allocator
+//    new_thread->alloc = thread->alloc;
+    zsp_frame_t *ret;
+
+    ret = func(thread, 0, &args);
+    va_end(args);
+
+    // Clean up automatically, so the thread doesn't need to do this
+    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
+
+    thread->leaf = ret;
+
+    if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+        // Schedule the thread
+        thread->next = 0;
+        if (sched->next) {
+            sched->tail->next = thread;
+            sched->tail = thread;
+        } else {
+            sched->next = thread;
+            sched->tail = thread;
+        }
+    }
+
+    return thread;
+}
+
 zsp_thread_t *zsp_thread_create(
     zsp_scheduler_t     *sched, 
     zsp_task_func       func, 
@@ -182,6 +220,7 @@ zsp_frame_t *zsp_thread_alloc_frame(
 
     ret->func = func;
     ret->prev = thread->leaf;
+    ret->flags = 0;
     ret->idx = 0;
     thread->leaf = ret;
 
@@ -218,6 +257,7 @@ zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...) {
     zsp_frame_t *ret;
 
     ret = func(thread, 0, &args);
+
     va_end(args);
 
     return ret;
@@ -225,6 +265,7 @@ zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...) {
 
 zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame) {
     thread->leaf = frame;
+    frame->flags |= ZSP_THREAD_FLAGS_SUSPEND;
     return frame;
 }
 
@@ -243,36 +284,18 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr
         }
     }
 
-    // if (frame_v >= (uintptr_t)thread->block && frame_v <= thread->block->limit) {
-    //     fprintf(stdout, "Entire frame in single block (%p %p %p)\n",
-    //         frame_v, (uintptr_t)thread->block, thread->block->limit);
-    // } else {
-    //     fprintf(stdout, "Frame spans multiple blocks (%p %p %p)\n",
-    //         frame_v, (uintptr_t)thread->block, thread->block->limit);
-    // }
-
-    if (frame->prev) {
-        // Simple:
-        // - each frame has a base pointer (itself)
-        // - a 'limit' pointer where its allocation ends
-        // 
-        // On rollback
-        // Must be block-aware:
-        // - new frame and old frame may be in same block
-        // -> adjust block to end after prev
-        // - new frame may be in different block
-        // -> free blocks until we find the one with 'prev'
-        // - frames are in 
+    if (frame->prev && (frame->prev->flags & ZSP_THREAD_FLAGS_SUSPEND)) {
         zsp_frame_t *prev = frame->prev;
-//        frame->sz += 
-//        free(frame);
-        // active block 'base' is the limit of the stack
-        // 
+
         thread->leaf = prev;
+
+        // Unblock the frame before calling
+        prev->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
         thread->leaf = prev->func(thread, prev, 0);
 
     } else {
-        thread->leaf = 0;
+        // Unwind either way
+        thread->leaf = frame->prev;
     }
 
     return thread->leaf;

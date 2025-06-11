@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActionInit.h
+ * TaskGenerateActionType.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,7 @@
  *     Author: 
  */
 #pragma once
-#include "TaskGenerateStructInit.h"
+#include "TaskGenerateStructType.h"
 
 namespace zsp {
 namespace be {
@@ -27,16 +27,21 @@ namespace sw {
 
 
 
-class TaskGenerateExecModelActionInit :
-    public virtual TaskGenerateStructInit {
+class TaskGenerateActionType :
+    public virtual TaskGenerateStructType {
 public:
-    TaskGenerateExecModelActionInit(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out);
+    TaskGenerateActionType(
+        IContext                    *ctxt, 
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelActionInit();
+    virtual ~TaskGenerateActionType();
 
-    virtual void generate_core(vsc::dm::IDataTypeStruct *i) override;
+    virtual void generate(vsc::dm::IDataTypeStruct *t);
+
+    virtual void generate_type_decl(vsc::dm::IDataTypeStruct *t);
+
+    virtual void generate_type_inst(vsc::dm::IDataTypeStruct *t);
 
 };
 

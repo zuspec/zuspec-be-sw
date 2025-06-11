@@ -50,6 +50,8 @@ public:
 
     void generate(vsc::dm::IDataTypeStruct *type_t);
 
+    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
+
     virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
     virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;

@@ -26,6 +26,7 @@ typedef enum {
 typedef struct zsp_frame_s {
     zsp_task_func       func;
     struct zsp_frame_s  *prev;
+    zsp_thread_flags_e  flags;
     int32_t             idx;
 //    uintptr_t           limit;
 //    uint32_t            sz;
@@ -94,6 +95,12 @@ int zsp_scheduler_run(zsp_scheduler_t *sched);
 
 zsp_thread_t *zsp_thread_create(
     zsp_scheduler_t     *sched, 
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags, ...);
+
+zsp_thread_t *zsp_thread_init(
+    zsp_scheduler_t     *sched, 
+    zsp_thread_t        *thread,
     zsp_task_func       func, 
     zsp_thread_flags_e  flags, ...);
 

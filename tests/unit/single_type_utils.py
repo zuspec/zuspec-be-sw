@@ -1,5 +1,6 @@
 
 import io
+import logging
 import os
 import pytest
 import shutil
@@ -34,7 +35,8 @@ def run_single_type_test(rundir, pss_src, typename, c_src, exp, prefix="RES: ", 
     import debug_mgr.core as dmgr
     dmgr_f = dmgr.Factory.inst()
     dmgr_i = dmgr_f.getDebugMgr()
-    if debug:
+
+    if logging.DEBUG >= logging.root.level:
         dmgr_i.enable(True)
 
     import vsc_dm.core as vsc_dm

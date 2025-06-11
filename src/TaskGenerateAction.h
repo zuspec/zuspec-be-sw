@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActionAlloc.h
+ * TaskGenerateAction.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,7 +21,11 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
+#include "IGenRefExpr.h"
+#include "TypeInfo.h"
+
 
 namespace zsp {
 namespace be {
@@ -29,25 +33,31 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelActionAlloc :
-    public virtual arl::dm::VisitorBase {
+class TaskGenerateAction : public arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelActionAlloc(
-        TaskGenerateExecModel       *gen,
-        IOutput                     *out);
+    TaskGenerateAction(
+        IContext                    *ctxt,
+        TypeInfo                    *type_info,
+        IOutput                     *out_h,
+        IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelActionAlloc();
+    virtual ~TaskGenerateAction();
 
     void generate(arl::dm::IDataTypeAction *action);
 
-    virtual void visitTypeFieldAddrClaim(arl::dm::ITypeFieldAddrClaim *f) override;
-
-    virtual void visitTypeFieldAddrClaimTransparent(arl::dm::ITypeFieldAddrClaimTransparent *f) override;
+	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
 
 private:
+    
+private:
     static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
-    IOutput                         *m_out;
+    IContext                        *m_ctxt;
+    TypeInfo                        *m_type_info;
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
+    bool                            m_is_root;
+    int32_t                         m_depth;
+
 };
 
 }

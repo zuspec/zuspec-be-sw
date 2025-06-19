@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExecBlockB.h
+ * TaskGenerateExecScopeB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,11 +19,8 @@
  *     Author: 
  */
 #pragma once
-#include <string>
-#include <vector>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
-#include "zsp/arl/dm/ITypeExec.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 
@@ -33,27 +30,33 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExecBlockB {
+class TaskGenerateExecScopeB :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateExecModelExecBlockB(
+    TaskGenerateExecScopeB(
         TaskGenerateExecModel       *gen,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
         IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelExecBlockB();
+    virtual ~TaskGenerateExecScopeB();
 
-    void generate(
-        const std::string                           &fname,
-        const std::string                           &tname,
-        const std::vector<arl::dm::ITypeExecUP>     &execs);
+    virtual void generate(arl::dm::ITypeProcStmtScope *t);
+
+    virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) override;
+
+    virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) override;
 
 private:
-    static dmgr::IDebug                 *m_dbg;
-    TaskGenerateExecModel               *m_gen;
-    IGenRefExpr                         *m_refgen;
-    IOutput                             *m_out_h;
-    IOutput                             *m_out_c;
+    static dmgr::IDebug             *m_dbg;
+    TaskGenerateExecModel           *m_gen;
+    IGenRefExpr                     *m_refgen;
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
+    std::vector<IOutput *>          m_out_c_s;
+    std::vector<IOutput *>          m_out_h_s;
+    int32_t                         m_idx;
+    int32_t                         m_depth;
 
 };
 

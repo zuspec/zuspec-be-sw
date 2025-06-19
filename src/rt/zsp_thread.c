@@ -84,7 +84,7 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
         thread->sched = sched;
         thread->leaf = thread->leaf->func(
             thread,
-            thread->leaf, 
+            thread->leaf->idx,
             0);
         
         if (thread->leaf) {
@@ -157,6 +157,7 @@ zsp_thread_t *zsp_thread_create(
     va_start(args, flags);
     zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
         sched->alloc, sizeof(zsp_thread_t));
+
     thread->block = 0;
     thread->leaf = 0;
     thread->sched = sched;
@@ -201,9 +202,11 @@ zsp_frame_t *zsp_thread_alloc_frame(
     zsp_task_func   func) {
     zsp_frame_t *ret;
 
+    sz = sz ? sz : sizeof(uintptr_t);
+
     uint32_t total_sz = sizeof(zsp_frame_t) + sz;
     if (!thread->block || ((thread->block->base+total_sz) >= thread->block->limit)) {
-        uint32_t block_sz = 4096; // TODO:
+        uint32_t block_sz = 8192; // TODO:
         zsp_stack_block_t *block = (zsp_stack_block_t *)
             thread->sched->alloc->alloc(
                 thread->sched->alloc, 
@@ -211,12 +214,21 @@ zsp_frame_t *zsp_thread_alloc_frame(
         block->base = (uintptr_t)&block->base+sizeof(uintptr_t);
         block->limit = block->base+block_sz-1;
 
+        fprintf(stdout, "[alloc_frame] Allocating new block: %p base=%p limit=%p exp=%p\n", 
+            block, block->base, block->limit,
+            ((uintptr_t)block)+(sizeof(zsp_stack_block_t)+block_sz));
+
         block->prev = thread->block;
         thread->block = block;
     }
 
     ret = (zsp_frame_t *)thread->block->base;
     thread->block->base += total_sz;
+    // fprintf(stdout, "[alloc_frame] %p..%p %d %d base=%p limit=%p exp=%p\n", 
+    //     ret, ((uintptr_t)ret)+total_sz,
+    //     sizeof(zsp_frame_t), sz,
+    //     thread->block->base, thread->block->limit,
+    //     (thread->block->base+total_sz));
 
     ret->func = func;
     ret->prev = thread->leaf;
@@ -237,6 +249,9 @@ void *zsp_thread_alloca(
         zsp_stack_block_t *block = (zsp_stack_block_t *)
             thread->sched->alloc->alloc(thread->sched->alloc, sizeof(zsp_stack_block_t));
         uint32_t block_sz = 4096; // TODO: 
+
+        fprintf(stdout, "[alloca] Allocating new block: %p\n", block);
+
         block->base = (uintptr_t)&block->base+sizeof(uintptr_t);
         block->limit = block->base+block_sz-1;
 
@@ -263,13 +278,24 @@ zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...) {
     return ret;
 }
 
-zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame) {
-    thread->leaf = frame;
-    frame->flags |= ZSP_THREAD_FLAGS_SUSPEND;
-    return frame;
+zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func func, ...) {
+    va_list args;
+    va_start(args, func);
+    zsp_frame_t *ret;
+
+    ret = func(thread, idx, &args);
+
+    va_end(args);
+
+    return ret;
 }
 
-zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr_t rval) {
+void zsp_thread_yield(zsp_thread_t *thread) {
+//    thread->leaf->flags |= ZSP_THREAD_FLAGS_SUSPEND;
+}
+
+zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
+    zsp_frame_t *frame = thread->leaf;
     uintptr_t frame_v = (uintptr_t)frame;
     thread->rval = rval;
 
@@ -280,9 +306,13 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr
         } else {
             zsp_stack_block_t *prev = thread->block->prev;
             thread->sched->alloc->free(thread->sched->alloc, thread->block);
+            fprintf(stdout, "[return] Freeing block: %p\n", thread->block);
             thread->block = prev;
         }
     }
+
+    // Roll back the 'base' pointer to the previous frame
+    thread->block->base = (uintptr_t)frame;
 
     if (frame->prev && (frame->prev->flags & ZSP_THREAD_FLAGS_SUSPEND)) {
         zsp_frame_t *prev = frame->prev;

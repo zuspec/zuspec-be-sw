@@ -163,7 +163,7 @@ void TaskGenerateStruct::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutp
         for (auto kind = kinds.begin(); kind != kinds.end(); kind++) {
             const std::vector<arl::dm::ITypeExecUP> &execs = arl_t->getExecs(*kind);
             std::string tname = m_ctxt->nameMap()->getName(t);
-            std::string fname = names[(int)(kind-kinds.begin())];
+            std::string fname = tname + "__" + names[(int)(kind-kinds.begin())];
             TaskGenerateExecBlockNB(m_ctxt, &refgen, m_out_c).generate(
                 fname,
                 tname,

@@ -62,6 +62,11 @@ cdef class Factory(object):
         vsc_dm.DataTypeStruct                    type_t,
         outdir)
 
+    cpdef arl_dm.TypeProcStmtScope buildAsyncScopeGroup(
+        self,
+        Context                                 ctxt,
+        vsc_dm.ObjBase                          scope)
+
     cpdef void initContextC(self, arl_dm.Context ctxt)
 
     cpdef Output mkFileOutput(self, path)

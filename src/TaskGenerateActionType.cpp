@@ -56,7 +56,7 @@ void TaskGenerateActionType::generate_type_decl(vsc::dm::IDataTypeStruct *t) {
         m_out_h->println("%s__type_t base;", 
             m_ctxt->nameMap()->getName(t->getSuper()).c_str());
     } else {
-        m_out_h->println("zsp_struct_type_t base;");
+        m_out_h->println("zsp_action_type_t base;");
     }
 
     // Must add method declarations (if applicable)
@@ -96,6 +96,14 @@ void TaskGenerateActionType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
     m_out_c->println("((zsp_object_type_t *)&__type)->name = \"%s\";",
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("((zsp_object_type_t *)&__type)->dtor = (zsp_dtor_f)&%s__dtor;",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_struct_type_t *)&__type)->pre_solve = (zsp_solve_exec_f)&%s__pre_solve;",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_struct_type_t *)&__type)->post_solve = (zsp_solve_exec_f)&%s__post_solve;",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_struct_type_t *)&__type)->pre_body = (zsp_solve_exec_f)&%s__pre_body;",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_action_type_t *)&__type)->body = (zsp_task_func)&%s__body;",
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("__init = 1;");
     m_out_c->dec_ind();

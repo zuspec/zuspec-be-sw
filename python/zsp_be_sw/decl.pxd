@@ -55,6 +55,10 @@ cdef extern from "zsp/be/sw/IFactory.h" namespace "zsp::be::sw":
             vsc_dm_decl.IDataTypeStructP                    type_t,
             const cpp_string                                &outdir)
 
+        arl_dm.ITypeProcStmtScope *buildAsyncScopeGroup(
+            IContext                                        *ctxt,
+            vsc_dm_decl.IAccept                             *scope)
+
         void initContextC(arl_dm.IContext                   *ctxt)
 
         IOutput *mkFileOutput(const cpp_string &path)

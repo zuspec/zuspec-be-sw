@@ -24,6 +24,7 @@
 #include "GeneratorFunctionsThreaded.h"
 #include "GeneratorMultiCoreEmbCTest.h"
 #include "Output.h"
+#include "TaskBuildAsyncScopeGroup.h"
 #include "TaskGenerateC.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateModel.h"
@@ -119,6 +120,12 @@ void Factory::generateModel(
         arl::dm::IDataTypeComponent                     *pss_top,
         const std::string                               &outdir) {
 //    TaskGenerateModel(ctxt, name, outdir).generate(pss_top);
+}
+
+arl::dm::ITypeProcStmtScope *Factory::buildAsyncScopeGroup(
+        IContext                                        *ctxt,  
+        vsc::dm::IAccept                                *scope) {
+    return TaskBuildAsyncScopeGroup(ctxt).build(scope);
 }
 
 

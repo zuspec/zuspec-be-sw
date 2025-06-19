@@ -85,6 +85,10 @@ public:
         arl::dm::IDataTypeComponent                     *pss_top,
         const std::string                               &outdir) = 0;
 
+    virtual arl::dm::ITypeProcStmtScope *buildAsyncScopeGroup(
+        IContext                                        *ctxt,
+        vsc::dm::IAccept                                *scope) = 0;
+
     virtual void initContextC(arl::dm::IContext *ctxt) = 0;
 
     virtual IOutput *mkFileOutput(const std::string &path) = 0;

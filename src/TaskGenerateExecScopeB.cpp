@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelExecScopeB.cpp
+ * TaskGenerateExecScopeB.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -23,7 +23,7 @@
 #include "TaskCheckExecHasLoop.h"
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelExecScopeB.h"
+#include "TaskGenerateExecScopeB.h"
 #include "TaskGenerateExecScopeNB.h"
 
 
@@ -32,20 +32,20 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelExecScopeB::TaskGenerateExecModelExecScopeB(
+TaskGenerateExecScopeB::TaskGenerateExecScopeB(
         TaskGenerateExecModel       *gen,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
         IOutput                     *out_c) : 
         m_gen(gen), m_refgen(m_refgen), m_out_h(out_h), m_out_c(out_c) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecModelExecScopeB", gen->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecScopeB", gen->getDebugMgr());
 }
 
-TaskGenerateExecModelExecScopeB::~TaskGenerateExecModelExecScopeB() {
+TaskGenerateExecScopeB::~TaskGenerateExecScopeB() {
 
 }
 
-void TaskGenerateExecModelExecScopeB::generate(arl::dm::ITypeProcStmtScope *t) {
+void TaskGenerateExecScopeB::generate(arl::dm::ITypeProcStmtScope *t) {
     DEBUG_ENTER("generate");
     OutputStr out_c(m_out_c->ind());
     OutputStr out_h(m_out_h->ind());
@@ -60,7 +60,7 @@ void TaskGenerateExecModelExecScopeB::generate(arl::dm::ITypeProcStmtScope *t) {
     DEBUG_LEAVE("generate");
 }
 
-void TaskGenerateExecModelExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) {
+void TaskGenerateExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) {
     DEBUG_ENTER("visitTypeProcStmtScope");
     m_idx = 0;
     TaskCheckIsExecBlocking is_b(m_gen->getDebugMgr(), m_gen->isTargetImpBlocking());
@@ -143,14 +143,14 @@ void TaskGenerateExecModelExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcS
     DEBUG_LEAVE("visitTypeProcStmtScope");
 }
 
-void TaskGenerateExecModelExecScopeB::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) {
+void TaskGenerateExecScopeB::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) {
     DEBUG_ENTER("visitTypeProcStmtYield");
     m_out_c_s.back()->println("ret = &this_s->task;");
     m_out_c_s.back()->println("break;");
     DEBUG_LEAVE("visitTypeProcStmtYield");
 }
 
-dmgr::IDebug *TaskGenerateExecModelExecScopeB::m_dbg = 0;
+dmgr::IDebug *TaskGenerateExecScopeB::m_dbg = 0;
 
 }
 }

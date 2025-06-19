@@ -14,7 +14,7 @@ extern "C" {
 
 struct zsp_thread_s; 
 
-typedef struct zsp_frame_s *(*zsp_task_func)(struct zsp_thread_s *, struct zsp_frame_s *, va_list *args);
+typedef struct zsp_frame_s *(*zsp_task_func)(struct zsp_thread_s *, int idx, va_list *args);
 
 typedef enum {
   ZSP_THREAD_FLAGS_NONE = 0,
@@ -30,7 +30,7 @@ typedef struct zsp_frame_s {
     int32_t             idx;
 //    uintptr_t           limit;
 //    uint32_t            sz;
-} zsp_frame_t;
+} __attribute__((aligned(sizeof(uintptr_t)))) zsp_frame_t;
 
 typedef struct zsp_frame_wrap_s {
     zsp_frame_t         frame;
@@ -104,11 +104,15 @@ zsp_thread_t *zsp_thread_init(
     zsp_task_func       func, 
     zsp_thread_flags_e  flags, ...);
 
-zsp_frame_t *zsp_thread_alloc_frame( zsp_thread_t *thread, uint32_t sz, zsp_task_func func);
+#define zsp_frame_locals(frame, locals_t) \
+    ((locals_t *)&((zsp_frame_wrap_t *)(frame))->locals)
+
+zsp_frame_t *zsp_thread_alloc_frame(zsp_thread_t *thread, uint32_t sz, zsp_task_func func);
 void *zsp_thread_alloca(zsp_thread_t *thread, size_t sz);
-zsp_frame_t *zsp_thread_suspend(zsp_thread_t *thread, zsp_frame_t *frame);
-zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, zsp_frame_t *frame, uintptr_t ret);
+void zsp_thread_yield(zsp_thread_t *thread);
+zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t ret);
 zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);
+zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func func, ...);
 // zsp_frame_t *zsp_thread_run(zsp_thread_t *thread);
 void zsp_thread_free(zsp_thread_t *thread);
 

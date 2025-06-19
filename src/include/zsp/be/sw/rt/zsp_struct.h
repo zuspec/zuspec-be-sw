@@ -14,6 +14,7 @@ typedef struct zsp_struct_type_s {
 
     zsp_solve_exec_f    pre_solve;
     zsp_solve_exec_f    post_solve;
+    zsp_solve_exec_f    pre_body;
 
 } zsp_struct_type_t;
 
@@ -34,6 +35,10 @@ typedef struct zsp_struct_s {
     zsp_struct_call(post_solve, actor, this_p)
 
 void zsp_struct_init(struct zsp_actor_s *actor, struct zsp_struct_s *this_p);
+
+zsp_struct_type_t *zsp_struct__type(void);
+
+void zsp_struct_type_init(zsp_struct_type_t *t);
 
 #ifdef __cplusplus
 }

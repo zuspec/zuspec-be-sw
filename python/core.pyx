@@ -131,6 +131,18 @@ cdef class Factory(object):
             type_t.asTypeStruct(),
             outdir.encode())
 
+    cpdef arl_dm.TypeProcStmtScope buildAsyncScopeGroup(
+        self,
+        Context                    ctxt,
+        vsc_dm.ObjBase             scope):
+        cdef arl_dm_decl.ITypeProcStmtScope *ret = self._hndl.buildAsyncScopeGroup(
+            ctxt._hndl,
+            scope._hndl)
+        if ret != NULL:
+            return arl_dm.WrapperBuilder().mkObj(ret, True)
+        else:
+            return None
+
     cpdef void initContextC(self, arl_dm.Context ctxt):
         self._hndl.initContextC(ctxt.asContext())
 

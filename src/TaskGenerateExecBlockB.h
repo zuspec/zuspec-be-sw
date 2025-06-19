@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelExecScopeB.h
+ * TaskGenerateExecBlockB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,12 @@
  *     Author: 
  */
 #pragma once
+#include <string>
+#include <vector>
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/arl/dm/ITypeExec.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 
@@ -30,33 +34,27 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelExecScopeB :
-    public virtual arl::dm::VisitorBase {
+class TaskGenerateExecBlockB {
 public:
-    TaskGenerateExecModelExecScopeB(
-        TaskGenerateExecModel       *gen,
+    TaskGenerateExecBlockB(
+        IContext                    *ctxt,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
         IOutput                     *out_c);
 
-    virtual ~TaskGenerateExecModelExecScopeB();
+    virtual ~TaskGenerateExecBlockB();
 
-    virtual void generate(arl::dm::ITypeProcStmtScope *t);
-
-    virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) override;
-
-    virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *t) override;
+    void generate(
+        const std::string                           &fname,
+        const std::string                           &tname,
+        const std::vector<arl::dm::ITypeExecUP>     &execs);
 
 private:
-    static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
-    IGenRefExpr                     *m_refgen;
-    IOutput                         *m_out_h;
-    IOutput                         *m_out_c;
-    std::vector<IOutput *>          m_out_c_s;
-    std::vector<IOutput *>          m_out_h_s;
-    int32_t                         m_idx;
-    int32_t                         m_depth;
+    static dmgr::IDebug                 *m_dbg;
+    IContext                            *m_ctxt;
+    IGenRefExpr                         *m_refgen;
+    IOutput                             *m_out_h;
+    IOutput                             *m_out_c;
 
 };
 

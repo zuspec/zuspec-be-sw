@@ -28,9 +28,11 @@
 #include "TaskGenerateActionInit.h"
 #include "TaskGenerateActionDtor.h"
 #include "TaskGenerateActionStruct.h"
+#include "TaskGenerateActionType.h"
 #include "TaskGenerateExecModelActivity.h"
-#include "TaskGenerateExecModelExecBlockB.h"
+#include "TaskGenerateExecBlockB.h"
 #include "TaskGenerateExecBlockNB.h"
+#include "TaskGenerateExecBlockB.h"
 
 
 namespace zsp {
@@ -43,8 +45,8 @@ TaskGenerateAction::TaskGenerateAction(
         TypeInfo                    *type_info,
         IOutput                     *out_h,
         IOutput                     *out_c) : 
-        m_ctxt(ctxt), m_type_info(type_info), m_out_h(out_h), m_out_c(out_c),
-        m_is_root(true), m_depth(0) {
+        TaskGenerateStruct(ctxt, type_info, out_h, out_c), m_is_root(true), m_depth(0) {
+    m_dbg = 0;
     DEBUG_INIT("zsp::be::sw::TaskGenerateAction", ctxt->getDebugMgr());
 }
 
@@ -52,6 +54,54 @@ TaskGenerateAction::~TaskGenerateAction() {
 
 }
 
+void TaskGenerateAction::generate_type(
+    vsc::dm::IDataTypeStruct    *t,
+    IOutput                     *out_h,
+    IOutput                     *out_c) {
+    DEBUG_ENTER("generate_type");
+    TaskGenerateActionType(m_ctxt, m_out_h, m_out_c).generate(t);
+    DEBUG_LEAVE("generate_type");
+}
+
+void TaskGenerateAction::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out) {
+    zsp::arl::dm::IDataTypeAction *action_t = dynamic_cast<zsp::arl::dm::IDataTypeAction *>(t);
+    DEBUG_ENTER("generate_exec_blocks");
+
+    // First, generate common exec blocks
+    TaskGenerateStruct::generate_exec_blocks(t, out);
+
+    if (action_t->activities().size()) {
+        DEBUG("generate activity function");
+//        TaskGenerateExecModelActivity(m_ctxt, m_out_h, m_out_c).generate(action_t);
+    } else {
+
+        GenRefExprExecModel refgen(m_ctxt->getDebugMgr(), t, "this_p", true);
+        const std::vector<arl::dm::ITypeExecUP> &execs = action_t->getExecs(arl::dm::ExecKindT::Body);
+        DEBUG("%d execs for body", execs.size());
+        std::string tname = m_ctxt->nameMap()->getName(t);
+        std::string fname = tname + "__body";
+        TaskGenerateExecBlockB(m_ctxt, &refgen, m_out_h, m_out_c).generate(
+            fname,
+            tname,
+            execs);
+    }
+
+
+    DEBUG_LEAVE("generate_exec_blocks");
+}
+
+/*
+void TaskGenerateAction::generate_init(
+    vsc::dm::IDataTypeStruct    *t,
+    IOutput                     *out_h,
+    IOutput                     *out_c) {
+    DEBUG_ENTER("generate_init");
+    TaskGenerateStructInit(m_ctxt, m_out_h, m_out_c).generate(t);
+    DEBUG_LEAVE("generate_init");
+}
+ */
+
+#ifdef UNDEFINED
 void TaskGenerateAction::generate(arl::dm::IDataTypeAction *action) {
     DEBUG_ENTER("generate");
     GenRefExprExecModel refgen(
@@ -236,6 +286,9 @@ void TaskGenerateAction::generate(arl::dm::IDataTypeAction *action) {
     DEBUG_LEAVE("generate");
 }
 
+#endif /* UNDEFINED */
+
+#ifdef UNDEFINED
 void TaskGenerateAction::visitDataTypeAction(arl::dm::IDataTypeAction *i) {
     DEBUG_ENTER("visitDataTypeAction");
     if (m_depth == 0) {
@@ -255,8 +308,8 @@ void TaskGenerateAction::visitDataTypeAction(arl::dm::IDataTypeAction *i) {
 
     DEBUG_LEAVE("visitDataTypeAction");
 }
+#endif /* UNDEFINED */
 
-dmgr::IDebug *TaskGenerateAction::m_dbg = 0;
 
 }
 }

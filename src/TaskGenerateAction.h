@@ -24,6 +24,7 @@
 #include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
+#include "TaskGenerateStruct.h"
 #include "TypeInfo.h"
 
 
@@ -33,7 +34,8 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateAction : public arl::dm::VisitorBase {
+class TaskGenerateAction : 
+    public virtual TaskGenerateStruct {
 public:
     TaskGenerateAction(
         IContext                    *ctxt,
@@ -43,18 +45,20 @@ public:
 
     virtual ~TaskGenerateAction();
 
-    void generate(arl::dm::IDataTypeAction *action);
+//    void generate(arl::dm::IDataTypeAction *action);
 
-	virtual void visitDataTypeAction(arl::dm::IDataTypeAction *i) override;
+    virtual const char *default_base_header() const { return "zsp_action.h"; }
+
+    virtual void generate_type(
+        vsc::dm::IDataTypeStruct    *t, 
+        IOutput                     *out_h,
+        IOutput                     *out_c) override;
+
+    virtual void generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
 
 private:
     
 private:
-    static dmgr::IDebug             *m_dbg;
-    IContext                        *m_ctxt;
-    TypeInfo                        *m_type_info;
-    IOutput                         *m_out_h;
-    IOutput                         *m_out_c;
     bool                            m_is_root;
     int32_t                         m_depth;
 

@@ -1,5 +1,5 @@
 /*
- * TaskGenerateExecModelExecBlockB.cpp
+ * TaskGenerateExecBlockB.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -18,10 +18,11 @@
  * Created on:
  *     Author:
  */
+#include "dmgr/impl/DebugMacros.h"
 #include "OutputStr.h"
 #include "TaskGenerateExecModel.h"
-#include "TaskGenerateExecModelExecBlockB.h"
-#include "TaskGenerateExecModelExecScopeB.h"
+#include "TaskGenerateExecBlockB.h"
+#include "TaskGenerateExecScopeB.h"
 #include "TaskGenerateExecScopeNB.h"
 #include "TaskCheckIsExecBlocking.h"
 
@@ -31,20 +32,20 @@ namespace be {
 namespace sw {
 
 
-TaskGenerateExecModelExecBlockB::TaskGenerateExecModelExecBlockB(
-    TaskGenerateExecModel           *gen,
+TaskGenerateExecBlockB::TaskGenerateExecBlockB(
+    IContext                        *ctxt, 
     IGenRefExpr                     *refgen,
     IOutput                         *out_h,
     IOutput                         *out_c) :
-    m_gen(gen), m_refgen(refgen), m_out_h(out_h), m_out_c(out_c) {
+    m_ctxt(ctxt), m_refgen(refgen), m_out_h(out_h), m_out_c(out_c) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecBlockB", m_ctxt->getDebugMgr());
+}
+
+TaskGenerateExecBlockB::~TaskGenerateExecBlockB() {
 
 }
 
-TaskGenerateExecModelExecBlockB::~TaskGenerateExecModelExecBlockB() {
-
-}
-
-void TaskGenerateExecModelExecBlockB::generate(
+void TaskGenerateExecBlockB::generate(
         const std::string                           &fname,
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
@@ -52,7 +53,7 @@ void TaskGenerateExecModelExecBlockB::generate(
 
     m_out_c->println("static void %s_init(struct %s_s *actor, %s *this_p) {",
         fname.c_str(),
-        m_gen->getActorName().c_str(),
+        "abc" /*m_gen->getActorName().c_str() */,
         tname.c_str());
     m_out_c->inc_ind();
     m_out_c->println("this_p->task.func = (zsp_rt_task_f)&%s_run;", fname.c_str());
@@ -60,8 +61,8 @@ void TaskGenerateExecModelExecBlockB::generate(
     m_out_c->println("}");
 
     TaskCheckIsExecBlocking is_b(
-        m_gen->getDebugMgr(), 
-        m_gen->isTargetImpBlocking());
+        m_ctxt->getDebugMgr(), 
+        true /*m_gen->isTargetImpBlocking()*/);
 
     // First, go through and define the functions for blocking sub-
     for (std::vector<arl::dm::ITypeExecUP>::const_iterator
@@ -70,8 +71,8 @@ void TaskGenerateExecModelExecBlockB::generate(
         arl::dm::ITypeExecProc *exec = 
             dynamic_cast<arl::dm::ITypeExecProc *>(it->get());
         if (is_b.check(exec->getBody())) {
-            TaskGenerateExecModelExecScopeB(
-                m_gen, 
+            TaskGenerateExecScopeB(
+                0 /*m_gen*/, 
                 m_refgen, 
                 m_out_h,
                 m_out_c).generate(exec->getBody());
@@ -82,7 +83,7 @@ void TaskGenerateExecModelExecBlockB::generate(
 
     m_out_c->println("static zsp_rt_task_t *%s_run(struct %s_s *actor, zsp_rt_task_t *this_p) {",
         fname.c_str(),
-        m_gen->getActorName().c_str());
+        "abc" /*m_gen->getActorName().c_str()*/);
     m_out_c->inc_ind();
     m_out_c->println("zsp_rt_task_t *ret = 0;");
 
@@ -125,6 +126,9 @@ void TaskGenerateExecModelExecBlockB::generate(
     m_out_c->dec_ind();
     m_out_c->println("}");
 }
+
+dmgr::IDebug *TaskGenerateExecBlockB::m_dbg = 0;
+
 
 }
 }

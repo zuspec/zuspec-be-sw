@@ -19,7 +19,7 @@ static zsp_frame_t *zsp_activity_ctxt_pre_traverse(
 void zsp_activity_ctxt_init(
     zsp_activity_ctxt_t *ctxt,
     zsp_activity_ctxt_t *parent) {
-    ctxt->pre_traverse = &zsp_activity_ctxt_pre_traverse;
+//    ctxt->pre_traverse = &zsp_activity_ctxt_pre_traverse;
     ctxt->parent = parent;
     if (parent) {
         ctxt->flags = parent->flags;

@@ -1,0 +1,30 @@
+
+# Bare-Metal C Code
+.c files and the corresponding header files in src/include/zsp/be/sw/rt are 
+bare-metal C code. These sources follow different conventions that standard
+C code:
+
+## Structural Inheritance
+
+A struct inherits from another by listing the base struct 
+first:
+
+```c
+typedef struct s1_s {
+    int a;
+} s1_t;
+
+typedef struct s2_s { // s1_s : s2_s
+    s2_t        base;
+    int         b;
+} s2_t;
+
+#define s1(obj) ((s1_t *)(obj))
+#define s2(obj) ((s2_t *)(obj))
+
+s2_t v;
+
+// Reference a base element via the <type>() macro
+s1(&v)->a = 5;
+
+```

@@ -1,4 +1,5 @@
 
+#include <stddef.h>
 #include <stdio.h>
 #include "zsp/be/sw/rt/zsp_thread.h"
 
@@ -111,6 +112,28 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     return (sched->next)?1:0;
 }
 
+static void *__zsp_thread_alloc(zsp_alloc_t *alloc, size_t sz) {
+    zsp_thread_t *thread = (zsp_thread_t *)(
+        ((uintptr_t)alloc)-(offsetof(struct zsp_thread_s, alloc)));
+    return zsp_thread_alloca(thread, sz);
+}
+
+void __zsp_thread_init(
+    zsp_thread_t        *thread, 
+    zsp_scheduler_t     *sched,
+    zsp_thread_flags_e  flags) {
+
+    thread->block = 0;
+    thread->leaf = 0;
+
+    // Thread-local alloc is freed when the stack is popped
+    thread->alloc.alloc = __zsp_thread_alloc;
+    thread->alloc.free = 0; 
+    thread->sched = sched;
+    thread->flags = flags;
+
+}
+
 zsp_thread_t *zsp_thread_init(
     zsp_scheduler_t     *sched, 
     zsp_thread_t        *thread,
@@ -118,10 +141,7 @@ zsp_thread_t *zsp_thread_init(
     zsp_thread_flags_e  flags, ...) {
     va_list args;
     va_start(args, flags);
-    thread->block = 0;
-    thread->leaf = 0;
-    thread->sched = sched;
-    thread->flags = flags;
+    __zsp_thread_init(thread, sched, flags);
     // TODO: new thread dictates new thread-specific allocator
 //    new_thread->alloc = thread->alloc;
     zsp_frame_t *ret;
@@ -149,6 +169,36 @@ zsp_thread_t *zsp_thread_init(
     return thread;
 }
 
+// static struct zsp_frame_s *__zsp_thread_group_join_task(
+//     zsp_thread_t *thread, int idx, va_list *args) {
+//     zsp_frame_t *ret = thread->leaf;
+//     typedef struct __locals_s {
+//         zsp_thread_group_t *group;
+//     } __locals_t;
+
+//     switch (idx) {
+//         case 0: {
+//             zsp_thread_group_t *group = va_arg(*args, zsp_thread_group_t *);
+//             __locals_t *__locals;
+
+//             ret = zsp_thread_alloc_frame(
+//                 thread, 
+//                 sizeof(__locals_t),
+//                 &__zsp_thread_group_join_task);
+
+//             __locals = zsp_frame_locals(ret, __locals_t);
+//             __locals->group = group;
+// }
+
+struct zsp_frame_s *zsp_thread_group_join(
+    zsp_thread_group_t *group,
+    struct zsp_thread_s *thread) {
+    if (group->base.next) {
+
+    }
+    return 0;
+}
+
 zsp_thread_t *zsp_thread_create(
     zsp_scheduler_t     *sched, 
     zsp_task_func       func, 
@@ -158,6 +208,7 @@ zsp_thread_t *zsp_thread_create(
     zsp_thread_t *thread = (zsp_thread_t *)sched->alloc->alloc(
         sched->alloc, sizeof(zsp_thread_t));
 
+    thread->group = (zsp_prev_next_t){0, 0};
     thread->block = 0;
     thread->leaf = 0;
     thread->sched = sched;
@@ -294,6 +345,28 @@ void zsp_thread_yield(zsp_thread_t *thread) {
 //    thread->leaf->flags |= ZSP_THREAD_FLAGS_SUSPEND;
 }
 
+uintptr_t zsp_thread_getsp(zsp_thread_t *thread) {
+    return thread->block->base;
+}
+
+uintptr_t zsp_thread_setsp(zsp_thread_t *thread, uintptr_t sp) {
+    if (sp && thread->block->base != sp) {
+        // First, remove blocks until we find the one containing the frame
+        while (thread->block) {
+            if (sp >= (uintptr_t)thread->block && sp <= thread->block->limit) {
+                break;
+            } else {
+                zsp_stack_block_t *prev = thread->block->prev;
+                thread->sched->alloc->free(thread->sched->alloc, thread->block);
+                fprintf(stdout, "[return] Freeing block: %p\n", thread->block);
+                thread->block = prev;
+            }
+        }
+        thread->block->base = sp;
+    }
+    return thread->block->base;
+}
+
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
     zsp_frame_t *frame = thread->leaf;
     uintptr_t frame_v = (uintptr_t)frame;
@@ -321,7 +394,7 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
 
         // Unblock the frame before calling
         prev->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-        thread->leaf = prev->func(thread, prev, 0);
+        thread->leaf = prev->func(thread, prev->idx, 0);
 
     } else {
         // Unwind either way
@@ -333,8 +406,41 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
 
 zsp_frame_t *zsp_thread_run(zsp_thread_t *thread) {
     if (thread->leaf) {
-        thread->leaf = thread->leaf->func(thread, thread->leaf, 0);
+        thread->leaf = thread->leaf->func(thread, thread->leaf->idx, 0);
     }    
 
     return thread->leaf;
+}
+
+static zsp_frame_t *zsp_thread_group_join_task(zsp_thread_t *thread, int idx, va_list *args) {
+    zsp_frame_t *ret = thread->leaf;
+    typedef struct __locals_s {
+        zsp_thread_group_t *group;
+    } __locals_t;
+
+    switch (idx) {
+        case 0: {
+            zsp_thread_group_t *group = va_arg(*args, zsp_thread_group_t *);
+            __locals_t *__locals;
+
+            ret = zsp_thread_alloc_frame(
+                thread, 
+                sizeof(__locals_t),
+                &zsp_thread_group_join_task);
+
+            __locals = zsp_frame_locals(ret, __locals_t);
+            __locals->group = group;
+
+            // TOOD: Intercept the 'thread-complete' function so we can
+            // tell when all the threads of interest have completed
+
+            // Wait un the 'all-done' event
+        }
+
+        default: {
+            ret = zsp_thread_return(thread, 0);
+        }
+    }
+
+    return ret;
 }

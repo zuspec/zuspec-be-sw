@@ -28,9 +28,7 @@ typedef struct zsp_frame_s {
     struct zsp_frame_s  *prev;
     zsp_thread_flags_e  flags;
     int32_t             idx;
-//    uintptr_t           limit;
-//    uint32_t            sz;
-} __attribute__((aligned(sizeof(uintptr_t)))) zsp_frame_t;
+} zsp_frame_t;
 
 typedef struct zsp_frame_wrap_s {
     zsp_frame_t         frame;
@@ -53,19 +51,47 @@ typedef struct zsp_stack_block_s {
 //        STACK_FRAME_SZ-(sizeof(zsp_frame_t *)+sizeof(uint32_t))];
 } zsp_stack_block_t;
 
+struct zsp_thread_group_s;
+
+typedef struct zsp_prev_next_s {
+    struct zsp_prev_next_s *prev;
+    struct zsp_prev_next_s *next;
+} zsp_prev_next_t;
+
+typedef void (*zsp_thread_group_event_f)(
+    struct zsp_thread_group_s   *group, 
+    struct zsp_thread_s         *thread);
+
+typedef struct zsp_thread_group_methods_s {
+    zsp_thread_group_event_f    enter;
+    zsp_thread_group_event_f    leave;
+} zsp_thread_group_methods_t;
+
+typedef struct zsp_thread_group_s {
+    zsp_prev_next_t             base;
+    struct zsp_thread_group_s   *parent;
+    zsp_thread_group_methods_t  *funcs;
+} zsp_thread_group_t;
+
+
 typedef struct zsp_thread_s {
+    // If this thread is part of a group, then
+    zsp_prev_next_t             group;
+
+    zsp_alloc_t                 alloc; // Allocator for thread-local storage
+
     // Allocator for thread-local storage
-    zsp_alloc_t         *alloc;
-//    void                *user_data;
-    zsp_stack_block_t   *block;
+    zsp_stack_block_t           *block;
+
     // sched handle is valid when thread is executing
     union {
         struct zsp_thread_s     *next;
         struct zsp_scheduler_s  *sched;
     };
-    struct zsp_frame_s  *leaf;
-    zsp_thread_flags_e  flags;
-    uintptr_t           rval;
+
+    struct zsp_frame_s          *leaf;
+    uintptr_t                   rval;
+    zsp_thread_flags_e          flags;
 } zsp_thread_t;
 
 typedef struct zsp_scheduler_s {
@@ -104,12 +130,39 @@ zsp_thread_t *zsp_thread_init(
     zsp_task_func       func, 
     zsp_thread_flags_e  flags, ...);
 
+zsp_thread_t *zsp_thread_create_group(
+    zsp_scheduler_t     *sched, 
+    zsp_thread_group_t  *group,
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags, ...);
+    
+zsp_thread_t *zsp_thread_init_group(
+    zsp_thread_t        *thread,
+    zsp_scheduler_t     *sched, 
+    zsp_thread_group_t  *group,
+    zsp_task_func       func, 
+    zsp_thread_flags_e  flags, ...);
+
+void zsp_thread_group_init(
+    zsp_thread_group_t          *group, 
+    zsp_thread_group_t          *parent, 
+    zsp_thread_group_methods_t *funcs);
+
+struct zsp_frame_s *zsp_thread_group_join(
+    zsp_thread_group_t *group,
+    struct zsp_thread_s *thread);
+
 #define zsp_frame_locals(frame, locals_t) \
     ((locals_t *)&((zsp_frame_wrap_t *)(frame))->locals)
 
 zsp_frame_t *zsp_thread_alloc_frame(zsp_thread_t *thread, uint32_t sz, zsp_task_func func);
 void *zsp_thread_alloca(zsp_thread_t *thread, size_t sz);
 void zsp_thread_yield(zsp_thread_t *thread);
+
+// Used by tasks to manage scope-local storage
+uintptr_t zsp_thread_getsp(zsp_thread_t *thread);
+uintptr_t zsp_thread_setsp(zsp_thread_t *thread, uintptr_t sp);
+
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t ret);
 zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func func, ...);

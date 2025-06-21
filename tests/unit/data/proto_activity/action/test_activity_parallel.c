@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include "zsp/be/sw/rt/zsp_action.h"
+#include "zsp/be/sw/rt/zsp_activity_ctxt_par.h"
 #include "zsp/be/sw/rt/zsp_activity_traverse.h"
 #include "zsp/be/sw/rt/zsp_thread.h"
 
@@ -116,6 +117,8 @@ static zsp_frame_t *pss_top__Entry__body(zsp_thread_t *thread, int idx, va_list 
     typedef struct __locals2_s {
         pss_top__Entry_t *self;
         int64_t  i;
+        uintptr_t sp; // Stack pointer for local storage
+        zsp_activity_ctxt_par_t *c1;
     } __locals2_t;
     // Indicies into timewheel
     // - Indicies and entries are offsets
@@ -145,6 +148,8 @@ static zsp_frame_t *pss_top__Entry__body(zsp_thread_t *thread, int idx, va_list 
             __locals2_t *__locals = zsp_frame_locals(ret, __locals2_t);
 
             __locals->i = 0; // Initialize loop variable
+            __locals->sp = 0;
+
 //            fprintf(stdout, "Initialize i (%p)\n", &__locals->i);
 //            fflush(stdout);
             // Must move to a new scope that contains
@@ -153,8 +158,9 @@ static zsp_frame_t *pss_top__Entry__body(zsp_thread_t *thread, int idx, va_list 
         case 2: { // Top of the loop
             CASE_2:
             __locals2_t *__locals = zsp_frame_locals(ret, __locals2_t);
-//            fprintf(stdout, "Test i=%d (%p) ret=%p\n", __locals->i, &__locals->i, ret);
-//            fflush(stdout);
+            // Reset local allocation
+            __locals->sp = zsp_thread_setsp(thread, __locals->sp);
+
             if (!(__locals->i < IT_MAX)) {
                 // Loop condition failed, exit loop
                 ret->idx = 4;
@@ -163,6 +169,9 @@ static zsp_frame_t *pss_top__Entry__body(zsp_thread_t *thread, int idx, va_list 
 
             // Otherwise, proceed with loop body
             // No need to create a distinct scope for loop body
+
+            __locals->c1 = (zsp_activity_ctxt_par_t *)zsp_thread_alloca(
+                thread, sizeof(zsp_activity_ctxt_par_t));
 
             // Traverse anonymous action instance 'doit' 
             ret->idx = 3; // Say where we want to be next time
@@ -178,6 +187,9 @@ static zsp_frame_t *pss_top__Entry__body(zsp_thread_t *thread, int idx, va_list 
         case 3: { // After action execution
             CASE_3:
             __locals2_t *__locals = zsp_frame_locals(ret, __locals2_t);
+
+            // 
+
             __locals->i++; // Increment loop variable
 
             ret->idx = 2; // Go back to loop head 

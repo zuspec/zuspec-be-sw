@@ -35,7 +35,6 @@ void zsp_actor_elab(zsp_actor_t *actor);
 struct zsp_thread_s *zsp_actor_start(
     zsp_actor_t             *actor,
     zsp_scheduler_t         *sched,
-    zsp_task_func           actor_task,
     void                    *action_args);
 
 #ifdef __cplusplus

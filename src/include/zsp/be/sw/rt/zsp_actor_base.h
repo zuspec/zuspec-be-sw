@@ -12,8 +12,10 @@ typedef struct zsp_actor_type_s {
     size_t              size;
     void (*init)(
         struct zsp_actor_base_s *actor, 
-        struct zsp_api_s *api);
-    void (*dtor)(struct zsp_actor_base_s *actor);
+        struct zsp_api_s        *api);
+    zsp_task_func               run;
+    void (*dtor)(
+        struct zsp_actor_base_s *actor);
 } zsp_actor_type_t;
 
 typedef struct zsp_actor_base_s {

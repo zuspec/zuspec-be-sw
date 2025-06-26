@@ -3,11 +3,19 @@ import dataclasses as dc
 from typing import Any, Dict, List
 from .model_types import zsp_actor_type_t, mk_signature
 from .actor_type import ActorType
+from .scheduler import Scheduler
 
 @dc.dataclass
 class Model(object):
     api_t : Any
     actor_type_m : Dict[str,ActorType] = dc.field(default_factory=dict)
+
+    @property
+    def actor_types(self):
+        return self.actor_type_m.keys()
+    
+    def mk_actor(self, type, sched):
+        return self.actor_type_m[type].mk(sched)
     
     @staticmethod
     def load(file) -> 'Model':
@@ -27,7 +35,7 @@ class Model(object):
         i=0
         while methods[i]:
             print("method[%d] %s" % (i, methods[i].decode()))
-            fname, ftype = mk_signature(methods[i].decode())
+            fname, istask, ftype = mk_signature(methods[i].decode())
             fields.append((fname, ftype))
             i += 1
 

@@ -4,6 +4,7 @@ import pytest
 import subprocess
 
 from zsp_be_sw.model import Model
+from zsp_be_sw.scheduler import Scheduler
 
 tests_unit_dir = os.path.dirname(os.path.abspath(__file__))
 model_ext_api_dir = os.path.join(tests_unit_dir, "data/model_ext_api")
@@ -31,8 +32,19 @@ def test_smoke_1(tmpdir):
     model = Model.load(os.path.join(tmpdir, "model.so"))
     assert model is not None
 
-    rt_lib = ctypes.cdll.LoadLibrary(os.path.join(libdir, "libzsp-be-sw-rt.so"))
-    assert rt_lib is not None
+    assert "smoke_1" in model.actor_types
+
+    sched = Scheduler()
+
+    actor = model.mk_actor("smoke_1", sched)
+
+    task = actor.start()
+
+    sched.run()
+
+
+#    rt_lib = ctypes.cdll.LoadLibrary(os.path.join(libdir, "libzsp-be-sw-rt.so"))
+#    assert rt_lib is not None
 
 
     # def dflt(*args, **kwargs):

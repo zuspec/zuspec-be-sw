@@ -36,14 +36,46 @@ static void smoke_1_init(zsp_actor_base_t *actor, zsp_api_t *api) {
     zsp_actor_init(
         &self->base, 
         api,
-        0,
+        0, // Actor knows comp and action types
         0);
+}
+
+static zsp_frame_t *smoke_1_run(zsp_thread_t *thread, int idx, va_list *args) {
+    // Activity function for actor
+    zsp_frame_t *ret = 0;
+
+    switch (idx) {
+        case 0: {
+            zsp_actor_t *actor = va_arg(*args, zsp_actor_t *);
+            void *action_args = va_arg(*args, void *);
+
+            ret = (zsp_frame_t *)zsp_thread_alloc_frame(
+                thread, 
+                0,
+                &smoke_1_run);
+            ret->idx = 1;
+
+            actor->base.api->print(
+                actor->base.api,
+                "Hello World!\n");
+
+            // TODO: Traverse action type
+
+
+        }
+        default: {
+            ret = zsp_thread_return(thread, 0);
+        }
+    }
+
+    return ret;
 }
 
 zsp_actor_type_t actor = {
     .name = "smoke_1",
     .size = sizeof(smoke_1_t),
     .init = &smoke_1_init,
+    .run = &smoke_1_run,
     .dtor = 0
 };
 

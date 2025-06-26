@@ -45,7 +45,6 @@ static struct zsp_frame_s *zsp_actor_trampoline(
 struct zsp_thread_s *zsp_actor_start(
     zsp_actor_t     *actor,
     zsp_scheduler_t *sched,
-    zsp_task_func   actor_task,
     void            *action_args) {
     struct zsp_thread_s *thread;
 
@@ -53,8 +52,9 @@ struct zsp_thread_s *zsp_actor_start(
     thread = zsp_thread_create(
         sched,
 //        &actor->base.thread, 
-        actor_task,
+        actor->base.type->run,
         ZSP_THREAD_FLAGS_NONE,
+        actor,
         action_args);
 
     return thread;

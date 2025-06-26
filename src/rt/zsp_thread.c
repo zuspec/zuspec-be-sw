@@ -7,6 +7,7 @@ void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
     sched->alloc = alloc;
     sched->next = 0;
     sched->tail = 0;
+    sched->active = 0;
 }
 
 zsp_scheduler_t *zsp_scheduler_create(zsp_alloc_t *alloc) {
@@ -22,6 +23,7 @@ void zsp_scheduler_init_threadv(
     zsp_thread_flags_e flags,
     va_list *args) {
 
+    thread->exit_f = 0;
     thread->block = 0;
     thread->leaf = 0;
     thread->next = 0;
@@ -33,6 +35,7 @@ void zsp_scheduler_init_threadv(
 
     thread->leaf = ret;
 
+    sched->active++;
     if (sched->next) {
         sched->tail->next = thread;
         sched->tail = thread;
@@ -111,6 +114,12 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
                 sched->next = thread;
                 sched->tail = thread;
             }
+        } else {
+            // Thread is complete
+            if (thread->exit_f) {
+                thread->exit_f(thread);
+            }
+            sched->active--;
         }
     }
 
@@ -129,6 +138,7 @@ void __zsp_thread_init(
     zsp_scheduler_t     *sched,
     zsp_thread_flags_e  flags) {
 
+    thread->exit_f = 0;
     thread->block = 0;
     thread->leaf = 0;
 
@@ -159,6 +169,10 @@ zsp_thread_t *zsp_thread_init(
     zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
     thread->leaf = ret;
+
+    if (ret) {
+        sched->active++;
+    }
 
     if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
         // Schedule the thread
@@ -230,6 +244,10 @@ zsp_thread_t *zsp_thread_create(
     zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
     thread->leaf = ret;
+
+    if (ret) {
+        sched->active++;
+    }
 
     if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
         // Schedule the thread

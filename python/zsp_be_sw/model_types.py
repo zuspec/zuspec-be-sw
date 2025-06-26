@@ -50,8 +50,9 @@ def mk_signature(sig):
             raise Exception("Internal error: invalid character in signature: %s" % sig[i])
 
     ftype = ctypes.CFUNCTYPE(rtype, *ptypes)
+    setattr(ftype, "_istask_", istask)
 
-    return (fname, ftype)
+    return (fname, istask, ftype)
 
 class zsp_actor_type_t(ctypes.Structure):
     _fields_ = [

@@ -73,10 +73,13 @@ typedef struct zsp_thread_group_s {
     zsp_thread_group_methods_t  *funcs;
 } zsp_thread_group_t;
 
+typedef void (*zsp_thread_exit_f)(struct zsp_thread_s *);
+
 
 typedef struct zsp_thread_s {
     // If this thread is part of a group, then
     zsp_prev_next_t             group;
+    zsp_thread_exit_f           exit_f;
 
     zsp_alloc_t                 alloc; // Allocator for thread-local storage
 
@@ -98,6 +101,7 @@ typedef struct zsp_scheduler_s {
     zsp_alloc_t        *alloc;
     zsp_thread_t       *next;
     zsp_thread_t       *tail;
+    int32_t            active;
 } zsp_scheduler_t;
 
 #define zsp_thread_clear_flags_transient(thread) \

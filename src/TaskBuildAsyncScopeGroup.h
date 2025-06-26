@@ -39,6 +39,8 @@ public:
 
     virtual TypeProcStmtAsyncScopeGroup *build(vsc::dm::IAccept *scope);
 
+    virtual TypeProcStmtAsyncScopeGroup *build(const std::vector<arl::dm::ITypeExecUP> &execs);
+
     virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
 
     virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;

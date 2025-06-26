@@ -9,6 +9,12 @@ void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
     sched->tail = 0;
 }
 
+zsp_scheduler_t *zsp_scheduler_create(zsp_alloc_t *alloc) {
+    zsp_scheduler_t *sched = (zsp_scheduler_t *)alloc->alloc(alloc, sizeof(zsp_scheduler_t));
+    zsp_scheduler_init(sched, alloc);
+    return sched;
+}
+
 void zsp_scheduler_init_threadv(
     zsp_scheduler_t *sched, 
     zsp_thread_t *thread, 

@@ -19,6 +19,8 @@ typedef struct zsp_alloc_s {
 
 void zsp_alloc_malloc_init(zsp_alloc_t *alloc);
 
+zsp_alloc_t *zsp_alloc_malloc_create();
+
 #ifdef __cplusplus
 }
 #endif 

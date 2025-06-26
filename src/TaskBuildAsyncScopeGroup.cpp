@@ -35,6 +35,33 @@ TaskBuildAsyncScopeGroup::~TaskBuildAsyncScopeGroup() {
 
 }
 
+TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
+    const std::vector<arl::dm::ITypeExecUP> &execs) {
+    DEBUG_ENTER("build");
+    m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(0)));
+
+    // Default case
+    m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(-1)));
+
+    for (std::vector<arl::dm::ITypeExecUP>::const_iterator
+        it=execs.begin();
+        it!=execs.end(); it++) {
+        (*it)->accept(this);
+    }
+
+    if (m_scopes.size() > 2) {
+        // An actual async scope was created
+
+        if (m_scopes.at(m_scopes.size()-2)->getStatements().size() == 0) {
+            // Remove the last actual scope since it has no statements
+            m_scopes.erase(m_scopes.end()-2);
+        }
+    }
+
+
+    DEBUG_LEAVE("build");
+}
+
 TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *scope) {
     DEBUG_ENTER("build");    
     m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(0)));

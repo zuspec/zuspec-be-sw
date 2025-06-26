@@ -105,6 +105,8 @@ typedef struct zsp_scheduler_s {
 
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc);
 
+zsp_scheduler_t *zsp_scheduler_create(zsp_alloc_t *alloc);
+
 // zsp_thread_t *zsp_scheduler_create_thread(
 //     zsp_scheduler_t *sched, 
 //     zsp_task_func func, 

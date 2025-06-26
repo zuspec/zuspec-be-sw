@@ -23,7 +23,7 @@ typedef struct zsp_object_type_s {
 
 typedef struct zsp_object_s {
     zsp_object_type_t *type;
-
+    int32_t            refc;
 } zsp_object_t;
 
 zsp_object_type_t *zsp_object__type(void);

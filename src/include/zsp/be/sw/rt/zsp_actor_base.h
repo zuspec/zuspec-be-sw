@@ -1,20 +1,28 @@
 
 #ifndef INCLUDED_ZSP_ACTOR_BASE_H
 #define INCLUDED_ZSP_ACTOR_BASE_H
+#include "zsp/be/sw/rt/zsp_object.h"
+#include "zsp/be/sw/rt/zsp_thread.h"
+
+struct zsp_api_s;
+struct zsp_actor_base_s;
+
+typedef struct zsp_actor_type_s {
+    const char          *name;
+    size_t              size;
+    void (*init)(
+        struct zsp_actor_base_s *actor, 
+        struct zsp_api_s *api);
+    void (*dtor)(struct zsp_actor_base_s *actor);
+} zsp_actor_type_t;
 
 typedef struct zsp_actor_base_s {
     // Actor main thread. Actor is-a thread
     zsp_thread_t            thread; // Actor main thread
+    zsp_actor_type_t        *type;  // Actor type
 
-    // Base class for all actors, providing common functionality
-    // and properties that all actors will inherit.
-    // This can include methods for initialization, destruction,
-    // and other common actor behaviors.
+    struct zsp_api_s        *api;   // Actor API
 
-    // Example member variables (to be defined as needed):
-    // int actor_id;          // Unique identifier for the actor
-    // const char *name;      // Name of the actor
-    zsp_bool_t              is_elab;
 } zsp_actor_base_t;
 
 #endif /* INCLUDED_ZSP_ACTOR_BASE_H */

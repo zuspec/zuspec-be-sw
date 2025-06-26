@@ -13,8 +13,9 @@ void zsp_actor_init(
     zsp_component_type_t    *comp_t,
     zsp_action_type_t       *action_t) {
 
-    comp_t->init(actor, &actor->comp, "pss_top", 0);
-    
+    if (comp_t) {
+        comp_t->init(actor, &actor->comp, "pss_top", 0);
+    }
 }
 
 static void zsp_actor_elab_comp(

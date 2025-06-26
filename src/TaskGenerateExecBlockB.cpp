@@ -25,6 +25,7 @@
 #include "TaskGenerateExecScopeB.h"
 #include "TaskGenerateExecScopeNB.h"
 #include "TaskCheckIsExecBlocking.h"
+#include "TaskBuildAsyncScopeGroup.h"
 
 
 namespace zsp {
@@ -50,6 +51,9 @@ void TaskGenerateExecBlockB::generate(
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
     int32_t idx = 0;
+
+    TypeProcStmtAsyncScopeGroupUP group(
+        TaskBuildAsyncScopeGroup(m_ctxt).build(execs));
 
     m_out_c->println("static void %s_init(struct %s_s *actor, %s *this_p) {",
         fname.c_str(),

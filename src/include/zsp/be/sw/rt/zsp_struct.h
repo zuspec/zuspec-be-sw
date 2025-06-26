@@ -10,7 +10,7 @@ struct zsp_struct_s;
 typedef void (*zsp_solve_exec_f)(struct zsp_actor_s *, struct zsp_struct_s *);
 
 typedef struct zsp_struct_type_s {
-    zsp_object_type_t base;
+    zsp_object_type_t   base;
 
     zsp_solve_exec_f    pre_solve;
     zsp_solve_exec_f    post_solve;
@@ -19,8 +19,7 @@ typedef struct zsp_struct_type_s {
 } zsp_struct_type_t;
 
 typedef struct zsp_struct_s {
-    zsp_object_t base;
-
+    zsp_object_t        base;
 } zsp_struct_t;
 
 #define zsp_struct_call(method, actor, this_p) \

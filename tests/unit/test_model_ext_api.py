@@ -1,3 +1,4 @@
+import asyncio
 import ctypes
 import os
 import pytest
@@ -16,7 +17,7 @@ def test_smoke_1(tmpdir):
 
     # First, compile the shared library
     cmd = [
-        'gcc', '-shared', '-o', os.path.join(tmpdir, "model.so"),
+        'gcc', '-g', '-shared', '-fPIC', '-o', os.path.join(tmpdir, "model.so"),
         os.path.join(model_ext_api_dir, "smoke_1.c"),
         "-I%s" % incdir,
         "-L%s" % libdir, "-lzsp-be-sw-rt",
@@ -35,12 +36,11 @@ def test_smoke_1(tmpdir):
     assert "smoke_1" in model.actor_types
 
     sched = Scheduler()
-
     actor = model.mk_actor("smoke_1", sched)
 
-    task = actor.start()
+    asyncio.run(actor.run())
 
-    sched.run()
+#    asyncio.run(run())
 
 
 #    rt_lib = ctypes.cdll.LoadLibrary(os.path.join(libdir, "libzsp-be-sw-rt.so"))

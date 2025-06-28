@@ -13,6 +13,7 @@ void zsp_actor_init(
     zsp_component_type_t    *comp_t,
     zsp_action_type_t       *action_t) {
 
+    actor->base.api = api;
     if (comp_t) {
         comp_t->init(actor, &actor->comp, "pss_top", 0);
     }
@@ -58,6 +59,10 @@ struct zsp_thread_s *zsp_actor_start(
         action_args);
 
     return thread;
+}
+
+zsp_actor_type_t *zsp_actor_type(zsp_actor_base_t *actor) {
+    return actor->type;
 }
 
 // User-facing actor is:

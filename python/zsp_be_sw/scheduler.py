@@ -2,6 +2,7 @@ import asyncio
 import ctypes
 import dataclasses as dc
 from .api import Api
+from .thread import Thread, zsp_thread_exit_f
 
 class zsp_scheduler_t(ctypes.Structure):
     _fields_ = [
@@ -14,41 +15,86 @@ class zsp_scheduler_t(ctypes.Structure):
 @dc.dataclass
 class Scheduler(object):
     alloc : ctypes.c_void_p = None
-    sched : ctypes.c_void_p = None
+    hndl : ctypes.c_void_p = None
     loop = None
+    actors : list = dc.field(default_factory=list)
+    _ev : asyncio.Event = dc.field(default_factory=asyncio.Event)
+
 
     def __post_init__(self):
         api = Api.inst()
 
         if self.alloc is None:
             self.alloc = api._zsp_alloc_malloc_create()
-        if self.sched is None:
-            self.sched = api._zsp_scheduler_create(self.alloc)
+        if self.hndl is None:
+            self.hndl = api._zsp_scheduler_create(self.alloc)
+
+    def add_actor(self, actor):
+        print("--> add_actor", flush=True)
+        self.actors.append(actor)
+        print("<-- add_actor", flush=True)
 
     def init_loop(self, loop):
         self.loop = loop
 
-    async def _idle(self, loop):
+    def _idle(self, loop):
         print("--> idle", flush=True)
-        loop.stop()
+        sched = ctypes.cast(
+            self.hndl,
+            ctypes.POINTER(zsp_scheduler_t))
+        print("active: %d" % sched.contents.active, flush=True)
+        self._ev.set()
+#        loop.stop()
         print("<-- idle", flush=True)
 
+    async def run_actor(self, actor):
+        print("--> run_actor", flush=True)
+        loop = asyncio.get_event_loop()
+
+        ev = asyncio.Event()
+        def thread_end():
+            nonlocal ev
+            print("--> thread_end", flush=True)
+            ev.set()
+            print("<-- thread_end", flush=True)
+        actor.thread.set_exit_f(zsp_thread_exit_f(thread_end))
+
+        for i in range(20):
+            loop.call_soon(self._idle, loop)
+            print("--> run_a.loop.run_forever", flush=True)
+            await self._ev.wait()
+            self._ev.clear()
+            print("<-- run_a.loop.run_forever", flush=True)
+        print("<-- run_actor", flush=True)
+
     async def run_a(self):
+        print("--> run_a", flush=True)
+        loop = asyncio.get_event_loop()
+        for i in range(20):
+            loop.call_soon(self._idle, loop)
+            print("--> run_a.loop.run_forever", flush=True)
+            await self._ev.wait()
+            self._ev.clear()
+            print("<-- run_a.loop.run_forever", flush=True)
+#        await self._ev.wait()
+        print("<-- run_a", flush=True)
         pass
 
     def run(self):
         sched = ctypes.cast(
-            self.sched,
+            self.hndl,
             ctypes.POINTER(zsp_scheduler_t))
 
         print("--> scheduler.run", flush=True)
         loop = asyncio.get_event_loop()
-        loop.call_later(0.0, self._idle(loop))
-        loop.run_until_complete(self.run_a())
+        for i in range(20):
+            print("--> scheduler.run_forever", flush=True)
+            asyncio.run(self.run_a())
+        print("<-- scheduler.run_forever", flush=True)
 
-        print("active: %d" % sched.contents.active)
+        print("active: %d" % sched.contents.active, flush=True)
 
-        loop.run
+#        loop.run
 
         # TODO: how do we know when we're done?
         # - Keep looping 

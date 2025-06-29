@@ -5,64 +5,12 @@ import sys
 from typing import Any, Callable, Dict
 from .actor_type import zsp_actor_type_t
 from .api import Api
+from .closure import Closure, TaskClosure
 from .context import Context
+from .import_linker import ImportLinker
 from .scheduler import Scheduler
 from .thread import Thread, zsp_thread_exit_f
 from .model_types import Signature
-
-@dc.dataclass
-class Closure(object):
-    sig : Signature
-    impl : Callable
-
-    def func(self, api, *args):
-        # TODO: convert arguments (eg ctypes.c_char_p) if needed
-        ret = self.impl(*args)
-
-        # TODO: convert return (eg ctypes.c_char_p) if needed
-
-        return ret
-    
-@dc.dataclass
-class TaskClosure(Closure):
-    sched : Scheduler
-    thread : ctypes.c_void_p = None
-    api : Any = None
-    args : Any = None
-
-    async def body(self):
-        print("body")
-#        ret = await self.impl(self.api, *self.args)
-        ret = 1
-
-        # Sets the return value
-        api = Api.inst()
-        print("--> zsp_thread_return", flush=True)
-        api._zsp_thread_return(self.thread, ret)
-        print("<-- zsp_thread_return", flush=True)
-        print("--> zsp_thread_schedule", flush=True)
-        api._zsp_thread_schedule(self.sched.hndl, self.thread)
-        print("<-- zsp_thread_schedule", flush=True)
-        pass
-
-    def func(self, thread, idx, args):
-        api = Api.inst()
-        print("TaskClosure.func: thread=%s, idx=%s, args=%s" % (thread, idx, args), flush=True)
-
-        # Save this so we can complete the task call later
-        self.thread = thread
-        # Create a frame for the call
-        ret = api._zsp_thread_alloc_frame(thread, 0, None)
-        # Extract built-in arguments
-        # - API
-        # Use signature to extract user arguments
-        # Use the event look to start the body
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.body())
-
-#        self.api = api
-#        self.args = tuple(*args)
-        return ret
 
 @dc.dataclass
 class Actor(object):
@@ -132,7 +80,7 @@ class Actor(object):
         print("Default: %s")
         raise Exception("Unimplemented: %s"% name)
 
-    def init_api(self, scope=None):
+    def init_api(self, linker : ImportLinker):
         i = 0
         for sig in self.model.signatures:
             name = sig.name
@@ -152,13 +100,10 @@ class Actor(object):
                     impl = Closure(sig, self._dflt_func_m[name])
             
             if impl is None:
-                if sig.istask:
-                    impl = TaskClosure(
-                        sig, 
-                        self._default_task,
-                        self.sched)
-                else:
-                    impl = Closure(self._default_func, name)
+                impl = linker.get_closure(sig)
+
+            if impl is None:
+                raise Exception("No implementation found for %s" % name)
 
             setattr(self.api, name, sig.ftype(impl.func))
         pass

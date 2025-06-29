@@ -352,6 +352,35 @@ zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func
     return ret;
 }
 
+uintptr_t zsp_thread_va_arg(va_list *args, size_t sz) {
+    uintptr_t ret;
+    switch (sz) {
+        case 1: {
+            ret = (uintptr_t)va_arg(*args, uint8_t);
+            break;
+        }
+        case 2: {
+            ret = (uintptr_t)va_arg(*args, uint16_t);
+            break;
+        }
+        case 4: {
+            ret = (uintptr_t)va_arg(*args, uint32_t);
+            break;
+        }
+        case 8: {
+            ret = (uintptr_t)va_arg(*args, uint64_t);
+            break;
+        }
+        default: {
+            fprintf(stderr, "Unsupported size for va_arg: %zu\n", sz);
+            ret = 0;
+            break;
+        }
+        }
+    
+    return ret;
+};
+
 void zsp_thread_yield(zsp_thread_t *thread) {
 //    thread->leaf->flags |= ZSP_THREAD_FLAGS_SUSPEND;
 }
@@ -413,6 +442,10 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
     }
 
     return thread->leaf;
+}
+
+struct zsp_scheduler_s *zsp_thread_scheduler(zsp_thread_t *thread) {
+    return thread->sched;
 }
 
 zsp_frame_t *zsp_thread_run(zsp_thread_t *thread) {

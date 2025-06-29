@@ -1,6 +1,7 @@
 import asyncio
 import ctypes
 import dataclasses as dc
+from typing import ClassVar
 from .api import Api
 from .thread import Thread, zsp_thread_exit_f
 
@@ -20,6 +21,7 @@ class Scheduler(object):
     actors : list = dc.field(default_factory=list)
     _ev : asyncio.Event = dc.field(default_factory=asyncio.Event)
     _running : bool = False
+    _default : ClassVar = None
 
 
     def __post_init__(self):
@@ -106,5 +108,11 @@ class Scheduler(object):
         # TODO: 
         print("<-- scheduler.run", flush=True)
         pass
+
+    @classmethod
+    def default(cls):
+        if cls._default is None:
+            cls._default = Scheduler()
+        return cls._default
 
     pass

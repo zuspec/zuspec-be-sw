@@ -14,6 +14,8 @@ class Api(object):
     _zsp_thread_alloc_frame = None
     _zsp_thread_return = None
     _zsp_thread_schedule = None
+    _zsp_thread_scheduler = None
+    _zsp_thread_va_arg = None
 
     def __post_init__(self):
         from zsp_be_sw import lib_rt
@@ -47,6 +49,22 @@ class Api(object):
         self._zsp_thread_schedule = rt.zsp_thread_schedule
         self._zsp_thread_schedule.restype = None
         self._zsp_thread_schedule.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+        self._zsp_thread_scheduler = rt.zsp_thread_scheduler
+        self._zsp_thread_scheduler.restype = ctypes.c_void_p
+        self._zsp_thread_scheduler.argtypes = [ctypes.c_void_p]
+
+        self._zsp_thread_va_arg = rt.zsp_thread_va_arg
+        self._zsp_thread_va_arg.restype = ctypes.c_uint64
+        self._zsp_thread_va_arg.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+
+    @classmethod
+    def inst(cls):
+        if cls._inst is None:
+            cls._inst = Api()
+        return cls._inst
+
+
 
     @classmethod
     def inst(cls):

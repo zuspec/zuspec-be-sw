@@ -62,25 +62,33 @@ static void smoke_1_init(zsp_actor_base_t *actor, zsp_api_t *api) {
 
 
 static zsp_frame_t *smoke_1_run_task(zsp_thread_t *thread, int idx, va_list *args) {
+    struct __locals_s {
+        zsp_actor_t *actor;
+        void *action_args;
+    };
     // Activity function for actor
     zsp_frame_t *ret = thread->leaf;
 
     switch (idx) {
         case 0: {
+            struct __locals_s *__locals;
             zsp_actor_t *actor = va_arg(*args, zsp_actor_t *);
             void *action_args = va_arg(*args, void *);
 
             ret = (zsp_frame_t *)zsp_thread_alloc_frame(
                 thread, 
-                0,
+                sizeof(struct __locals_s),
                 &smoke_1_run_task);
             ret->idx = 1;
+            __locals = zsp_frame_locals(ret, struct __locals_s);
+            __locals->actor = actor;
+            __locals->action_args = action_args;
 
             actor->base.api->print(
                 actor->base.api,
                 "Hello World!\n");
 
-            ret->idx = 2;
+            ret->idx = 1;
             ret = zsp_thread_call(
                 thread, 
                 ((smoke_1_api_t *)actor->base.api)->doit, 
@@ -92,14 +100,13 @@ static zsp_frame_t *smoke_1_run_task(zsp_thread_t *thread, int idx, va_list *arg
             if (ret) {
                 break;
             }
-
-     /*
-            break;
         }
         case 1: {
+            struct __locals_s *__locals = zsp_frame_locals(ret, struct __locals_s);
             ret->idx = 2;
-            break;
-     */
+            __locals->actor->base.api->print(
+                __locals->actor->base.api,
+                "Hello World(2)!\n");
         }
 
         /**/

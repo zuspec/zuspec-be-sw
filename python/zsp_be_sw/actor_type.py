@@ -1,8 +1,10 @@
 import ctypes
 import dataclasses as dc
 from typing import Any
-from .model_types import zsp_actor_type_t
 from .api import Api
+from .import_linker import ImportLinker
+from .import_linker_scope import ImportLinkerScope
+from .model_types import zsp_actor_type_t
 from .scheduler import Scheduler
 from .thread import zsp_task_func
 
@@ -20,7 +22,7 @@ class ActorType(object):
     model : 'Model'
     info : zsp_actor_type_t
 
-    def mk(self, sched : Scheduler, scope=None):
+    def mk(self, sched : Scheduler, linker : ImportLinker):
         from .actor import Actor
         hndl = (ctypes.c_ubyte * self.info.contents.size)()
         zsp_api = Api.inst()
@@ -28,13 +30,9 @@ class ActorType(object):
         self.info.contents.init(
             ctypes.byref(hndl),
             ctypes.byref(imp_api))
-        actor = Actor(
-            sched=sched,
-            model=self.model,
-            api=imp_api,
-            hndl=hndl)
+        actor = Actor(sched=sched, model=self.model, api=imp_api, hndl=hndl)
 
-        actor.init_api(scope)
+        actor.init_api(linker)
 
         return actor
 

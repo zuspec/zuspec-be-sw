@@ -3,6 +3,8 @@ import dataclasses as dc
 from typing import Any, Dict, List
 from .model_types import zsp_actor_type_t, mk_signature, Signature
 from .actor_type import ActorType
+from .import_linker import ImportLinker
+from .import_linker_scope import ImportLinkerScope
 from .scheduler import Scheduler
 
 @dc.dataclass
@@ -15,8 +17,12 @@ class Model(object):
     def actor_types(self):
         return self.actor_type_m.keys()
     
-    def mk_actor(self, type, sched):
-        return self.actor_type_m[type].mk(sched)
+    def mk_actor(self, type, sched : Scheduler = None, linker : ImportLinkerScope=None):
+        if sched is None:
+            sched = Scheduler.default()
+        if linker is None:
+            linker = ImportLinkerScope(uplevel=1)
+        return self.actor_type_m[type].mk(sched, linker)
     
     @staticmethod
     def load(file) -> 'Model':
@@ -51,9 +57,6 @@ class Model(object):
         api_t = type("api_t", (ctypes.Structure,), {
             "_fields_": fields
         })
-
-        for f in api_t._fields_:
-            print("api_t field: %s %s" % (f[0], getattr(f[1], "_istask_", False)), flush=True)
 
         actors = zsp_get_actor_types()
 

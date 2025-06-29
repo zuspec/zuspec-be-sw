@@ -172,8 +172,10 @@ uintptr_t zsp_thread_getsp(zsp_thread_t *thread);
 uintptr_t zsp_thread_setsp(zsp_thread_t *thread, uintptr_t sp);
 
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t ret);
+struct zsp_scheduler_s *zsp_thread_scheduler(zsp_thread_t *thread);
 zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func func, ...);
+uintptr_t zsp_thread_va_arg(va_list *args, size_t sz);
 // zsp_frame_t *zsp_thread_run(zsp_thread_t *thread);
 void zsp_thread_free(zsp_thread_t *thread);
 

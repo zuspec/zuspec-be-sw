@@ -24,6 +24,14 @@ class Signature(object):
     rtype : Any
     ptypes : List
 
+    @staticmethod
+    def from_mangled(sig : str):
+        return mk_signature(sig)
+
+    @staticmethod
+    def from_name_sig(name : str, sig : str):
+        return mk_signature("%d%s%s" % (len(name), name, sig))
+
 def mk_signature(sig):
     fname = None
     ftype = None

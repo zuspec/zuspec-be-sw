@@ -4,7 +4,9 @@ import os
 import pytest
 import subprocess
 
+from zsp_be_sw.closure import Closure
 from zsp_be_sw.model import Model
+from zsp_be_sw.model_types import Signature
 from zsp_be_sw.scheduler import Scheduler
 
 tests_unit_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,8 +37,14 @@ def test_smoke_1(tmpdir):
 
     assert "smoke_1" in model.actor_types
 
-    sched = Scheduler()
-    actor = model.mk_actor("smoke_1", sched)
+    def add(a, b):
+        return a + b
+    
+    async def doit(a, b):
+        pass
+
+#    sched = Scheduler()
+    actor = model.mk_actor("smoke_1")
 
     asyncio.run(actor.run())
 
@@ -63,4 +71,41 @@ def test_smoke_1(tmpdir):
 #    actor_h = (ctypes.c_ubyte * actors[0].contents.size)()
 #    actors[0].contents.init(ctypes.byref(actor_h), ctypes.byref(api))
 #    print("actors: %s" % actors[0].name.decode())
+
+def test_scope_linker_1():
+    from zsp_be_sw.import_linker_scope import ImportLinkerScope
+
+    _val = 0
+
+    def my_method():
+        nonlocal _val
+        _val += 1
+
+    linker = ImportLinkerScope()
+    method : Closure = linker.get_closure(Signature.from_name_sig("my_method", "V"))
+    assert method is not None
+
+    assert _val == 0
+    method.impl()
+    assert _val == 1
+
+def test_scope_linker_2():
+    from zsp_be_sw.import_linker_scope import ImportLinkerScope
+
+    class MyClass(object):
+        def __init__(self):
+            self._val = 0
+            linker = ImportLinkerScope()
+            method : Closure = linker.get_closure(Signature.from_name_sig("my_method", "V"))
+            assert method is not None
+
+            assert self._val == 0
+            method.impl()
+            assert self._val == 1
+
+        def my_method(self):
+            self._val += 1
+
+    c = MyClass()
+
 

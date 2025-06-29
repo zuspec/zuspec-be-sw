@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "zsp/be/sw/rt/zsp_actor.h"
 #include "zsp/be/sw/rt/zsp_model.h"
 
@@ -7,6 +8,7 @@
 typedef struct smoke_1_api_s {
     zsp_api_t base;
     int (*add)(struct zsp_api_s *api, int a, int b);
+    struct zsp_frame_s *(*doit)(struct zsp_thread_s *thread, int idx, va_list *args);
 } smoke_1_api_t;
 
 typedef struct smoke_1_s {
@@ -61,7 +63,7 @@ static void smoke_1_init(zsp_actor_base_t *actor, zsp_api_t *api) {
 
 static zsp_frame_t *smoke_1_run_task(zsp_thread_t *thread, int idx, va_list *args) {
     // Activity function for actor
-    zsp_frame_t *ret = 0;
+    zsp_frame_t *ret = thread->leaf;
 
     switch (idx) {
         case 0: {
@@ -78,11 +80,32 @@ static zsp_frame_t *smoke_1_run_task(zsp_thread_t *thread, int idx, va_list *arg
                 actor->base.api,
                 "Hello World!\n");
 
-            // TODO: Traverse action type
+            ret->idx = 2;
+            ret = zsp_thread_call(
+                thread, 
+                ((smoke_1_api_t *)actor->base.api)->doit, 
+                actor->base.api,
+                1, // arg1
+                2  // arg2
+            );
 
+            if (ret) {
+                break;
+            }
 
+     /*
+            break;
         }
+        case 1: {
+            ret->idx = 2;
+            break;
+     */
+        }
+
+        /**/
         default: {
+            fprintf(stdout, "zsp_thread_return\n");
+            fflush(stdout);
             ret = zsp_thread_return(thread, 0);
         }
     }
@@ -112,7 +135,7 @@ zsp_actor_type_t **zsp_get_actor_types() {
 
 const char **zsp_get_method_types() {
     static const char *method_types[] = {
-        "3addiii", 0
+        "3addiii", "4doitTiii", 0
     };
     return method_types;
 }

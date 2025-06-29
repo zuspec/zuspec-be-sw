@@ -17,19 +17,20 @@ class zsp_actor_type_t(ctypes.Structure):
 
 @dc.dataclass
 class ActorType(object):
-    api_t : Any
+    model : 'Model'
     info : zsp_actor_type_t
 
     def mk(self, sched : Scheduler, scope=None):
         from .actor import Actor
         hndl = (ctypes.c_ubyte * self.info.contents.size)()
         zsp_api = Api.inst()
-        imp_api = self.api_t()
+        imp_api = self.model.api_t()
         self.info.contents.init(
             ctypes.byref(hndl),
             ctypes.byref(imp_api))
         actor = Actor(
             sched=sched,
+            model=self.model,
             api=imp_api,
             hndl=hndl)
 

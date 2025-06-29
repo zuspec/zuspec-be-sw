@@ -1,5 +1,7 @@
 
 import ctypes
+import dataclasses as dc
+from typing import Any, List
 
 type_m = {
     'c': ctypes.c_int8,
@@ -13,6 +15,14 @@ type_m = {
     'V': None,
     'h': ctypes.c_void_p
 }
+
+@dc.dataclass
+class Signature(object):
+    name : str
+    istask : bool
+    ftype : ctypes.CFUNCTYPE
+    rtype : Any
+    ptypes : List
 
 def mk_signature(sig):
     fname = None
@@ -49,10 +59,20 @@ def mk_signature(sig):
         else:
             raise Exception("Internal error: invalid character in signature: %s" % sig[i])
 
-    ftype = ctypes.CFUNCTYPE(rtype, *ptypes)
-    setattr(ftype, "_istask_", istask)
+    if istask:
+        ftype = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32, ctypes.c_void_p)
+    else:
+        ftype = ctypes.CFUNCTYPE(rtype, *ptypes)
 
-    return (fname, istask, ftype)
+    sig = Signature(
+        name=fname,
+        istask=istask,
+        ftype=ftype,
+        rtype=rtype,
+        ptypes=ptypes
+    )
+
+    return sig
 
 class zsp_actor_type_t(ctypes.Structure):
     _fields_ = [

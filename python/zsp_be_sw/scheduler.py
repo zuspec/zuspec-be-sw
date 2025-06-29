@@ -19,6 +19,7 @@ class Scheduler(object):
     loop = None
     actors : list = dc.field(default_factory=list)
     _ev : asyncio.Event = dc.field(default_factory=asyncio.Event)
+    _running : bool = False
 
 
     def __post_init__(self):
@@ -39,10 +40,14 @@ class Scheduler(object):
 
     def _idle(self, loop):
         print("--> idle", flush=True)
-        sched = ctypes.cast(
-            self.hndl,
-            ctypes.POINTER(zsp_scheduler_t))
+        api = Api.inst()
+        sched = ctypes.cast( self.hndl, ctypes.POINTER(zsp_scheduler_t))
+
         print("active: %d" % sched.contents.active, flush=True)
+        while sched.contents.active > 0:
+            if api._zsp_scheduler_run(self.hndl) == 0:
+                break
+
         self._ev.set()
 #        loop.stop()
         print("<-- idle", flush=True)
@@ -50,22 +55,22 @@ class Scheduler(object):
     async def run_actor(self, actor):
         print("--> run_actor", flush=True)
         loop = asyncio.get_event_loop()
+        sched = ctypes.cast(self.hndl, ctypes.POINTER(zsp_scheduler_t))
 
         ev = asyncio.Event()
-        def thread_end():
+        def thread_end(*args):
             nonlocal ev
             print("--> thread_end", flush=True)
             ev.set()
             print("<-- thread_end", flush=True)
-        actor.thread.set_exit_f(zsp_thread_exit_f(thread_end))
+        end_f = zsp_thread_exit_f(thread_end)
+        actor.thread.set_exit_f(end_f)
 
-        for i in range(20):
-            loop.call_soon(self._idle, loop)
-            print("--> run_a.loop.run_forever", flush=True)
-            await self._ev.wait()
-            self._ev.clear()
-            print("<-- run_a.loop.run_forever", flush=True)
-        print("<-- run_actor", flush=True)
+        loop.call_soon(self._idle, loop)
+
+        print("--> await ev.wait()", flush=True)
+        await ev.wait()
+        print("<-- await ev.wait()", flush=True)
 
     async def run_a(self):
         print("--> run_a", flush=True)

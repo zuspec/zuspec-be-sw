@@ -16,12 +16,29 @@ zsp_scheduler_t *zsp_scheduler_create(zsp_alloc_t *alloc) {
     return sched;
 }
 
+void zsp_thread_schedule(zsp_scheduler_t *sched, zsp_thread_t *thread) {
+    sched->active++;
+    fprintf(stdout, "[sched] Scheduling thread: %p (%d)\n", thread, sched->active);
+    fflush(stdout);
+    thread->next = 0;
+    if (sched->next) {
+        sched->tail->next = thread;
+        sched->tail = thread;
+    } else {
+        sched->next = thread;
+        sched->tail = thread;
+    }
+}
+
 void zsp_scheduler_init_threadv(
     zsp_scheduler_t *sched, 
     zsp_thread_t *thread, 
     zsp_task_func func, 
     zsp_thread_flags_e flags,
     va_list *args) {
+
+    fprintf(stdout, "[sched] init_threadv: %p\n", thread);
+    fflush(stdout);
 
     thread->exit_f = 0;
     thread->block = 0;
@@ -35,19 +52,9 @@ void zsp_scheduler_init_threadv(
 
     thread->leaf = ret;
 
-    sched->active++;
-    if (sched->next) {
-        sched->tail->next = thread;
-        sched->tail = thread;
-        // zsp_thread_t *t = sched->next;
-        // // Find the end of the list
-        // while (t && t->next) {
-        //     t = t->next;
-        // }
-        // t->next = thread;
-    } else {
-        sched->next = thread;
-        sched->tail = thread;
+    if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
+        // Reschedule the thread
+        zsp_thread_schedule(sched, thread);
     }
 }
 
@@ -91,35 +98,33 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
     }
 
     if (thread) {
+        sched->active--;
         thread->sched = sched;
         thread->leaf = thread->leaf->func(
             thread,
             thread->leaf->idx,
             0);
-        
+
+        // TODO: Should only add back to the queue if not blocked.
+        // Threads that yield are added back, such that they will 
+        // be automatically resumed
         if (thread->leaf) {
-            // Insert into the scheduler
-            // TODO: Mutex this
-            thread->next = 0;
-            if (sched->next) {
-                sched->tail->next = thread;
-                sched->tail = thread;
-                // zsp_thread_t *t = sched->next;
-                // // Find the end of the list
-                // while (t->next) {
-                //     t = t->next;
-                // }
-                // t->next = thread;
+            if ((thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
+                // Thread is suspended. Reinsert
+                thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+
+                // TODO: Mutex this
+                zsp_thread_schedule(sched, thread);
             } else {
-                sched->next = thread;
-                sched->tail = thread;
+                // Thread is blocked. Clear 'next' to ensure that we
+                // know it is not scheduled
+                thread->next = 0;
             }
         } else {
             // Thread is complete
             if (thread->exit_f) {
                 thread->exit_f(thread);
             }
-            sched->active--;
         }
     }
 
@@ -137,6 +142,9 @@ void __zsp_thread_init(
     zsp_thread_t        *thread, 
     zsp_scheduler_t     *sched,
     zsp_thread_flags_e  flags) {
+
+    fprintf(stdout, "[sched] __zsp_thread_init: %p\n", thread);
+    fflush(stdout);
 
     thread->exit_f = 0;
     thread->block = 0;
@@ -170,20 +178,10 @@ zsp_thread_t *zsp_thread_init(
 
     thread->leaf = ret;
 
-    if (ret) {
-        sched->active++;
-    }
-
-    if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+    if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Schedule the thread
-        thread->next = 0;
-        if (sched->next) {
-            sched->tail->next = thread;
-            sched->tail = thread;
-        } else {
-            sched->next = thread;
-            sched->tail = thread;
-        }
+        thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+        zsp_thread_schedule(sched, thread);
     }
 
     return thread;
@@ -245,20 +243,9 @@ zsp_thread_t *zsp_thread_create(
 
     thread->leaf = ret;
 
-    if (ret) {
-        sched->active++;
-    }
-
-    if (ret && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+    if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Schedule the thread
-        thread->next = 0;
-        if (sched->next) {
-            sched->tail->next = thread;
-            sched->tail = thread;
-        } else {
-            sched->next = thread;
-            sched->tail = thread;
-        }
+        zsp_thread_schedule(sched, thread);
     }
 
     return thread;

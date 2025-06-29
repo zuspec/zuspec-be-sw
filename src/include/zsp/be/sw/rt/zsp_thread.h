@@ -80,6 +80,7 @@ typedef struct zsp_thread_s {
     // If this thread is part of a group, then
     zsp_prev_next_t             group;
     zsp_thread_exit_f           exit_f;
+    struct zsp_frame_s          *leaf;
 
     zsp_alloc_t                 alloc; // Allocator for thread-local storage
 
@@ -92,7 +93,6 @@ typedef struct zsp_thread_s {
         struct zsp_scheduler_s  *sched;
     };
 
-    struct zsp_frame_s          *leaf;
     uintptr_t                   rval;
     zsp_thread_flags_e          flags;
 } zsp_thread_t;
@@ -110,6 +110,8 @@ typedef struct zsp_scheduler_s {
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc);
 
 zsp_scheduler_t *zsp_scheduler_create(zsp_alloc_t *alloc);
+
+void zsp_thread_schedule(zsp_scheduler_t *sched, zsp_thread_t *thread);
 
 // zsp_thread_t *zsp_scheduler_create_thread(
 //     zsp_scheduler_t *sched, 
@@ -174,6 +176,8 @@ zsp_frame_t *zsp_thread_call(zsp_thread_t *thread, zsp_task_func func, ...);
 zsp_frame_t *zsp_thread_call_id(zsp_thread_t *thread, int32_t idx, zsp_task_func func, ...);
 // zsp_frame_t *zsp_thread_run(zsp_thread_t *thread);
 void zsp_thread_free(zsp_thread_t *thread);
+
+
 
 #ifdef __cplusplus
 }

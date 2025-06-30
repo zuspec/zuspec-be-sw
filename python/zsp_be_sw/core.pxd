@@ -62,6 +62,13 @@ cdef class Factory(object):
         vsc_dm.DataTypeStruct                    type_t,
         outdir)
 
+    cpdef void generateModel(
+        self,
+        Context                                  ctxt,
+        arl_dm.DataTypeComponent                 pss_top,
+        actions,
+        outdir)
+
     cpdef arl_dm.TypeProcStmtScope buildAsyncScopeGroup(
         self,
         Context                                 ctxt,

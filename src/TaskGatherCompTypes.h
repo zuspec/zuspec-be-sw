@@ -1,5 +1,5 @@
 /**
- * TaskGenerateModel.h
+ * TaskGatherCompTypes.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,7 +19,9 @@
  *     Author: 
  */
 #pragma once
+#include <unordered_set>
 #include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
 
 namespace zsp {
@@ -28,23 +30,26 @@ namespace sw {
 
 
 
-class TaskGenerateModel {
+class TaskGatherCompTypes :
+    public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateModel(
-        IContext                        *ctxt,
-        const std::string               &outdir);
+    TaskGatherCompTypes(IContext *ctxt);
 
-    virtual ~TaskGenerateModel();
+    virtual ~TaskGatherCompTypes();
 
-    virtual void generate(
-        arl::dm::IDataTypeComponent *pss_top,
-        const std::vector<arl::dm::IDataTypeAction *> &actions);
+    virtual void gather(
+        arl::dm::IDataTypeComponent                 *pss_top,
+        std::vector<arl::dm::IDataTypeComponent *>  &comp_types);
+
+    virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+    virtual void visitTypeField(vsc::dm::ITypeField *t) override;
 
 private:
-    static dmgr::IDebug             *m_dbg;
-    IContext                        *m_ctxt;
-    std::string                     m_outdir;
-    std::string                     m_model_name;
+    static dmgr::IDebug                                 *m_dbg;
+    IContext                                            *m_ctxt;
+    std::unordered_set<arl::dm::IDataTypeComponent *>   m_processed;
+    std::vector<arl::dm::IDataTypeComponent *>          *m_comp_types; 
 
 };
 

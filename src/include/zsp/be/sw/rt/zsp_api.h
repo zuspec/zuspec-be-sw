@@ -7,22 +7,16 @@ struct zsp_actor_s;
 struct zsp_frame_s;
 struct zsp_thread_s;
 
+typedef enum {
+    MSG_LEVEL_LOW,
+    MSG_LEVEL_MED,
+    MSG_LEVEL_HIGH
+} msg_level_e;
+
 typedef struct zsp_api_s {
     // Built-in methods
     void (*print)(struct zsp_api_s *self, const char *msg);
-
-    // zsp_task_func       write64;
-    // zsp_task_func       write32;
-    // zsp_task_func       write16;
-    // zsp_task_func       write8;
-    
-    // zsp_task_func       read64;
-    // zsp_task_func       read32;
-    // zsp_task_func       read16;
-    // zsp_task_func       read8;
-
-    // Promise scheme to allow tasks to complete
-    // Tasks 
+    void (*message)(struct zsp_api_s *self, msg_level_e level, const char *msg);
 
 } zsp_api_t;
 
@@ -33,17 +27,20 @@ typedef struct zsp_api_s {
 // int func(pkg::mytype) is 4funci11pkg::mytype
 // int func(int, int) (as a task) is 4funcTiii
 // T            - This is a task
+// b            - bool
 // c            - int8
 // C            - uint8
-// s            - int16
-// S            - uint16
+// h            - int16
+// H            - uint16
 // i            - int32
-// I            - int64
-// u            - uint32
-// U            - uint64
+// I            - uint32
+// l            - int64
+// L            - uint64
+// s            - string
 // V            - void
 // h            - chandle
-// <len>Name    - struct
+// S<len>Name   - struct
+// E<len>Name   - enum
 //
 // Minimum: V - void function with no arguments
 // Vi - void function with one int argument

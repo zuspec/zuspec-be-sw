@@ -116,10 +116,10 @@ void Factory::generateTypes(
 
 void Factory::generateModel(
         IContext                                        *ctxt,
-        const std::string                               &name,
         arl::dm::IDataTypeComponent                     *pss_top,
+        const std::vector<arl::dm::IDataTypeAction *>   &actions,
         const std::string                               &outdir) {
-//    TaskGenerateModel(ctxt, name, outdir).generate(pss_top);
+    TaskGenerateModel(ctxt, outdir).generate(pss_top, actions);
 }
 
 arl::dm::ITypeProcStmtScope *Factory::buildAsyncScopeGroup(

@@ -131,6 +131,26 @@ cdef class Factory(object):
             type_t.asTypeStruct(),
             outdir.encode())
 
+    cpdef void generateModel(
+        self,
+        Context                 ctxt,
+        arl_dm.DataTypeComponent pss_top,
+        actions,
+        outdir):
+        cdef cpp_vector[arl_dm_decl.IDataTypeActionP] actions_c
+        cdef arl_dm.DataTypeAction action_dm
+        cdef vsc_dm.ObjBase obj
+
+        for a in actions:
+            action_dm = <arl_dm.DataTypeAction>(a)
+            actions_c.push_back(action_dm.asAction())
+
+        self._hndl.generateModel(
+            ctxt._hndl,
+            pss_top.asComponent(),
+            actions_c,
+            outdir.encode())
+
     cpdef arl_dm.TypeProcStmtScope buildAsyncScopeGroup(
         self,
         Context                    ctxt,

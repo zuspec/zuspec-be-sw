@@ -18,7 +18,10 @@
  * Created on:
  *     Author:
  */
+#include "dmgr/impl/DebugMacros.h"
+#include "TaskGatherCompTypes.h"
 #include "TaskGenerateModel.h"
+#include "FileUtil.h"
 
 
 namespace zsp {
@@ -28,9 +31,8 @@ namespace sw {
 
 TaskGenerateModel::TaskGenerateModel(
     IContext            *ctxt,
-    const std::string   &name,
-    const std::string   &outdir) : m_ctxt(ctxt), m_name(name), m_outdir(outdir) {
-
+    const std::string   &outdir) : m_ctxt(ctxt), m_outdir(outdir) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateModel", ctxt->getDebugMgr());
 }
 
 TaskGenerateModel::~TaskGenerateModel() {
@@ -40,13 +42,35 @@ TaskGenerateModel::~TaskGenerateModel() {
 void TaskGenerateModel::generate(
     arl::dm::IDataTypeComponent                     *pss_top,
     const std::vector<arl::dm::IDataTypeAction *>   &actions) {
-    m_ctxt->setModelName(m_name);
+    DEBUG_ENTER("generate");
+    std::vector<vsc::dm::IAccept *> actions_l;
+//    m_ctxt->setModelName(m_name);
 
-    if (actions.size()) {
+    FileUtil::mkdirs(m_outdir);
+
+    std::vector<arl::dm::IDataTypeComponent *> comp_types;
+
+    TaskGatherCompTypes(m_ctxt).gather(pss_top, comp_types);
+
+    if (!actions.size()) {
         // TODO: go find exported actions
+    } else {
+        actions_l.insert(
+            actions_l.begin(), 
+            actions.begin(),
+            actions.end());
     }
 
+    // TODO: Generate the import API
+    // - Re-iterate core functions for simplicity
+    //
+    // TODO: Generate library entry-point functions
+    // - 
+
+    DEBUG_LEAVE("generate");
 }
+
+dmgr::IDebug *TaskGenerateModel::m_dbg = 0;
 
 }
 }

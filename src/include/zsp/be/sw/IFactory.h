@@ -81,8 +81,8 @@ public:
 
     virtual void generateModel(
         IContext                                        *ctxt,
-        const std::string                               &name,
         arl::dm::IDataTypeComponent                     *pss_top,
+        const std::vector<arl::dm::IDataTypeAction *>   &actions,
         const std::string                               &outdir) = 0;
 
     virtual arl::dm::ITypeProcStmtScope *buildAsyncScopeGroup(

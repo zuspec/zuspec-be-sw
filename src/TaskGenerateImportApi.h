@@ -1,5 +1,5 @@
 /**
- * TaskGenerateModel.h
+ * TaskGenerateImportApi.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,8 +19,9 @@
  *     Author: 
  */
 #pragma once
-#include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
 
 namespace zsp {
 namespace be {
@@ -28,23 +29,30 @@ namespace sw {
 
 
 
-class TaskGenerateModel {
+class TaskGenerateImportApi :
+    public virtual arl::dm::VisitorBase{
 public:
-    TaskGenerateModel(
+    TaskGenerateImportApi(
         IContext                        *ctxt,
-        const std::string               &outdir);
+        IOutput                         *out_h,
+        IOutput                         *out_c);
 
-    virtual ~TaskGenerateModel();
+    virtual ~TaskGenerateImportApi();
 
-    virtual void generate(
-        arl::dm::IDataTypeComponent *pss_top,
-        const std::vector<arl::dm::IDataTypeAction *> &actions);
+    virtual void generate();
+
+    virtual void visitDataTypeInt(vsc::dm::IDataTypeInt *t) override;
+
+    virtual void visitDataTypeString(vsc::dm::IDataTypeString *t) override;
+
+    virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
 private:
-    static dmgr::IDebug             *m_dbg;
     IContext                        *m_ctxt;
-    std::string                     m_outdir;
-    std::string                     m_model_name;
+    IOutput                         *m_out_h;
+    IOutput                         *m_out_c;
+    std::string                     m_type_sig;
+    std::string                     m_ptype;
 
 };
 

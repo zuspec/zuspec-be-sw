@@ -60,6 +60,7 @@ TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
 
 
     DEBUG_LEAVE("build");
+    return 0;
 }
 
 TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *scope) {

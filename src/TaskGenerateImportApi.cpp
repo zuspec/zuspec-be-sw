@@ -29,7 +29,7 @@ namespace sw {
 TaskGenerateImportApi::TaskGenerateImportApi(
     IContext                        *ctxt,
     IOutput                         *out_h,
-    IOutput                         *out_c) {
+    IOutput                         *out_c) : m_ctxt(ctxt), m_out_h(out_h), m_out_c(out_c) {
 
 }
 
@@ -39,20 +39,34 @@ TaskGenerateImportApi::~TaskGenerateImportApi() {
 
 void TaskGenerateImportApi::generate() {
 
+    m_out_h->println("#ifndef INCLUDED_MODEL_API_H");
+    m_out_h->println("#define INCLUDED_MODEL_API_H");
+    m_out_h->println("#include <stdint.h>");
+    m_out_h->println("#include <stdarg.h>");
+    m_out_h->println("");
+    m_out_h->println("struct zsp_api_s;");
+    m_out_h->println("struct zsp_frame_s;");
+    m_out_h->println("struct zsp_thread_s;");
+    m_out_h->println("");
     m_out_h->println("typedef struct model_api_s {");
     m_out_h->inc_ind();
+    // First, add known interface functions
+    m_out_h->println("void (*print)(struct zsp_api_s *api, const char *msg);");
+    m_out_h->println("void (*message)(struct zsp_api_s *api, const char *msg);");
     for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
         it=m_ctxt->ctxt()->getDataTypeFunctions().begin();
         it != m_ctxt->ctxt()->getDataTypeFunctions().end(); it++) {
         arl::dm::IDataTypeFunction *f = *it;
-        if (f->getImportSpecs().size() == 0) {
+        if (f->getImportSpecs().size() == 0 
+            || f->hasFlags(arl::dm::DataTypeFunctionFlags::Core)
+            || !f->hasFlags(arl::dm::DataTypeFunctionFlags::Import)) {
             // Ignore non-import functions
             continue;
         }
 
         m_out_h->indent();
         if (f->hasFlags(arl::dm::DataTypeFunctionFlags::Target)) {
-            m_out_h->write("struct zsp_frame_s *(*%s)(struct zsp_thread_s *, int32_t, va_list *args);", 
+            m_out_h->write("struct zsp_frame_s *(*%s)(struct zsp_thread_s *, int32_t, va_list *);\n", 
                 f->name().c_str());
         } else {
             if (f->getReturnType()) {
@@ -62,14 +76,12 @@ void TaskGenerateImportApi::generate() {
             } else {
                 m_out_h->write("void ");
             }
-            m_out_h->write("(*%s)(", f->name().c_str());
+            m_out_h->write("(*%s)(struct zsp_api_s *api", f->name().c_str());
 
             for (std::vector<arl::dm::IDataTypeFunctionParamDecl *>::const_iterator
                 pit=f->getParameters().begin();
                 pit != f->getParameters().end(); pit++) {
-                if (pit != f->getParameters().begin()) {
-                    m_out_h->write(", ");
-                }
+                m_out_h->write(", ");
                 m_ptype.clear();
                 (*pit)->getDataType()->accept(this);
                 m_out_h->write("%s %s", m_ptype.c_str(), (*pit)->name().c_str());
@@ -80,7 +92,10 @@ void TaskGenerateImportApi::generate() {
     m_out_h->dec_ind();
     m_out_h->println("} model_api_t;");
 
-    m_out_c->println("const char **get_model_imports() {");
+    m_out_c->println("#include \"model_api.h\"");
+    m_out_c->println("#include \"model.h\"");
+    m_out_c->println("");
+    m_out_c->println("const char **model_get_import_types() {");
     m_out_c->inc_ind();
     m_out_c->println("static const char *imports[] = {");
     m_out_c->inc_ind();
@@ -89,7 +104,9 @@ void TaskGenerateImportApi::generate() {
         it=m_ctxt->ctxt()->getDataTypeFunctions().begin();
         it != m_ctxt->ctxt()->getDataTypeFunctions().end(); it++) {
         arl::dm::IDataTypeFunction *f = *it;
-        if (f->getImportSpecs().size() == 0) {
+        if (f->getImportSpecs().size() == 0 
+            || f->hasFlags(arl::dm::DataTypeFunctionFlags::Core)
+            || !f->hasFlags(arl::dm::DataTypeFunctionFlags::Import)) {
             // Ignore non-import functions
             continue;
         }
@@ -134,21 +151,24 @@ void TaskGenerateImportApi::generate() {
     m_out_c->println("};");
     m_out_c->dec_ind();
     m_out_c->println("}");
+
+    m_out_h->println("");
+    m_out_h->println("#endif /* INCLUDED_MODEL_API_H */");
 }
 
 void TaskGenerateImportApi::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (t->width() <= 8) {
         m_type_sig += t->is_signed()?"c":"C";
-        m_ptype += t->is_signed()?"int8":"uint8";
+        m_ptype += t->is_signed()?"int8_t":"uint8_t";
     } else if (t->width() <= 16) {
         m_type_sig += t->is_signed()?"h":"H";
-        m_ptype += t->is_signed()?"int16":"uint16";
+        m_ptype += t->is_signed()?"int16_t":"uint16_t";
     } else if (t->width() <= 32) {
         m_type_sig += t->is_signed()?"i":"I";
-        m_ptype += t->is_signed()?"int32":"uint32";
+        m_ptype += t->is_signed()?"int32_t":"uint32_t";
     } else {
         m_type_sig += t->is_signed()?"l":"L";
-        m_ptype += t->is_signed()?"int64":"uint64";
+        m_ptype += t->is_signed()?"int64_t":"uint64_t";
     }
 }
 

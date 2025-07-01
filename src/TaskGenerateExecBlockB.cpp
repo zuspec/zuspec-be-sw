@@ -55,12 +55,11 @@ void TaskGenerateExecBlockB::generate(
     TypeProcStmtAsyncScopeGroupUP group(
         TaskBuildAsyncScopeGroup(m_ctxt).build(execs));
 
-    m_out_c->println("static void %s_init(struct %s_s *actor, %s *this_p) {",
+    m_out_c->println("static void %s_init(zsp_actor_t *actor, %s_t *this_p) {",
         fname.c_str(),
-        "abc" /*m_gen->getActorName().c_str() */,
         tname.c_str());
     m_out_c->inc_ind();
-    m_out_c->println("this_p->task.func = (zsp_rt_task_f)&%s_run;", fname.c_str());
+//    m_out_c->println("this_p->task.func = (zsp_task_func)&%s_run;", fname.c_str());
     m_out_c->dec_ind();
     m_out_c->println("}");
 
@@ -85,13 +84,11 @@ void TaskGenerateExecBlockB::generate(
 
     OutputStr out(m_out_c->ind());
 
-    m_out_c->println("static zsp_rt_task_t *%s_run(struct %s_s *actor, zsp_rt_task_t *this_p) {",
-        fname.c_str(),
-        "abc" /*m_gen->getActorName().c_str()*/);
+    m_out_c->println("static zsp_frame_t *%s(zsp_thread_t *thread, int32_t idx, va_list *args) {", fname.c_str());
     m_out_c->inc_ind();
-    m_out_c->println("zsp_rt_task_t *ret = 0;");
+    m_out_c->println("zsp_frame_t *ret = thread->leaf;");
 
-    m_out_c->println("switch(this_p->idx) {");
+    m_out_c->println("switch(idx) {");
     m_out_c->inc_ind();
     int32_t start_i = -1;
     for (std::vector<arl::dm::ITypeExecUP>::const_iterator

@@ -8,7 +8,7 @@ import subprocess
 
 import zsp_arl_dm.core as arl_dm
 
-def generate_model(rundir, pss_src, debug=False):
+def generate_model(rundir, pss_src, actions=None, debug=False):
     unit_tests_dir = os.path.dirname(__file__)
     zsp_be_sw_dir = os.path.abspath(os.path.join(unit_tests_dir, "..", ".."))
     zsp_be_sw_incdir = os.path.join(zsp_be_sw_dir, "src/include")
@@ -82,10 +82,38 @@ def generate_model(rundir, pss_src, debug=False):
 #        out_c = open(os.path.join(rundir, "%s.c" % typename), "w")
 #        out_h = open(os.path.join(rundir, "%s.h" % typename), "w")
 
+        actor_l = []
+
+        if actions is not None:
+            if not isinstance(actions, list):
+                actions = [actions]
+            for aname in actions:
+                atype = arl_ctxt.findDataTypeStruct(aname)
+                actor_l.append(atype)
+
         print("pss_top")
         be_f.generateModel(
             be_ctxt, 
             pss_top, 
-            [], 
+            actor_l, 
             os.path.join(rundir, "model"))
+        
+        srcs = []
+        for f in os.listdir(os.path.join(rundir, "model")):
+            if f.endswith(".c"):
+                srcs.append(os.path.join(rundir, "model", f))
+        
+        cmd = ["gcc", "-o", os.path.join(rundir, "model", "libmodel.so"),
+               "-shared", "-fPIC", "-g",
+               ]
+        cmd.append("-I%s" % os.path.join(rundir, "model"))
+        cmd.append("-I%s" % zsp_be_sw_incdir)
+        cmd.extend(srcs)
+        cmd.append("-L%s" % zsp_be_sw_libdir)
+        cmd.append("-lzsp-be-sw-rt")
+        cmd.append("-Wl,-rpath,%s" % zsp_be_sw_libdir)
+
+        result = subprocess.run(cmd)
+
+        assert result.returncode == 0
 

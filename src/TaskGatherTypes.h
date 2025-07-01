@@ -1,5 +1,5 @@
 /**
- * TaskGenerateType.h
+ * TaskGatherTypes.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -20,17 +20,11 @@
  */
 #pragma once
 #include <unordered_set>
+#include <vector>
 #include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IOutput.h"
-#include "zsp/arl/dm/IContext.h"
-#include "zsp/arl/dm/IDataTypeComponent.h"
-#include "zsp/arl/dm/IDataTypeAction.h"
+#include "vsc/dm/IDataTypeStruct.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
-#include "TaskBuildStaticCompTreeMap.h"
-#include "TaskCollectAddrTraitTypes.h"
-#include "TaskCountAspaceInstances.h"
-
 
 namespace zsp {
 namespace be {
@@ -38,31 +32,32 @@ namespace sw {
 
 
 
-class TaskGenerateType :
+class TaskGatherTypes :
     public virtual arl::dm::VisitorBase {
 public:
-    TaskGenerateType(
-        IContext                 *ctxt,   
-        std::ostream             *out_h,
-        std::ostream             *out_c);
+    TaskGatherTypes(IContext *ctxt);
 
-    virtual ~TaskGenerateType();
+    virtual ~TaskGatherTypes();
 
-    void generate(vsc::dm::IDataTypeStruct *type_t);
+    virtual void gather(vsc::dm::IAccept *item);
 
-    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
-
-    virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+    const std::vector<vsc::dm::IDataTypeStruct *> &types() const {
+        return m_types;
+    }
 
     virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
     virtual void visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) override;
 
+    virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
+
 private:
-    static dmgr::IDebug                 *m_dbg;
-    IContext                            *m_ctxt;    
-    IOutputUP                            m_out_c;
-    IOutputUP                            m_out_h;
+    static dmgr::IDebug                             *m_dbg;
+    IContext                                        *m_ctxt;
+    std::vector<vsc::dm::IDataTypeStruct *>         m_types;
+    std::unordered_set<vsc::dm::IDataTypeStruct *>  m_types_s;
+
 };
 
 }

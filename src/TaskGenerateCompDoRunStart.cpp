@@ -45,7 +45,7 @@ void TaskGenerateCompDoRunStart::generate(vsc::dm::IDataTypeStruct *t) {
 
     m_idx = 0;
 
-    m_out_h->println("struct zsp_frame_s *%s__do_run_start(struct zsp_thread_s *thread, struct zsp_frame_s *frame, va_list *args);",
+    m_out_h->println("struct zsp_frame_s *%s__do_run_start(struct zsp_thread_s *thread, int32_t idx, va_list *args);",
         m_ctxt->nameMap()->getName(t).c_str(),
         m_ctxt->nameMap()->getName(t).c_str());
 
@@ -83,40 +83,39 @@ void TaskGenerateCompDoRunStart::generate(vsc::dm::IDataTypeStruct *t) {
         m_out_c->println("}");
     }
 
-    m_out_c->println("zsp_frame_t *%s__do_run_start(zsp_thread_t *thread, zsp_frame_t *frame, va_list *args) {",
+    m_out_c->println("zsp_frame_t *%s__do_run_start(zsp_thread_t *thread, int32_t idx, va_list *args) {",
         m_ctxt->nameMap()->getName(t).c_str(),
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->inc_ind();
 
     // Preliminaries
-    m_out_c->println("zsp_frame_t *ret = 0;");
-    m_out_c->println("int initial = (frame == 0);");
+    m_out_c->println("zsp_frame_t *ret = thread->leaf;");
     m_out_c->println("struct __locals_s {");
     m_out_c->inc_ind();
     m_out_c->println("%s_t *self;", m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("zsp_executor_t *executor;");
     m_out_c->dec_ind();
     m_out_c->println("} *__locals;");
-    m_out_c->println("if (!frame) {");
-    m_out_c->inc_ind();
-    m_out_c->println("frame = zsp_thread_alloc_frame(thread, zsp_frame_size(struct __locals_s), &%s__do_run_start);",
-        m_ctxt->nameMap()->getName(t).c_str());
-    m_out_c->dec_ind();
-    m_out_c->println("}");
-    m_out_c->println("__locals = (struct __locals_s *)&((zsp_frame_wrap_t *)frame)->locals;");
-    m_out_c->println("ret = frame;");
+    // m_out_c->println("if (!frame) {");
+    // m_out_c->inc_ind();
+    // m_out_c->println("frame = zsp_thread_alloc_frame(thread, zsp_frame_size(struct __locals_s), &%s__do_run_start);",
+    //     m_ctxt->nameMap()->getName(t).c_str());
+    // m_out_c->dec_ind();
+    // m_out_c->println("}");
+    // m_out_c->println("__locals = (struct __locals_s *)&((zsp_frame_wrap_t *)frame)->locals;");
+    // m_out_c->println("ret = frame;");
 
 
-    m_out_c->println("");
-    m_out_c->println("if (initial) {");
-    m_out_c->inc_ind();
-    m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
-        m_ctxt->nameMap()->getName(t).c_str());
-    m_out_c->println("__locals->executor = va_arg(*args, zsp_executor_t *);");
-    m_out_c->dec_ind();
-    m_out_c->println("}");
+    // m_out_c->println("");
+    // m_out_c->println("if (initial) {");
+    // m_out_c->inc_ind();
+    // m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
+    //     m_ctxt->nameMap()->getName(t).c_str());
+    // m_out_c->println("__locals->executor = va_arg(*args, zsp_executor_t *);");
+    // m_out_c->dec_ind();
+    // m_out_c->println("}");
 
-    m_out_c->println("switch (frame->idx) {");
+    m_out_c->println("switch (idx) {");
     m_out_c->inc_ind();
     // Step 0..N: Evaluate each sub-component 
     // Evaluate bottom-up
@@ -139,7 +138,7 @@ void TaskGenerateCompDoRunStart::generate(vsc::dm::IDataTypeStruct *t) {
     // Finally, complete
     m_out_c->println("default: {");
     m_out_c->inc_ind();
-    m_out_c->println("ret = zsp_thread_return(thread, frame, 0);");
+    m_out_c->println("ret = zsp_thread_return(thread, 0);");
     m_out_c->dec_ind();
     m_out_c->println("}");
 

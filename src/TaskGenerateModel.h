@@ -40,6 +40,12 @@ public:
         arl::dm::IDataTypeComponent *pss_top,
         const std::vector<arl::dm::IDataTypeAction *> &actions);
 
+protected:
+    void generate_interface(
+        const std::vector<vsc::dm::IAccept *>   &actors);
+        
+    void generate_api();
+
 private:
     static dmgr::IDebug             *m_dbg;
     IContext                        *m_ctxt;

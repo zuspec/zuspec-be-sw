@@ -20,6 +20,7 @@
  */
 #include <fstream>
 #include "dmgr/impl/DebugMacros.h"
+#include "CustomGenImportCall.h"
 #include "TaskGatherCompTypes.h"
 #include "TaskGatherTypes.h"
 #include "TaskGenerateModel.h"
@@ -50,6 +51,8 @@ void TaskGenerateModel::generate(
     DEBUG_ENTER("generate");
     std::vector<vsc::dm::IAccept *> actions_l;
 //    m_ctxt->setModelName(m_name);
+
+    attach_custom_gen();
 
     FileUtil::mkdirs(m_outdir);
 
@@ -114,6 +117,32 @@ void TaskGenerateModel::generate(
     generate_api();
 
     DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateModel::attach_custom_gen() {
+    DEBUG_ENTER("attach_custom_gen");
+
+    for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeFunctions().begin();
+        it!=m_ctxt->ctxt()->getDataTypeFunctions().end(); it++) {
+        const std::string &name = (*it)->name();
+        DEBUG("Function: %s ; flags=0x%08x", name.c_str(), (*it)->getFlags());
+
+        if (name.find("std_pkg::") == 0) {
+            if (name.find("::print") > 0 || name.find("::message")) {
+                // These methods are implemented externally
+                (*it)->setAssociatedData(new CustomGenImportCall(m_ctxt->getDebugMgr()));
+            }
+        } else {
+            // Non-core imports are all handled the same
+            if ((*it)->hasFlags(arl::dm::DataTypeFunctionFlags::Import) &&
+                !(*it)->hasFlags(arl::dm::DataTypeFunctionFlags::Core)) {
+                (*it)->setAssociatedData(new CustomGenImportCall(m_ctxt->getDebugMgr()));
+            }
+        }
+    }
+
+    DEBUG_LEAVE("attach_custom_gen");
 }
 
 void TaskGenerateModel::generate_interface(

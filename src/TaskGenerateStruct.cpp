@@ -96,6 +96,7 @@ void TaskGenerateStruct::generate_header_includes(vsc::dm::IDataTypeStruct *t, I
          it!=m_info->referencedValTypes().end(); it++) {
         out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(*it).c_str());
     }
+    out->println("#include \"model_api.h\"");
 
     DEBUG_LEAVE("generate_header_includes");
 }

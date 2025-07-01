@@ -41,6 +41,8 @@ public:
         const std::vector<arl::dm::IDataTypeAction *> &actions);
 
 protected:
+    void attach_custom_gen();
+
     void generate_interface(
         const std::vector<vsc::dm::IAccept *>   &actors);
         

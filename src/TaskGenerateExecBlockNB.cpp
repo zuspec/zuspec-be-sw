@@ -49,6 +49,7 @@ void TaskGenerateExecBlockNB::generate(
         fname.c_str(),
         tname.c_str());
     m_out->inc_ind();
+    m_out->println("model_api_t *api = (model_api_t *)actor->base.api;");
 
     TaskGenerateExecScopeNB(m_ctxt, m_refgen, m_out).generate(
         execs,

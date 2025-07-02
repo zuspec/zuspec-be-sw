@@ -44,11 +44,11 @@ TaskGenerateCompInit::~TaskGenerateCompInit() {
 }
 
 void TaskGenerateCompInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    m_out_h->println("void %s__init(struct zsp_actor_s *actor, struct %s_s *this_p, const char *name, zsp_component_t *parent);",
+    m_out_h->println("void %s__init(struct zsp_init_ctxt_s *ctxt, struct %s_s *this_p, const char *name, zsp_component_t *parent);",
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
 
-    m_out_c->println("void %s__init(zsp_actor_t *actor, struct %s_s *this_p, const char *name, zsp_component_t *parent) {",
+    m_out_c->println("void %s__init(struct zsp_init_ctxt_s *ctxt, struct %s_s *this_p, const char *name, zsp_component_t *parent) {",
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
     m_out_c->inc_ind();
@@ -57,7 +57,7 @@ void TaskGenerateCompInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
 void TaskGenerateCompInit::generate_core(vsc::dm::IDataTypeStruct *i) {
     DEBUG_ENTER("generate_core");
     if (i->getSuper()) {
-        m_out_c->println("%s__init(actor, &this_p->super, name, parent);",
+        m_out_c->println("%s__init(ctxt, &this_p->super, name, parent);",
             m_ctxt->nameMap()->getName(i->getSuper()).c_str());
     } else {
         generate_default_init(i);
@@ -69,13 +69,13 @@ void TaskGenerateCompInit::generate_core(vsc::dm::IDataTypeStruct *i) {
 }
 
 void TaskGenerateCompInit::generate_default_init(vsc::dm::IDataTypeStruct *i) {
-    m_out_c->println("zsp_component_init(actor, &this_p->super, name, parent);");
+    m_out_c->println("zsp_component_init(ctxt, &this_p->super, name, parent);");
 }
 
 void TaskGenerateCompInit::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
     if (!m_is_ref) {
-        m_out_c->println("%s__init(actor, &this_p->%s, \"%s\", (zsp_component_t *)this_p);",
+        m_out_c->println("%s__init(ctxt, &this_p->%s, \"%s\", (zsp_component_t *)this_p);",
             m_ctxt->nameMap()->getName(t).c_str(),
             m_field->name().c_str(),
             m_field->name().c_str());

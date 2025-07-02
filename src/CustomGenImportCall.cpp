@@ -60,7 +60,7 @@ void CustomGenImportCall::genExprMethodCallStaticNB(
         fname = fname.substr(fname.rfind("::")+2);
     }
 
-    out->write("api->%s((zsp_api_t *)api", fname.c_str());
+    out->write("__api->%s((zsp_api_t *)__api", fname.c_str());
 
     for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
         it=call->getParameters().begin();

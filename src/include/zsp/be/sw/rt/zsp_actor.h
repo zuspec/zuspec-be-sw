@@ -4,6 +4,7 @@
 #include "zsp/be/sw/rt/zsp_action.h"
 #include "zsp/be/sw/rt/zsp_actor_base.h"
 #include "zsp/be/sw/rt/zsp_component.h"
+#include "zsp/be/sw/rt/zsp_executor.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,7 +19,7 @@ typedef struct zsp_actor_s {
 } zsp_actor_t;
 
 
-#define zsp_actor(comp_t) struct { \
+#define zsp_actor(comp_t, executor_t) struct { \
     zsp_actor_base_t    base; \
     comp_t ## _t        comp; \
     }

@@ -44,6 +44,7 @@ protected:
     void attach_custom_gen();
 
     void generate_interface(
+        arl::dm::IDataTypeComponent             *pss_top,
         const std::vector<vsc::dm::IAccept *>   &actors);
         
     void generate_api();

@@ -13,7 +13,7 @@ typedef struct zsp_actor_type_s {
     void (*init)(
         struct zsp_actor_base_s *actor, 
         struct zsp_api_s        *api);
-    zsp_frame_t *(*run)(
+    zsp_thread_t *(*run)(
         struct zsp_actor_base_s *actor,
         struct zsp_scheduler_s  *sched,
         void                    *args); 

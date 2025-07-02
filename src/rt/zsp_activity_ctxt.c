@@ -27,3 +27,11 @@ void zsp_activity_ctxt_init(
         ctxt->flags = ZSP_ACTIVITY_CTXT_NONE;
     }
 }
+
+void zsp_activity_ctxt_init_root(
+    zsp_activity_ctxt_t     *ctxt,
+    struct zsp_alloc_s      *alloc,
+    struct zsp_component_s  *comp) {
+    ctxt->alloc = alloc;
+    ctxt->comp = comp;
+}

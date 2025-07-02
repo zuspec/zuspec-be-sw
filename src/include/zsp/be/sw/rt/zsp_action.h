@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-struct zsp_actor_s;
+struct zsp_alloc_s;
 struct zsp_component_type_s;
 
 typedef struct zsp_action_type_s {
@@ -29,7 +29,9 @@ zsp_action_type_t *zsp_action__type(void);
 
 void zsp_action_type_init(zsp_action_type_t *t);
 
-void zsp_action_init(struct zsp_actor_s *actor, zsp_action_t *this_p);
+void zsp_action_init(
+    struct zsp_alloc_s  *alloc,
+    zsp_action_t        *this_p);
 
 #ifdef __cplusplus
 }

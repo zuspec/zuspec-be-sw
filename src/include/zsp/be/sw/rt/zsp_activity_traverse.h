@@ -7,6 +7,7 @@ extern "C" {
 
 struct zsp_frame_s;
 struct zsp_thread_s;
+struct zsp_action_s;
 struct zsp_action_type_s;
 struct zsp_activity_ctxt_s;
 

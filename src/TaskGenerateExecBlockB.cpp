@@ -122,6 +122,8 @@ void TaskGenerateExecBlockB::generate(
     m_out_c->dec_ind();
     m_out_c->println("}"); // end-switch
 
+    m_out_c->println("// TODO:");
+    m_out_c->println("ret = zsp_thread_return(thread, 0);");
     m_out_c->println("return ret;");
 
     m_out_c->dec_ind();

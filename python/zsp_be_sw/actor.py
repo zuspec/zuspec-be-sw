@@ -25,11 +25,15 @@ class Actor(object):
 
     def __post_init__(self):
         self._dflt_func_m.update({
-            "print": self._print
+            "print": self._print,
+            "message": self._message,
         })
         self.sched.add_actor(self)
 
     def _print(self, msg):
+        sys.stdout.write(msg.decode())
+
+    def _message(self, level, msg):
         sys.stdout.write(msg.decode())
 
     def _do_work(self):

@@ -40,16 +40,18 @@ TaskGenerateCompDoInit::~TaskGenerateCompDoInit() {
 }
 
 void TaskGenerateCompDoInit::generate(vsc::dm::IDataTypeStruct *t) {
-    m_out_h->println("void %s__do_init(struct zsp_actor_s *actor, %s_t *self);", 
+    m_out_h->println("void %s__do_init(struct zsp_executor_s *exec_b, %s_t *self);", 
         m_ctxt->nameMap()->getName(t).c_str(),
         m_ctxt->nameMap()->getName(t).c_str());
 
-    m_out_c->println("void %s__do_init(zsp_actor_t *actor, %s_t *self) {", 
+    m_out_c->println("void %s__do_init(struct zsp_executor_s *exec_b, %s_t *self) {", 
         m_ctxt->nameMap()->getName(t).c_str(),
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->inc_ind();
 
-    m_out_c->println("%s__init_down(actor, self);",
+    m_out_c->println("zsp_component(self)->default_executor = exec_b;");
+
+    m_out_c->println("%s__init_down(exec_b, self);",
         m_ctxt->nameMap()->getName(t).c_str());
 
     for (auto it=t->getFields().begin();
@@ -57,7 +59,7 @@ void TaskGenerateCompDoInit::generate(vsc::dm::IDataTypeStruct *t) {
         (*it)->accept(this);
     }
 
-    m_out_c->println("%s__init_up(actor, self);",
+    m_out_c->println("%s__init_up(exec_b, self);",
         m_ctxt->nameMap()->getName(t).c_str());
 
     m_out_c->dec_ind();
@@ -69,7 +71,7 @@ void TaskGenerateCompDoInit::visitDataTypeComponent(arl::dm::IDataTypeComponent 
     if (m_is_ref) {
         // TODO:
     } else {
-        m_out_c->println("zsp_component_type(&self->%s)->do_init(actor, (zsp_struct_t *)&self->%s);",
+        m_out_c->println("zsp_component_type(&self->%s)->do_init(exec_b, (zsp_struct_t *)&self->%s);",
             m_ctxt->nameMap()->getName(m_field).c_str(),
             m_ctxt->nameMap()->getName(m_field).c_str());
     }

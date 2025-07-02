@@ -54,15 +54,14 @@ def mk_signature(sig):
                 if i < len(sig) and sig[i] == 'T':
                     istask = True
                     i += 1
+                rtype = type_m[sig[i]]
+                i += 1
             else:
                 # TODO: handle struct type
                 pass
         elif sig[i] in type_m.keys():
             t = type_m[sig[i]]
-            if rtype is None:
-                rtype = t
-            else:
-                ptypes.append(t)
+            ptypes.append(t)
             i += 1
         else:
             raise Exception("Internal error: invalid character in signature: %s" % sig[i])

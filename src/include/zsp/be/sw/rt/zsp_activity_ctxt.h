@@ -8,9 +8,12 @@
 extern "C" {
 #endif
 
+struct zsp_alloc_s;
 struct zsp_activity_ctxt_s;
 struct zsp_activity_traversal_s;
 struct zsp_activity_traverse_s;
+struct zsp_component_s;
+struct zsp_executor_s;
 struct zsp_thread_s;
 
 typedef enum {
@@ -30,6 +33,10 @@ typedef struct zsp_activity_ctxt_s {
     struct zsp_activity_ctxt_s      *parent;
     zsp_activity_ctxt_flags_e       flags;
     const zsp_activity_ctxt_funcs_t *funcs;
+
+    struct zsp_alloc_s              *alloc;
+    struct zsp_component_s          *comp;
+
     // Provides storage for threads under this context
     // Note: this is fixed-size storage
     zsp_list_t                      threads;
@@ -38,6 +45,11 @@ typedef struct zsp_activity_ctxt_s {
 void zsp_activity_ctxt_init(
     zsp_activity_ctxt_t     *ctxt,
     zsp_activity_ctxt_t     *parent);
+
+void zsp_activity_ctxt_init_root(
+    zsp_activity_ctxt_t     *ctxt,
+    struct zsp_alloc_s      *alloc,
+    struct zsp_component_s  *comp);    
 
 
 

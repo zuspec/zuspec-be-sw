@@ -17,7 +17,12 @@ class Model(object):
     def actor_types(self):
         return self.actor_type_m.keys()
     
-    def mk_actor(self, type, sched : Scheduler = None, linker : ImportLinkerScope=None):
+    def mk_actor(self, type=None, sched : Scheduler = None, linker : ImportLinkerScope=None):
+        if type is None:
+            if len(self.actor_type_m) != 1:
+                raise Exception("Must specify actor type: (%s)" % ",".join(self.actor_type_m.keys()))
+            else:
+                type = next(iter(self.actor_type_m.keys()))
         if sched is None:
             sched = Scheduler.default()
         if linker is None:
@@ -28,13 +33,13 @@ class Model(object):
     def load(file) -> 'Model':
         model_lib = ctypes.cdll.LoadLibrary(file)
 
-        zsp_get_method_types = model_lib.zsp_get_method_types
-        zsp_get_method_types.restype = ctypes.POINTER(ctypes.c_char_p)
+        model_get_import_types = model_lib.model_get_import_types
+        model_get_import_types.restype = ctypes.POINTER(ctypes.c_char_p)
 
-        zsp_get_actor_types = model_lib.zsp_get_actor_types
-        zsp_get_actor_types.restype = ctypes.POINTER(ctypes.POINTER(zsp_actor_type_t))
+        model_get_actor_types = model_lib.model_get_actor_types
+        model_get_actor_types.restype = ctypes.POINTER(ctypes.POINTER(zsp_actor_type_t))
 
-        methods = zsp_get_method_types()
+        methods = model_get_import_types()
 
         signatures = []
         signatures.append(Signature(
@@ -43,9 +48,16 @@ class Model(object):
             ftype=ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p),
             rtype=None,
             ptypes=[ctypes.c_void_p, ctypes.c_char_p]))
+        signatures.append(Signature(
+            name="message",
+            istask=False,
+            ftype=ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p),
+            rtype=None,
+            ptypes=[ctypes.c_void_p, ctypes.c_char_p]))
 
         fields = [
-            ("print", ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p))
+            ("print", ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p)),
+            ("message", ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p))
         ]
         i=0
         while methods[i]:
@@ -58,7 +70,7 @@ class Model(object):
             "_fields_": fields
         })
 
-        actors = zsp_get_actor_types()
+        actors = model_get_actor_types()
 
         ret = Model(api_t=api_t, signatures=signatures)
 

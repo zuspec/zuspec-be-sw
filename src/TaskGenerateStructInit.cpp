@@ -43,20 +43,20 @@ TaskGenerateStructInit::~TaskGenerateStructInit() {
 }
 
 void TaskGenerateStructInit::generate_prefix(vsc::dm::IDataTypeStruct *i) {
-    m_out_h->println("void %s__init(struct zsp_actor_s *actor, struct %s_s *this_p);",
+    m_out_h->println("void %s__init(struct zsp_alloc_s *alloc, struct %s_s *this_p);",
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
 
-    m_out_c->println("void %s__init(zsp_actor_t *actor, struct %s_s *this_p) {",
+    m_out_c->println("void %s__init(struct zsp_alloc_s *alloc, struct %s_s *this_p) {",
         m_ctxt->nameMap()->getName(i).c_str(),
         m_ctxt->nameMap()->getName(i).c_str());
     m_out_c->inc_ind();
 
     if (i->getSuper()) {
-        m_out_c->println("%s__init(actor, &this_p->super);",
+        m_out_c->println("%s__init(alloc, &this_p->super);",
             m_ctxt->nameMap()->getName(i->getSuper()).c_str());
     } else {
-        m_out_c->println("%s(actor, &this_p->super);", default_base_init());
+        m_out_c->println("%s(alloc, &this_p->super);", default_base_init());
     }
 }
 
@@ -66,7 +66,7 @@ void TaskGenerateStructInit::generate_core(vsc::dm::IDataTypeStruct *i) {
 }
 
 void TaskGenerateStructInit::generate_default_init(vsc::dm::IDataTypeStruct *i) {
-    m_out_c->println("zsp_struct_init(actor, &this_p->super);", default_base_init());
+    m_out_c->println("zsp_struct_init(alloc, &this_p->super);", default_base_init());
 }
 
 void TaskGenerateStructInit::generate(vsc::dm::IDataTypeStruct *i) {

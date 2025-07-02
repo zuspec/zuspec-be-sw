@@ -3,6 +3,7 @@
 #include "zsp/be/sw/rt/zsp_action.h"
 #include "zsp/be/sw/rt/zsp_activity_ctxt.h"
 #include "zsp/be/sw/rt/zsp_activity_traverse.h"
+#include "zsp/be/sw/rt/zsp_component.h"
 #include "zsp/be/sw/rt/zsp_thread.h"
 
 struct zsp_frame_s *zsp_activity_traverse(
@@ -24,7 +25,9 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
     int32_t                     idx,
     va_list                     *args) {
     typedef struct __locals_s {
-        zsp_action_t        *action;
+        zsp_activity_ctxt_t     *ctxt;
+        zsp_action_type_t       *action_t;
+        zsp_action_t            *action;
     } __locals_t;
 
     zsp_frame_t *ret = thread->leaf;
@@ -42,11 +45,15 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
                 &zsp_activity_traverse_type_task);
             __locals = zsp_frame_locals(ret, struct __locals_s);
             __locals->action = (zsp_action_t *)__locals + sizeof(struct __locals_s);
+            __locals->ctxt = ctxt;
+            __locals->action_t = action_t;
 
             ((zsp_object_type_t *)action_t)->init(0, zsp_object(__locals->action));
 
             if (init) {
                 // Call the traversal's initialization 'hook' method
+                // Pass the caller's frame to allow the 'hook' to access 
+                // data available to the caller
                 init(thread->leaf->prev, __locals->action);
             }
 
@@ -55,13 +62,15 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
         }
         case 1: {
             __locals_t *__locals = zsp_frame_locals(ret, struct __locals_s);
+            struct zsp_executor_s *exec_b = __locals->ctxt->comp->default_executor;
 
             // TODO: prepare the action context if needed
 
             // Randomize the action
-            zsp_struct_call(pre_solve, 0, __locals->action);
+            zsp_struct_call(pre_solve, exec_b, __locals->action);
             // TODO: randomization
-            zsp_struct_call(post_solve, 0, __locals->action);
+            // TODO: Reassess executor (?)
+            zsp_struct_call(post_solve, exec_b, __locals->action);
 
             // Launch the body
             ret->idx = 2;

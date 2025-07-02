@@ -45,11 +45,11 @@ void TaskGenerateExecBlockNB::generate(
         const std::string                           &fname,
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
-    m_out->println("static void %s(zsp_actor_t *actor, %s_t *this_p) {",
+    m_out->println("static void %s(zsp_executor_t *exec_b, %s_t *this_p) {",
         fname.c_str(),
         tname.c_str());
     m_out->inc_ind();
-    m_out->println("model_api_t *api = (model_api_t *)actor->base.api;");
+    m_out->println("model_api_t *__api = (model_api_t *)exec_b->api;");
 
     TaskGenerateExecScopeNB(m_ctxt, m_refgen, m_out).generate(
         execs,

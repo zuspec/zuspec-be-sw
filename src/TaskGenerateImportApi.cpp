@@ -149,6 +149,8 @@ void TaskGenerateImportApi::generate() {
     m_out_c->println("0");
     m_out_c->dec_ind();
     m_out_c->println("};");
+    m_out_c->println("");
+    m_out_c->println("return imports;");
     m_out_c->dec_ind();
     m_out_c->println("}");
 

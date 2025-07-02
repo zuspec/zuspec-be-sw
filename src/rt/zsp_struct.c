@@ -1,4 +1,5 @@
 
+#include "zsp/be/sw/rt/zsp_alloc.h"
 #include "zsp/be/sw/rt/zsp_struct.h"
 
 static void zsp_struct__dtor(struct zsp_actor_s *actor, struct zsp_struct_s *this_p) {
@@ -38,7 +39,9 @@ zsp_struct_type_t *zsp_struct__type(void) {
     return &__type;
 }
 
-void zsp_struct_init(struct zsp_actor_s *actor, struct zsp_struct_s *this_p) {
+void zsp_struct_init(
+    zsp_alloc_t     *alloc, 
+    zsp_struct_t    *this_p) {
 
 }
 

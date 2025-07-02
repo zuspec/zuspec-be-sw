@@ -95,6 +95,8 @@ void TaskGenerateActionType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
 
     m_out_c->println("((zsp_object_type_t *)&__type)->name = \"%s\";",
         m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("((zsp_object_type_t *)&__type)->init = (zsp_init_f)&%s__init;",
+        m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("((zsp_object_type_t *)&__type)->dtor = (zsp_dtor_f)&%s__dtor;",
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("((zsp_struct_type_t *)&__type)->pre_solve = (zsp_solve_exec_f)&%s__pre_solve;",

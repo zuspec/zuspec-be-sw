@@ -33,12 +33,12 @@ namespace sw {
 
 
 TaskGenerateExecScopeB::TaskGenerateExecScopeB(
-        TaskGenerateExecModel       *gen,
+        IContext                    *ctxt,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
         IOutput                     *out_c) : 
-        m_gen(gen), m_refgen(m_refgen), m_out_h(out_h), m_out_c(out_c) {
-    DEBUG_INIT("zsp::be::sw::TaskGenerateExecScopeB", gen->getDebugMgr());
+        m_ctxt(ctxt), m_refgen(m_refgen), m_out_h(out_h), m_out_c(out_c) {
+    DEBUG_INIT("zsp::be::sw::TaskGenerateExecScopeB", ctxt->getDebugMgr());
 }
 
 TaskGenerateExecScopeB::~TaskGenerateExecScopeB() {
@@ -63,7 +63,7 @@ void TaskGenerateExecScopeB::generate(arl::dm::ITypeProcStmtScope *t) {
 void TaskGenerateExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *t) {
     DEBUG_ENTER("visitTypeProcStmtScope");
     m_idx = 0;
-    TaskCheckIsExecBlocking is_b(m_gen->getDebugMgr(), m_gen->isTargetImpBlocking());
+    TaskCheckIsExecBlocking is_b(m_ctxt->getDebugMgr(), true /*m_gen->isTargetImpBlocking()*/);
     bool has_loop = TaskCheckExecHasLoop().check(t);
 
     if (is_b.check(t)) {
@@ -74,10 +74,7 @@ void TaskGenerateExecScopeB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope 
         out_h.inc_ind();
         out_h.println("zsp_rt_task_t task;");
 
-        out_c.println("zsp_rt_task_t *exec_%p(%s_t *actor, exec_%p_t *this_s) {",
-            t,
-            m_gen->getActorName().c_str(),
-            t);
+        out_c.println("zsp_frame_t *exec_%p(zsp_thread_t *thread, int32_t idx, va_list *args) {", t);
         out_c.inc_ind();
         out_c.println("zsp_rt_task_t *ret = 0;");
         if (has_loop) {

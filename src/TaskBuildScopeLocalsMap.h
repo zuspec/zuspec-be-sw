@@ -1,5 +1,5 @@
 /**
- * VisitorBase.h
+ * TaskBuildScopeLocalsMap.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,33 +19,33 @@
  *     Author: 
  */
 #pragma once
-#include "zsp/arl/dm/impl/VisitorBase.h"
-#include "IVisitor.h"
+#include <unordered_map>
+#include "vsc/dm/IDataTypeStruct.h"
+#include "zsp/arl/dm/ITypeProcStmtScope.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-
-class VisitorBase :
-    public virtual arl::dm::VisitorBase,
-    public virtual IVisitor {
+class TaskBuildScopeLocalsMap {
 public:
-    VisitorBase();
+    using Result=std::unordered_map<
+        arl::dm::ITypeProcStmtScope *, 
+        vsc::dm::IDataTypeStructUP>;
+public:
+    TaskBuildScopeLocalsMap();
 
-    virtual ~VisitorBase();
+    virtual ~TaskBuildScopeLocalsMap();
 
-    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *t) override;
+//    Result *build(vsc::dm::IAccept *scope);
 
-    virtual void visitTypeProcStmtAsyncScopeGroup(TypeProcStmtAsyncScopeGroup *t) override;
 
-    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *t) override;
+
 
 };
 
 }
 }
 }
-
 

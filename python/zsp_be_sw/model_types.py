@@ -4,6 +4,7 @@ import dataclasses as dc
 from typing import Any, List
 
 type_m = {
+    'b': ctypes.c_int32,
     'c': ctypes.c_int8,
     'C': ctypes.c_uint8,
     's': ctypes.c_int16,

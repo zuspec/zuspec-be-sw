@@ -111,7 +111,9 @@ void GenRefExprExecModel::visitDataTypeAddrHandle(arl::dm::IDataTypeAddrHandle *
 
 void GenRefExprExecModel::visitTypeExprRefBottomUp(vsc::dm::ITypeExprRefBottomUp *e) {
     DEBUG_ENTER("visitTypeExprRefBottomUp (%d)", m_depth);
-    arl::dm::ITypeProcStmtScope *scope = m_scope_s.at(
+    DEBUG("scope_s.size: %d scopeOffset: %d fieldIndex: %d", 
+        m_scope_s.size(), e->getScopeOffset(), e->getSubFieldIndex());
+    arl::dm::ITypeProcStmtDeclScope *scope = m_scope_s.at(
         m_scope_s.size()-e->getScopeOffset()-1
     );
     arl::dm::ITypeProcStmtVarDecl *var = dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(

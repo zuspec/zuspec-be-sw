@@ -66,6 +66,8 @@ public:
 
 	virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
 
+    virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
+
 	virtual void visitTypeProcStmtVarDecl(arl::dm::ITypeProcStmtVarDecl *s) override;
 
     virtual void visitDataTypeAddrClaim(arl::dm::IDataTypeAddrClaim *t) override;

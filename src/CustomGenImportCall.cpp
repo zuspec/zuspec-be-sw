@@ -45,6 +45,22 @@ void CustomGenImportCall::genExprMethodCallStaticB(
         arl::dm::ITypeExprMethodCallStatic  *call) { 
     DEBUG_ENTER("genExprMethodCallStaticB");
 
+    std::string fname = call->getTarget()->name();
+    if (fname.rfind("::") != -1) {
+        fname = fname.substr(fname.rfind("::")+2);
+    }
+
+    out->write("ret = zsp_thread_call(thread, __api->%s, __api", fname.c_str());
+
+    for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
+        it=call->getParameters().begin();
+        it!=call->getParameters().end(); it++) {
+        out->write(", ");
+        TaskGenerateExprNB(ctxt, refgen, out).generate(it->get());
+    }
+    out->write(");\n");
+    out->println("if (ret) break;");
+
     DEBUG_LEAVE("genExprMethodCallStaticB");
 }
 

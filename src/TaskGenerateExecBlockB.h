@@ -22,11 +22,11 @@
 #include <string>
 #include <vector>
 #include "dmgr/IDebugMgr.h"
-#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/arl/dm/ITypeExec.h"
 #include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
+#include "VisitorBase.h"
 
 namespace zsp {
 namespace be {
@@ -34,7 +34,8 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecBlockB {
+class TaskGenerateExecBlockB :
+    public virtual VisitorBase {
 public:
     TaskGenerateExecBlockB(
         IContext                    *ctxt,
@@ -49,12 +50,21 @@ public:
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs);
 
+    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) override;
+
+    virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
+
+    virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
+
+    virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
+
 private:
     static dmgr::IDebug                 *m_dbg;
     IContext                            *m_ctxt;
     IGenRefExpr                         *m_refgen;
     IOutput                             *m_out_h;
     IOutput                             *m_out_c;
+    bool                                m_expr_terminated;
 
 };
 

@@ -58,9 +58,15 @@ TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
         }
     }
 
+    TypeProcStmtAsyncScopeGroup *ret = new TypeProcStmtAsyncScopeGroup();
+    for (std::vector<TypeProcStmtAsyncScopeUP>::iterator
+        it=m_scopes.begin();
+        it!=m_scopes.end(); it++) {
+        ret->addStatement(it->release(), it->owned());
+    }
 
     DEBUG_LEAVE("build");
-    return 0;
+    return ret;
 }
 
 TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *scope) {
@@ -159,6 +165,18 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallContext(arl::dm::ITypeExpr
 
 void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) {
     DEBUG_ENTER("visitTypeExprMethodCallStatic");
+    // TODO: check if this function should be treated as blocking
+    bool blocking = true;
+
+    if (blocking) {
+        // Initiate the call
+        currentScope()->addStatement(m_ctxt->ctxt()->mkTypeProcStmtExpr(e, false));
+
+        TypeProcStmtAsyncScope *next = newScope();
+    } else {
+        // Add as a non-blocking function
+    }
+
 //    if (m_imp_target_blocking && e->getTarget()->hasFlags(arl::dm::DataTypeFunctionFlags::Import)) {
 
     DEBUG_LEAVE("visitTypeExprMethodCallStatic");
@@ -187,6 +205,13 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYiel
         TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(m_scopes.size()-1)));
     
     DEBUG_LEAVE("visitTypeProcStmtYield");
+}
+
+TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
+    TypeProcStmtAsyncScope *cur = currentScope();
+    TypeProcStmtAsyncScope *ret = new TypeProcStmtAsyncScope(cur->id() + 1);
+    m_scopes.insert(m_scopes.end()-1, TypeProcStmtAsyncScopeUP(ret));
+    return ret;
 }
 
 dmgr::IDebug *TaskBuildAsyncScopeGroup::m_dbg = 0;

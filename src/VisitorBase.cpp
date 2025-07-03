@@ -34,6 +34,18 @@ VisitorBase::~VisitorBase() {
 
 }
 
+void VisitorBase::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *t) {
+
+}
+
+void VisitorBase::visitTypeProcStmtAsyncScopeGroup(TypeProcStmtAsyncScopeGroup *t) {
+
+}
+
+void VisitorBase::visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *t) {
+
+}
+
 }
 }
 }

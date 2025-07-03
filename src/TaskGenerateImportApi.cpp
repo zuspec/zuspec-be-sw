@@ -158,6 +158,11 @@ void TaskGenerateImportApi::generate() {
     m_out_h->println("#endif /* INCLUDED_MODEL_API_H */");
 }
 
+void TaskGenerateImportApi::visitDataTypeBool(vsc::dm::IDataTypeBool *t) {
+    m_type_sig += "b";
+    m_ptype += "int32_t";
+}
+
 void TaskGenerateImportApi::visitDataTypeInt(vsc::dm::IDataTypeInt *t) {
     if (t->width() <= 8) {
         m_type_sig += t->is_signed()?"c":"C";

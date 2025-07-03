@@ -45,7 +45,7 @@ public:
 
     virtual ResT isRefCountedField(vsc::dm::IAccept *ref) = 0;
 
-    virtual void pushScope(arl::dm::ITypeProcStmtScope *s) = 0;
+    virtual void pushScope(arl::dm::ITypeProcStmtDeclScope *s) = 0;
 
     virtual void popScope() = 0;
 

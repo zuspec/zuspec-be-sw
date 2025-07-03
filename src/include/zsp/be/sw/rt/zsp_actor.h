@@ -19,7 +19,7 @@ typedef struct zsp_actor_s {
 } zsp_actor_t;
 
 
-#define zsp_actor(comp_t, executor_t) struct { \
+#define zsp_actor(comp_t) struct { \
     zsp_actor_base_t    base; \
     comp_t ## _t        comp; \
     }

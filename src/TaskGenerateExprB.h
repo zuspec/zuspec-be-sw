@@ -1,5 +1,5 @@
 /**
- * VisitorBase.h
+ * TaskGenerateExprB.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -19,28 +19,32 @@
  *     Author: 
  */
 #pragma once
-#include "zsp/arl/dm/impl/VisitorBase.h"
-#include "IVisitor.h"
+#include "TaskGenerateExprNB.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
-
-class VisitorBase :
-    public virtual arl::dm::VisitorBase,
-    public virtual IVisitor {
+/**
+ * Generating expressions in blocking contexts is *almost* the
+ * same as generating expressions in a non-blocking context. 
+ * Primary difference is how calls are handled
+ */
+class TaskGenerateExprB :
+    public virtual TaskGenerateExprNB {
 public:
-    VisitorBase();
+    TaskGenerateExprB(
+        IContext                    *ctxt,  
+        IGenRefExpr                 *refgen,
+        IOutput                     *out
+    );
 
-    virtual ~VisitorBase();
+    virtual ~TaskGenerateExprB();
 
-    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *t) override;
+    virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
 
-    virtual void visitTypeProcStmtAsyncScopeGroup(TypeProcStmtAsyncScopeGroup *t) override;
-
-    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *t) override;
+    virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
 
 };
 

@@ -28,3 +28,8 @@ s2_t v;
 s1(&v)->a = 5;
 
 ```
+
+# Python / PSS Unit Test Structure
+tests/unit/test_generate_model.py provides a good example of Python/PSS unit test structure.
+The multiline string at the top (pss_top) contains PSS (Portable Test and Stimulus) code. The rest of the function translates and executes that code. Note that import functions declared in the PSS code map to Python methods declared in the test.
+

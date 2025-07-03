@@ -1,5 +1,5 @@
-/**
- * VisitorBase.h
+/*
+ * TaskBuildScopeLocalsMap.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,11 +16,9 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "zsp/arl/dm/impl/VisitorBase.h"
-#include "IVisitor.h"
+#include "TaskBuildScopeLocalsMap.h"
 
 namespace zsp {
 namespace be {
@@ -28,24 +26,14 @@ namespace sw {
 
 
 
-class VisitorBase :
-    public virtual arl::dm::VisitorBase,
-    public virtual IVisitor {
-public:
-    VisitorBase();
+TaskBuildScopeLocalsMap::TaskBuildScopeLocalsMap() {
 
-    virtual ~VisitorBase();
+}
 
-    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *t) override;
+TaskBuildScopeLocalsMap::~TaskBuildScopeLocalsMap() {
 
-    virtual void visitTypeProcStmtAsyncScopeGroup(TypeProcStmtAsyncScopeGroup *t) override;
-
-    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *t) override;
-
-};
+}
 
 }
 }
 }
-
-

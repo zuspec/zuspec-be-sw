@@ -21,6 +21,7 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
+#include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
 
@@ -34,7 +35,7 @@ class TaskGenerateExecScopeB :
     public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateExecScopeB(
-        TaskGenerateExecModel       *gen,
+        IContext                    *ctxt,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
         IOutput                     *out_c);
@@ -49,7 +50,7 @@ public:
 
 private:
     static dmgr::IDebug             *m_dbg;
-    TaskGenerateExecModel           *m_gen;
+    IContext                        *m_ctxt;
     IGenRefExpr                     *m_refgen;
     IOutput                         *m_out_h;
     IOutput                         *m_out_c;

@@ -65,6 +65,8 @@ private:
         return m_scopes.at(m_scopes.size()-2).get();
     }
 
+    TypeProcStmtAsyncScope *newScope();
+
 private:
     static dmgr::IDebug                     *m_dbg;
     IContext                                *m_ctxt;

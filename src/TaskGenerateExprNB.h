@@ -41,7 +41,7 @@ public:
 
     virtual ~TaskGenerateExprNB();
 
-    void generate(vsc::dm::ITypeExpr *e);
+    virtual void generate(vsc::dm::ITypeExpr *e);
 
 	virtual void visitTypeExprArrIndex(vsc::dm::ITypeExprArrIndex *e) override;
 

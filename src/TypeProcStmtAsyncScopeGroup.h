@@ -38,6 +38,10 @@ public:
 
     virtual int32_t addVariable(vsc::dm::ITypeVar *v, bool owned=true) override;
 
+    virtual int32_t getNumVariables() override { return 0; }
+
+    virtual const std::vector<vsc::dm::ITypeVarUP> &getVariables() const override { }
+
     virtual void insertStatement(
         int32_t                 i,
         arl::dm::ITypeProcStmt  *s) override;

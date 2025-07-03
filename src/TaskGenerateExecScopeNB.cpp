@@ -118,11 +118,49 @@ void TaskGenerateExecScopeNB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *
     DEBUG_LEAVE("visitTypeProcStmtExpr");
 }
 
+void TaskGenerateExecScopeNB::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) {
+    DEBUG_ENTER("visitTypeProcStmtRepeat");
+    m_refgen->pushScope(s);
+    m_out_s.push_back(OutputExecScope(true, m_out));
+//    m_out_s.back().exec()->println("{");
+//    m_out_s.back().exec()->inc_ind();
+    vsc::dm::ITypeVar *iter_var = s->getVariables().at(0).get();
+    iter_var->accept(m_this);
+
+    m_out_s.back().exec()->indent();
+    m_out_s.back().exec()->write("for (%s=0; %s<(", 
+        iter_var->name().c_str(), 
+        iter_var->name().c_str());
+    TaskGenerateExprNB(m_ctxt, m_refgen, m_out_s.back().exec()).generate(s->getExpr());
+    m_out_s.back().exec()->write("); %s++) {\n", iter_var->name().c_str());
+    m_out_s.back().exec()->inc_ind();
+    s->getBody()->accept(m_this);
+    m_out_s.back().exec()->dec_ind();
+    m_out_s.back().exec()->println("}");
+
+    // New scope
+    //   iteration variable(s)
+    //   repeat-loop head
+    //     repeat-loop body
+//    m_out_s.back().exec()->dec_ind();
+//    m_out_s.back().exec()->println("}");
+    m_out_s.back().apply(m_out);
+    m_out_s.pop_back();
+    m_refgen->popScope();
+    DEBUG_LEAVE("visitTypeProcStmtRepeat");
+}
+
 void TaskGenerateExecScopeNB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
     DEBUG_ENTER("visitTypeScopeStmtScope");
     m_refgen->pushScope(s);
+    if (s->getNumVariables() > 0) {
+        // Create a new scope and declare variables
+    }
     arl::dm::VisitorBase::visitTypeProcStmtScope(s);
     m_refgen->popScope();
+    if (s->getNumVariables() > 0) {
+        // Close scope
+    }
     DEBUG_LEAVE("visitTypeScopeStmtScope");
 }
 

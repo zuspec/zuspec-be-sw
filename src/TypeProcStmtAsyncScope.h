@@ -35,6 +35,8 @@ public:
 
     virtual ~TypeProcStmtAsyncScope();
 
+    int32_t id() const { return m_id; }
+
     virtual void addStatement(ITypeProcStmt *stmt, bool owned=true) override;
 
     virtual int32_t addVariable(vsc::dm::ITypeVar *v, bool owned=true) override;

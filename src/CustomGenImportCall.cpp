@@ -50,7 +50,7 @@ void CustomGenImportCall::genExprMethodCallStaticB(
         fname = fname.substr(fname.rfind("::")+2);
     }
 
-    out->write("ret = zsp_thread_call(thread, __api->%s, __api", fname.c_str());
+    out->write("ret = zsp_thread_call(thread, __locals->__api->%s, __locals->__api", fname.c_str());
 
     for (std::vector<vsc::dm::ITypeExprUP>::const_iterator
         it=call->getParameters().begin();

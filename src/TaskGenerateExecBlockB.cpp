@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "OutputStr.h"
+#include "ScopeLocalsAssociatedData.h"
 #include "TaskGenerateExecBlockB.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateExecModelExprParamNB.h"
@@ -43,7 +44,7 @@ TaskGenerateExecBlockB::TaskGenerateExecBlockB(
     IOutput                         *out_h,
     IOutput                         *out_c) :
     m_ctxt(ctxt), m_refgen(refgen), m_out_h(out_h), m_out_c(out_c),
-    m_expr_terminated(false) {
+    m_expr_terminated(false), m_scope(0) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateExecBlockB", m_ctxt->getDebugMgr());
 }
 
@@ -74,7 +75,6 @@ void TaskGenerateExecBlockB::generate(
             TaskGenerateLocals(m_ctxt, m_out_c).generate(it->get());
         }
         m_out_c->println("zsp_frame_t *ret = thread->leaf;");
-        m_out_c->println("model_api_t *__api = 0;");
 
         m_out_c->println("switch(idx) {");
         m_out_c->inc_ind();
@@ -106,6 +106,7 @@ void TaskGenerateExecBlockB::generate(
 
 void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) {
     DEBUG_ENTER("visitTypeProcStmtAsyncScope");
+    m_scope = s;
     if (s->id() != -1) {
         m_out_c->println("case %d: {", s->id());
         m_out_c->inc_ind();
@@ -115,6 +116,36 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         m_out_c->inc_ind();
         m_out_c->println("CASE_DEFAULT:");
     }
+    int32_t depth = 0;
+    if (s->id() == 0) {
+        // Entry scope is unique in that we must grab parameters
+        ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
+            s->scopes().back()->getAssociatedData());
+        m_out_c->println("%s_t *__locals;", m_ctxt->nameMap()->getName(data->type()).c_str());
+        m_out_c->println("ret = (%s_t *)zsp_thread_alloc_frame(thread, sizeof(%s_t), &__FUNCTION__);",
+            m_ctxt->nameMap()->getName(data->type()).c_str(),
+            m_ctxt->nameMap()->getName(data->type()).c_str());
+        m_out_c->println("__locals = zsp_frame_locals(ret, %s_t);",
+            m_ctxt->nameMap()->getName(data->type()).c_str());
+        m_out_c->println("__locals->__exec_b = va_arg(*args, zsp_executor_t *);");
+        m_out_c->println("__locals->__api = (model_api_t *)__locals->__exec_b->api;");
+    } else {
+        for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+            it=s->scopes().begin();
+            it!=s->scopes().end(); it++) {
+            ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
+                (*it)->getAssociatedData());
+            if (it != s->scopes().begin()) {
+                m_out_c->println("{");
+                m_out_c->inc_ind();
+                depth++;
+            }
+            m_out_c->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);", 
+                m_ctxt->nameMap()->getName(data->type()).c_str(),
+                m_ctxt->nameMap()->getName(data->type()).c_str());
+        }
+    }
+
     for (std::vector<arl::dm::ITypeProcStmtUP>::const_iterator
         it=s->getStatements().begin();
         it!=s->getStatements().end(); it++) {
@@ -128,6 +159,12 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         m_out_c->println("ret = zsp_thread_return(thread, 0);");
         m_out_c->dec_ind();
         m_out_c->println("}");
+    }
+
+    while (depth) {
+        m_out_c->dec_ind();
+        m_out_c->println("}");
+        depth--;
     }
 
     m_out_c->dec_ind();
@@ -183,6 +220,8 @@ void TaskGenerateExecBlockB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMet
     DEBUG_ENTER("visitTypeExprMethodCallStatic");
     ITaskGenerateExecModelCustomGen *custom_gen = 
         dynamic_cast<ITaskGenerateExecModelCustomGen *>(e->getTarget()->getAssociatedData());
+
+    m_out_c->write("ret->idx = %d;\n", m_scope->id()+1);
 
     if (custom_gen) {
         custom_gen->genExprMethodCallStaticB(

@@ -77,6 +77,7 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
             ret = zsp_thread_call(
                 thread, 
                 zsp_action_type(__locals->action)->body,
+                exec_b,
                 __locals->action);
             if (ret) {
                 break;

@@ -106,7 +106,7 @@ void TaskBuildAsyncScopeGroup::visitDataTypeActivity(arl::dm::IDataTypeActivity 
 
 void TaskBuildAsyncScopeGroup::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     DEBUG_ENTER("visitDataTypeFunction");
-    Locals *locals = new Locals(t->getParamScope(), m_locals_s.size()?m_locals_s.back()->upper:0);
+    Locals *locals = new Locals(t->getParamScope(), m_locals_s.size()?m_locals_s.back():0);
 
     // Already know we need a type
     if (t->getParamScope()->getNumVariables()) {
@@ -227,13 +227,19 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYiel
 
 TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
     TypeProcStmtAsyncScope *cur = currentScope();
-    TypeProcStmtAsyncScope *ret = new TypeProcStmtAsyncScope(cur->id() + 1);
+    TypeProcStmtAsyncScope *ret = new TypeProcStmtAsyncScope(cur->id() + 1, m_scope_s);
     m_scopes.insert(m_scopes.end()-1, TypeProcStmtAsyncScopeUP(ret));
     return ret;
 }
 
-void TaskBuildAsyncScopeGroup::enter_scope(arl::dm::ITypeProcStmtScope *s) {
-    Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back()->upper:0);
+void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
+    Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back():0);
+    m_scope_s.push_back(s);
+
+    if (m_scopes.front()->scopes().size() == 0) {
+        m_scopes.front()->pushScope(s);
+        m_scopes.back()->pushScope(s);
+    }
 
     // Already know we need a type
     if (s->getNumVariables()) {
@@ -271,6 +277,7 @@ void TaskBuildAsyncScopeGroup::leave_scope() {
     l->scope->setAssociatedData(new ScopeLocalsAssociatedData(type));
 
     m_locals_s.pop_back();
+    m_scope_s.pop_back();
 }
 
 vsc::dm::IDataTypeStruct *TaskBuildAsyncScopeGroup::mk_type() {
@@ -284,6 +291,7 @@ vsc::dm::IDataTypeStruct *TaskBuildAsyncScopeGroup::mk_type() {
 }
 
 void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
+    DEBUG_ENTER("build_scope_types %s %d", l->type->name().c_str(), l->children.size());
     if (l->children.size()) {
         for (std::vector<Locals *>::iterator
             it=l->children.begin();
@@ -295,13 +303,14 @@ void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
     // Now worry about this type
     std::set<std::string> local_names;
     int32_t shadow_id=0;
-    for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
-        it=l->scope->getVariables().begin();
-        it!=l->scope->getVariables().end(); it++) {
-        local_names.insert((*it)->name());
-    }
+    // for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
+    //     it=l->scope->getVariables().begin();
+    //     it!=l->scope->getVariables().end(); it++) {
+    //     local_names.insert((*it)->name());
+    // }
 
     add_fields(l->type, l, local_names, shadow_id);
+    DEBUG_LEAVE("build_scope_types");
 }
 
 vsc::dm::ITypeVar *TaskBuildAsyncScopeGroup::mk_temp(vsc::dm::IDataType *type, bool owned) {
@@ -329,31 +338,45 @@ void TaskBuildAsyncScopeGroup::add_fields(
         Locals                      *l,
         std::set<std::string>       &names,
         int32_t                     &shadow_id) {
+    DEBUG_ENTER("add_fields %s", type->name().c_str());
     // Add fields depth-first
-    if (l->upper) {
-        add_fields(type, l->upper, names, shadow_id);
-    }
 
-    // Now, create struct fields for each local
+    // Create the fields that we will add, observing
+    // shadowing rules
+    std::vector<vsc::dm::ITypeField *> fields;
     for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
         it=l->scope->getVariables().begin();
         it!=l->scope->getVariables().end(); it++) {
         std::string name = (*it)->name();
+        DEBUG("name: %s", name.c_str());
         if (names.find(name) != names.end()) {
             char tmp[64];
             // Create a shadow name
             snprintf(tmp, sizeof(tmp), "__shadow_%d", shadow_id++);
             name = tmp;
+        } else {
+            names.insert(name);
         }
-
-        // TODO: handle initial value
-        type->addField(m_ctxt->ctxt()->mkTypeFieldPhy(
+        fields.push_back(m_ctxt->ctxt()->mkTypeFieldPhy(
             name, 
             (*it)->getDataType(),
             false,
             vsc::dm::TypeFieldAttr::NoAttr,
             0));
     }
+
+    if (l->upper) {
+        add_fields(type, l->upper, names, shadow_id);
+    }
+
+    // Finally, add our fields to the type
+    for (std::vector<vsc::dm::ITypeField *>::const_iterator
+        it=fields.begin();
+        it!=fields.end(); it++) {
+        type->addField(*it);
+    }
+
+    DEBUG_LEAVE("add_fields %s", type->name().c_str());
 }
 
 dmgr::IDebug *TaskBuildAsyncScopeGroup::m_dbg = 0;

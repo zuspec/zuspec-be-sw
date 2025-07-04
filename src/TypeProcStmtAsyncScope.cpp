@@ -43,6 +43,10 @@ TypeProcStmtAsyncScope::~TypeProcStmtAsyncScope() {
 
 }
 
+void TypeProcStmtAsyncScope::pushScope(vsc::dm::ITypeVarScope *scope) {
+    m_scopes.push_back(scope);
+}
+
 void TypeProcStmtAsyncScope::addStatement(ITypeProcStmt *stmt, bool owned) {
     m_statements.push_back(arl::dm::ITypeProcStmtUP(stmt, owned));
 }

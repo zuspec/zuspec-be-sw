@@ -14,7 +14,9 @@ component pss_top {
     action Entry {
         exec body {
             int a;
+            int b;
             {
+                int a;
                 int b;
                 doit();
             }
@@ -30,6 +32,7 @@ component pss_top {
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
 
     async def doit():
+        print("doit", flush=True)
         pass
 
     actor = model.mk_actor()

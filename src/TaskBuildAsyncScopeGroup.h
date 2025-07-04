@@ -68,21 +68,20 @@ private:
     struct Locals {
 
         Locals(
-            arl::dm::ITypeProcStmtDeclScope *scope, 
-            Locals                          *upper,
-            vsc::dm::IDataTypeStruct        *type=0) {
+            vsc::dm::ITypeVarScope      *scope, 
+            Locals                      *upper,
+            vsc::dm::IDataTypeStruct    *type=0) {
             this->scope = scope;
             this->type = type;
             this->upper = upper;
             this->tmpid = 0;
         }
 
-        arl::dm::ITypeProcStmtDeclScope         *scope;
-        vsc::dm::IDataTypeStruct                *type;
-        Locals                                  *upper;
-        std::vector<Locals *>                   children;
-        int32_t                                 tmpid;
-
+        vsc::dm::ITypeVarScope         *scope;
+        vsc::dm::IDataTypeStruct       *type;
+        Locals                         *upper;
+        std::vector<Locals *>          children;
+        int32_t                        tmpid;
     };
 
 private:
@@ -93,7 +92,7 @@ private:
 
     TypeProcStmtAsyncScope *newScope();
 
-    void enter_scope(arl::dm::ITypeProcStmtScope *scope);
+    void enter_scope(vsc::dm::ITypeVarScope *scope);
 
     void leave_scope();
 
@@ -114,7 +113,7 @@ private:
     IContext                                    *m_ctxt;
     vsc::dm::ITypeExprUP                        m_expr;
     std::vector<TypeProcStmtAsyncScopeUP>       m_scopes;
-    std::vector<arl::dm::ITypeProcStmtScope *>  m_scope_s;
+    std::vector<vsc::dm::ITypeVarScope *>       m_scope_s;
     Locals                                      *m_locals_root;
     std::vector<Locals *>                       m_locals_s;
     std::vector<vsc::dm::IDataTypeStructUP>     m_locals_type_l;

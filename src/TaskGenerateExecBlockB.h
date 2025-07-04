@@ -65,6 +65,7 @@ private:
     IOutput                             *m_out_h;
     IOutput                             *m_out_c;
     bool                                m_expr_terminated;
+    TypeProcStmtAsyncScope              *m_scope;
 
 };
 

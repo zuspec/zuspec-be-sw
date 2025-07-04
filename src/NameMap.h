@@ -46,6 +46,10 @@ public:
 
     virtual ~NameMap();
 
+    virtual void push() override;
+
+    virtual void pop() override;
+
     virtual bool hasName(
         vsc::dm::IAccept    *type,
         Kind                kind=Kind::Mangled) override;
@@ -84,12 +88,13 @@ public:
 private:
     using NameM=std::map<vsc::dm::IAccept *, std::string>;
     using KindM=std::map<INameMap::Kind, NameM>;
+    using KindMUP=std::unique_ptr<KindM>;
 
 
 private:
     std::string                 m_name;
     INameMap::Kind              m_kind;
-    KindM                       m_name_m;
+    std::vector<KindMUP>        m_name_m_s;
 
 };
 

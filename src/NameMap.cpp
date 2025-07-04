@@ -28,22 +28,30 @@ namespace sw {
 
 
 NameMap::NameMap() {
-
+    m_name_m_s.push_back(KindMUP(new KindM()));
 }
 
 NameMap::~NameMap() {
 
 }
 
+void NameMap::push() {
+    m_name_m_s.push_back(KindMUP(new KindM()));
+}
+
+void NameMap::pop() {
+    m_name_m_s.pop_back();
+}
+
 void NameMap::setName(
     vsc::dm::IAccept    *type, 
     const std::string   &name,
     INameMap::Kind      kind) {
-    KindM::iterator kind_it = m_name_m.find(kind);
+    KindM::iterator kind_it = m_name_m_s.back()->find(kind);
     NameM::iterator name_it;
 
-    if (kind_it == m_name_m.end()) {
-        kind_it = m_name_m.insert({kind, NameM()}).first;
+    if (kind_it == m_name_m_s.back()->end()) {
+        kind_it = m_name_m_s.back()->insert({kind, NameM()}).first;
     }
     name_it = kind_it->second.find(type);
 
@@ -58,38 +66,65 @@ void NameMap::setName(
 bool NameMap::hasName(
         vsc::dm::IAccept    *type,
         Kind                kind) {
-    KindM::iterator kind_it = m_name_m.find(kind);
+    KindM::iterator kind_it;
+    
+    for (std::vector<KindMUP>::const_reverse_iterator
+        it=m_name_m_s.rbegin();
+        it!=m_name_m_s.rend(); it++) {
+        kind_it = (*it)->find(kind);
 
-    if (kind_it == m_name_m.end()) {
-        return false;
-    } else {
-        NameM::iterator name_it = kind_it->second.find(type);
+        if (kind_it != (*it)->end()) {
+            NameM::iterator name_it = kind_it->second.find(type);
 
-        return !(name_it == kind_it->second.end());
+            if (name_it != kind_it->second.end()) {
+                return true;
+            }
+        }
     }
+
+    return false;
 }
 
 std::string NameMap::getName(
     vsc::dm::IAccept    *type,
     INameMap::Kind      kind) {
-    KindM::iterator kind_it = m_name_m.find(kind);
-    NameM::iterator name_it;
+    std::string ret;
 
-    if (kind_it == m_name_m.end()) {
-        kind_it = m_name_m.insert({kind, NameM()}).first;
+    // First search
+    for (std::vector<KindMUP>::const_reverse_iterator
+        it=m_name_m_s.rbegin();
+        it!=m_name_m_s.rend(); it++) {
+        KindM::iterator kind_it = (*it)->find(kind);
+        NameM::iterator name_it;
+
+        if (kind_it != (*it)->end()) {
+            name_it = kind_it->second.find(type);
+
+            if (name_it != kind_it->second.end()) {
+                ret = name_it->second;
+                break;
+            }
+        }
     }
-    name_it = kind_it->second.find(type);
 
-    if (name_it == kind_it->second.end()) {
+    if (ret == "") {
+        KindM::iterator kind_it = m_name_m_s.back()->find(kind);
+        NameM::iterator name_it;
+        if (kind_it == m_name_m_s.back()->end()) {
+            kind_it = m_name_m_s.back()->insert({kind, NameM()}).first;
+        }
+
         // Go compute the name
         m_name.clear();
         m_kind = kind;
         type->accept(m_this);
         std::replace(m_name.begin(), m_name.end(), ':', '_');
         name_it = kind_it->second.insert({type, m_name}).first;
+
+        ret = name_it->second;
     }
 
-    return name_it->second;
+    return ret;
 }
 
 void NameMap::visitDataTypeAction(arl::dm::IDataTypeAction *t) {

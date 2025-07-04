@@ -33,9 +33,17 @@ class TypeProcStmtAsyncScope :
 public:
     TypeProcStmtAsyncScope(int32_t id);
 
+    TypeProcStmtAsyncScope(
+        int32_t                                     id,
+        const std::vector<vsc::dm::ITypeVarScope *> &scope);
+
     virtual ~TypeProcStmtAsyncScope();
 
     int32_t id() const { return m_id; }
+
+    void pushScope(vsc::dm::ITypeVarScope *scope);
+
+    const std::vector<vsc::dm::ITypeVarScope *> &scopes() const { return m_scopes; }
 
     virtual void addStatement(ITypeProcStmt *stmt, bool owned=true) override;
 
@@ -59,11 +67,21 @@ public:
 
     virtual vsc::dm::IDataTypeStruct *getLocalsT() const override { return 0; }
 
+    virtual void setAssociatedData(vsc::dm::IAssociatedData *data) override {
+        m_assoc_data = vsc::dm::IAssociatedDataUP(data);
+    }
+
+    virtual vsc::dm::IAssociatedData *getAssociatedData() const override {
+        return m_assoc_data.get();
+    }
+
     virtual void accept(vsc::dm::IVisitor *v) override;
 
 private:
     int32_t                                 m_id;
     std::vector<arl::dm::ITypeProcStmtUP>   m_statements;
+    std::vector<vsc::dm::ITypeVarScope *>   m_scopes;
+    vsc::dm::IAssociatedDataUP              m_assoc_data;
 
 };
 

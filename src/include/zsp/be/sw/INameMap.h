@@ -38,6 +38,10 @@ public:
 
     virtual ~INameMap() { }
 
+    virtual void push() = 0;
+
+    virtual void pop() = 0;
+
     virtual bool hasName(
         vsc::dm::IAccept    *type,
         Kind                kind=Kind::Mangled) = 0;

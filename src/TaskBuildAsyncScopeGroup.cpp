@@ -18,8 +18,10 @@
  * Created on:
  *     Author:
  */
+#include <set>
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskBuildAsyncScopeGroup.h"
+#include "ScopeLocalsAssociatedData.h"
 
 
 namespace zsp {
@@ -27,7 +29,8 @@ namespace be {
 namespace sw {
 
 
-TaskBuildAsyncScopeGroup::TaskBuildAsyncScopeGroup(IContext *ctxt) : m_ctxt(ctxt) {
+TaskBuildAsyncScopeGroup::TaskBuildAsyncScopeGroup(IContext *ctxt) : 
+    m_ctxt(ctxt), m_locals_root(0) {
     DEBUG_INIT("zsp.be.sw.TaskBuildAsyncScopeGroup", ctxt->getDebugMgr());
 }
 
@@ -35,19 +38,15 @@ TaskBuildAsyncScopeGroup::~TaskBuildAsyncScopeGroup() {
 
 }
 
-TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
-    const std::vector<arl::dm::ITypeExecUP> &execs) {
-    DEBUG_ENTER("build");
+TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *scope) {
+    DEBUG_ENTER("build");    
+
     m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(0)));
 
     // Default case
     m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(-1)));
 
-    for (std::vector<arl::dm::ITypeExecUP>::const_iterator
-        it=execs.begin();
-        it!=execs.end(); it++) {
-        (*it)->accept(this);
-    }
+    scope->accept(m_this);
 
     if (m_scopes.size() > 2) {
         // An actual async scope was created
@@ -56,6 +55,17 @@ TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
             // Remove the last actual scope since it has no statements
             m_scopes.erase(m_scopes.end()-2);
         }
+    }
+
+    DEBUG("%d local scopes are identified", m_locals_type_l.size());
+
+    // We require at least one type
+    if (!m_locals_type_l.size()) {
+        mk_type();
+    }
+
+    if (m_locals_root) {
+        build_scope_types(m_locals_root);
     }
 
     TypeProcStmtAsyncScopeGroup *ret = new TypeProcStmtAsyncScopeGroup();
@@ -64,32 +74,14 @@ TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(
         it!=m_scopes.end(); it++) {
         ret->addStatement(it->release(), it->owned());
     }
-
-    DEBUG_LEAVE("build");
-    return ret;
-}
-
-TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *scope) {
-    DEBUG_ENTER("build");    
-    m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(0)));
-
-    // Default case
-    m_scopes.push_back(TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(-1)));
-
-    scope->accept(this);
-
-    if (m_scopes.size() > 2) {
-        // An actual async scope was created
-
-        if (m_scopes.at(m_scopes.size()-2)->getStatements().size() == 0) {
-            // Remove the last actual scope since it has no statements
-            m_scopes.erase(m_scopes.end()-2);
-        }
+    for (std::vector<vsc::dm::IDataTypeStructUP>::iterator
+        it=m_locals_type_l.begin();
+        it!=m_locals_type_l.end(); it++) {
+        ret->addLocalsType(it->release());
     }
 
-    
     DEBUG_LEAVE("build %d", m_scopes.size());
-    return 0;
+    return ret;
 }
 
 void TaskBuildAsyncScopeGroup::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
@@ -110,6 +102,23 @@ void TaskBuildAsyncScopeGroup::visitDataTypeAction(arl::dm::IDataTypeAction *t) 
 void TaskBuildAsyncScopeGroup::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) {
     DEBUG_ENTER("visitDataTypeActivity");
     DEBUG_LEAVE("visitDataTypeActivity");
+}
+
+void TaskBuildAsyncScopeGroup::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
+    DEBUG_ENTER("visitDataTypeFunction");
+    Locals *locals = new Locals(t->getParamScope(), m_locals_s.size()?m_locals_s.back()->upper:0);
+
+    // Already know we need a type
+    if (t->getParamScope()->getNumVariables()) {
+        locals->type = mk_type();
+    }
+
+    if (!m_locals_root) {
+        m_locals_root = locals;
+    }
+    m_locals_s.push_back(locals);
+
+    DEBUG_LEAVE("visitDataTypeFunction");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeExprBin(vsc::dm::ITypeExprBin *e) {
@@ -173,6 +182,7 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprM
         currentScope()->addStatement(m_ctxt->ctxt()->mkTypeProcStmtExpr(e, false));
 
         TypeProcStmtAsyncScope *next = newScope();
+        // Must signal that the statement above has been broken up
     } else {
         // Add as a non-blocking function
     }
@@ -182,12 +192,22 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprM
     DEBUG_LEAVE("visitTypeExprMethodCallStatic");
 }
 
+void TaskBuildAsyncScopeGroup::visitTypeExecProc(arl::dm::ITypeExecProc *e) {
+    VisitorBase::visitTypeExecProc(e);
+}
+
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) { 
 
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcStmtRepeatWhile *s) { 
 
+}
+
+void TaskBuildAsyncScopeGroup::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
+    enter_scope(s);
+    VisitorBase::visitTypeProcStmtScope(s);
+    leave_scope();
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtWhile(arl::dm::ITypeProcStmtWhile *s) { 
@@ -200,9 +220,7 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYiel
     // Need to introduce a new scope for subsequent statements
     m_scopes.at(m_scopes.size()-2)->addStatement(s, false);
 
-    m_scopes.insert(
-        m_scopes.end()-1,
-        TypeProcStmtAsyncScopeUP(new TypeProcStmtAsyncScope(m_scopes.size()-1)));
+    newScope();
     
     DEBUG_LEAVE("visitTypeProcStmtYield");
 }
@@ -212,6 +230,130 @@ TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
     TypeProcStmtAsyncScope *ret = new TypeProcStmtAsyncScope(cur->id() + 1);
     m_scopes.insert(m_scopes.end()-1, TypeProcStmtAsyncScopeUP(ret));
     return ret;
+}
+
+void TaskBuildAsyncScopeGroup::enter_scope(arl::dm::ITypeProcStmtScope *s) {
+    Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back()->upper:0);
+
+    // Already know we need a type
+    if (s->getNumVariables()) {
+        locals->type = mk_type();
+    }
+
+    if (!m_locals_root) {
+        m_locals_root = locals;
+    }
+    m_locals_s.push_back(locals);
+}
+
+void TaskBuildAsyncScopeGroup::leave_scope() {
+    vsc::dm::IDataTypeStruct *type = 0;
+    Locals *l = m_locals_s.back();
+
+    if (l->type) {
+        // Since we have a unique type, link ourselves into the tree
+        if (l->upper) {
+            l->upper->children.push_back(l);
+        }
+        type = l->type;
+    } else {
+        // Since we don't have a unique type, 
+        for (std::vector<Locals *>::const_reverse_iterator
+            it=m_locals_s.rbegin();
+            it!=m_locals_s.rend(); it++) {
+            if ((*it)->type) {
+                type = (*it)->type;
+                break;
+            }
+        }
+    }
+
+    l->scope->setAssociatedData(new ScopeLocalsAssociatedData(type));
+
+    m_locals_s.pop_back();
+}
+
+vsc::dm::IDataTypeStruct *TaskBuildAsyncScopeGroup::mk_type() {
+    char tmp[64];
+
+    snprintf(tmp, sizeof(tmp), "__locals%d", m_locals_type_l.size());
+    vsc::dm::IDataTypeStruct *ret = m_ctxt->ctxt()->mkDataTypeStruct(tmp);
+    m_locals_type_l.push_back(vsc::dm::IDataTypeStructUP(ret));
+
+    return ret;
+}
+
+void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
+    if (l->children.size()) {
+        for (std::vector<Locals *>::iterator
+            it=l->children.begin();
+            it!=l->children.end(); it++) {
+            build_scope_types(*it);
+        }
+    }
+
+    // Now worry about this type
+    std::set<std::string> local_names;
+    int32_t shadow_id=0;
+    for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
+        it=l->scope->getVariables().begin();
+        it!=l->scope->getVariables().end(); it++) {
+        local_names.insert((*it)->name());
+    }
+
+    add_fields(l->type, l, local_names, shadow_id);
+}
+
+vsc::dm::ITypeVar *TaskBuildAsyncScopeGroup::mk_temp(vsc::dm::IDataType *type, bool owned) {
+    char tmp[256];
+
+    Locals *locals = m_locals_s.back();
+
+    if (!locals->type) {
+        locals->type = mk_type();
+    }
+
+    snprintf(tmp, sizeof(tmp), "__tmp%d", m_locals_s.back()->tmpid++);
+    arl::dm::ITypeProcStmtVarDecl *tmpvar = m_ctxt->ctxt()->mkTypeProcStmtVarDecl(
+        tmp,
+        type,
+        owned,
+        0);
+    m_locals_s.back()->scope->addVariable(tmpvar);
+
+    return tmpvar;
+}
+
+void TaskBuildAsyncScopeGroup::add_fields(
+        vsc::dm::IDataTypeStruct    *type, 
+        Locals                      *l,
+        std::set<std::string>       &names,
+        int32_t                     &shadow_id) {
+    // Add fields depth-first
+    if (l->upper) {
+        add_fields(type, l->upper, names, shadow_id);
+    }
+
+    // Now, create struct fields for each local
+    for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
+        it=l->scope->getVariables().begin();
+        it!=l->scope->getVariables().end(); it++) {
+        std::string name = (*it)->name();
+        if (names.find(name) != names.end()) {
+            char tmp[64];
+            // Create a shadow name
+            snprintf(tmp, sizeof(tmp), "__shadow_%d", shadow_id++);
+            name = tmp;
+        }
+
+        // TODO: handle initial value
+        type->addField(m_ctxt->ctxt()->mkTypeFieldPhy(
+            name, 
+            (*it)->getDataType(),
+            false,
+            vsc::dm::TypeFieldAttr::NoAttr,
+            0));
+    }
 }
 
 dmgr::IDebug *TaskBuildAsyncScopeGroup::m_dbg = 0;

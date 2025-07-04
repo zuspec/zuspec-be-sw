@@ -19,6 +19,7 @@
  *     Author: 
  */
 #pragma once
+#include "vsc/dm/IDataTypeStruct.h"
 #include "zsp/arl/dm/ITypeProcStmtScope.h"
 
 namespace zsp {
@@ -33,6 +34,14 @@ public:
     TypeProcStmtAsyncScopeGroup();
 
     virtual ~TypeProcStmtAsyncScopeGroup();
+
+    void addLocalsType(vsc::dm::IDataTypeStruct *t) {
+        m_locals_types.push_back(vsc::dm::IDataTypeStructUP(t));
+    }
+
+    const std::vector<vsc::dm::IDataTypeStructUP> &localsTypes() const {
+        return m_locals_types;
+    }
 
     virtual void addStatement(ITypeProcStmt *stmt, bool owned=true) override;
 
@@ -56,10 +65,20 @@ public:
 
     virtual vsc::dm::IDataTypeStruct *getLocalsT() const override { return 0; }
 
+    virtual void setAssociatedData(vsc::dm::IAssociatedData *data) override {
+        m_assoc_data = vsc::dm::IAssociatedDataUP(data);
+    }
+
+    virtual vsc::dm::IAssociatedData *getAssociatedData() const override {
+        return m_assoc_data.get();
+    }
+
     virtual void accept(vsc::dm::IVisitor *v) override;
 
 private:
     std::vector<arl::dm::ITypeProcStmtUP>   m_statements;
+    std::vector<vsc::dm::IDataTypeStructUP> m_locals_types;
+    vsc::dm::IAssociatedDataUP              m_assoc_data;
 
 };
 

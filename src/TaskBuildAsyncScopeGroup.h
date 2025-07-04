@@ -19,6 +19,9 @@
  *     Author: 
  */
 #pragma once
+#include <set>
+#include <vector>
+#include "vsc/dm/ITypeFieldPhy.h"
 #include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
 #include "TypeProcStmtAsyncScope.h"
@@ -27,8 +30,6 @@
 namespace zsp {
 namespace be {
 namespace sw {
-
-
 
 class TaskBuildAsyncScopeGroup :
     public virtual arl::dm::VisitorBase {
@@ -39,11 +40,11 @@ public:
 
     virtual TypeProcStmtAsyncScopeGroup *build(vsc::dm::IAccept *scope);
 
-    virtual TypeProcStmtAsyncScopeGroup *build(const std::vector<arl::dm::ITypeExecUP> &execs);
-
     virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
 
     virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
+
+    virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitTypeExprBin(vsc::dm::ITypeExprBin *e) override;
 
@@ -51,13 +52,38 @@ public:
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
 
+    virtual void visitTypeExecProc(arl::dm::ITypeExecProc *e) override;
+
 	virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
 
 	virtual void visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcStmtRepeatWhile *s) override;
 
+    virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
+
 	virtual void visitTypeProcStmtWhile(arl::dm::ITypeProcStmtWhile *s) override;
 
 	virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *s) override;
+
+private:
+    struct Locals {
+
+        Locals(
+            arl::dm::ITypeProcStmtDeclScope *scope, 
+            Locals                          *upper,
+            vsc::dm::IDataTypeStruct        *type=0) {
+            this->scope = scope;
+            this->type = type;
+            this->upper = upper;
+            this->tmpid = 0;
+        }
+
+        arl::dm::ITypeProcStmtDeclScope         *scope;
+        vsc::dm::IDataTypeStruct                *type;
+        Locals                                  *upper;
+        std::vector<Locals *>                   children;
+        int32_t                                 tmpid;
+
+    };
 
 private:
 
@@ -67,11 +93,31 @@ private:
 
     TypeProcStmtAsyncScope *newScope();
 
+    void enter_scope(arl::dm::ITypeProcStmtScope *scope);
+
+    void leave_scope();
+
+    vsc::dm::IDataTypeStruct *mk_type();
+
+    void build_scope_types(Locals *l);
+
+    vsc::dm::ITypeVar *mk_temp(vsc::dm::IDataType *type, bool owned);
+
+    void add_fields(
+        vsc::dm::IDataTypeStruct    *type, 
+        Locals                      *l,
+        std::set<std::string>       &names,
+        int32_t                     &shadow_id);
+
 private:
-    static dmgr::IDebug                     *m_dbg;
-    IContext                                *m_ctxt;
-    vsc::dm::ITypeExprUP                    m_expr;
-    std::vector<TypeProcStmtAsyncScopeUP>   m_scopes;
+    static dmgr::IDebug                         *m_dbg;
+    IContext                                    *m_ctxt;
+    vsc::dm::ITypeExprUP                        m_expr;
+    std::vector<TypeProcStmtAsyncScopeUP>       m_scopes;
+    std::vector<arl::dm::ITypeProcStmtScope *>  m_scope_s;
+    Locals                                      *m_locals_root;
+    std::vector<Locals *>                       m_locals_s;
+    std::vector<vsc::dm::IDataTypeStructUP>     m_locals_type_l;
 
 };
 

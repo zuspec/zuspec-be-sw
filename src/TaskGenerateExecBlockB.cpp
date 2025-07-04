@@ -27,6 +27,7 @@
 #include "TaskGenerateExecScopeB.h"
 #include "TaskGenerateExecScopeNB.h"
 #include "TaskGenerateExprB.h"
+#include "TaskGenerateLocals.h"
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskBuildAsyncScopeGroup.h"
 
@@ -56,88 +57,51 @@ void TaskGenerateExecBlockB::generate(
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
     int32_t idx = 0;
 
-    TypeProcStmtAsyncScopeGroupUP group(
-        TaskBuildAsyncScopeGroup(m_ctxt).build(execs));
+    // Add a new namespace for the locals
+    m_ctxt->nameMap()->push();
 
-//     m_out_c->println("static void %s_init(zsp_actor_t *actor, %s_t *this_p) {",
-//         fname.c_str(),
-//         tname.c_str());
-//     m_out_c->inc_ind();
-// //    m_out_c->println("this_p->task.func = (zsp_task_func)&%s_run;", fname.c_str());
-//     m_out_c->dec_ind();
-//     m_out_c->println("}");
+    if (execs.size() == 1) {
+        TypeProcStmtAsyncScopeGroupUP group(
+            TaskBuildAsyncScopeGroup(m_ctxt).build(execs.front().get()));
+        OutputStr out(m_out_c->ind());
 
-    // TaskCheckIsExecBlocking is_b(
-    //     m_ctxt->getDebugMgr(), 
-    //     true /*m_gen->isTargetImpBlocking()*/);
+        m_out_c->println("static zsp_frame_t *%s(zsp_thread_t *thread, int32_t idx, va_list *args) {", fname.c_str());
+        m_out_c->inc_ind();
+        // First things first: generate the locals structs
+        for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+            it=group->localsTypes().begin();
+            it!=group->localsTypes().end(); it++) {
+            TaskGenerateLocals(m_ctxt, m_out_c).generate(it->get());
+        }
+        m_out_c->println("zsp_frame_t *ret = thread->leaf;");
+        m_out_c->println("model_api_t *__api = 0;");
 
-    // // First, go through and define the functions for blocking sub-
-    // for (std::vector<arl::dm::ITypeExecUP>::const_iterator
-    //         it=execs.begin();
-    //         it!=execs.end(); it++) {
-    //     arl::dm::ITypeExecProc *exec = 
-    //         dynamic_cast<arl::dm::ITypeExecProc *>(it->get());
-    //     if (is_b.check(exec->getBody())) {
-    //         TaskGenerateExecScopeB(
-    //             m_ctxt,
-    //             m_refgen, 
-    //             m_out_h,
-    //             m_out_c).generate(exec->getBody());
-    //     }
-    // }
+        m_out_c->println("switch(idx) {");
+        m_out_c->inc_ind();
+        for (std::vector<arl::dm::ITypeProcStmtUP>::const_iterator
+            it=group->getStatements().begin();
+            it!=group->getStatements().end(); it++) {
+            DEBUG_ENTER("visit statement");
+            (*it)->accept(m_this);
+            DEBUG_LEAVE("visit statement");
+        }
 
-    OutputStr out(m_out_c->ind());
+        m_out_c->dec_ind();
+        m_out_c->println("}"); // end-switch
 
-    m_out_c->println("static zsp_frame_t *%s(zsp_thread_t *thread, int32_t idx, va_list *args) {", fname.c_str());
-    m_out_c->inc_ind();
-    m_out_c->println("zsp_frame_t *ret = thread->leaf;");
-    m_out_c->println("model_api_t *__api = 0;");
+        m_out_c->println("return ret;");
 
-    m_out_c->println("switch(idx) {");
-    m_out_c->inc_ind();
-    for (std::vector<arl::dm::ITypeProcStmtUP>::const_iterator
-        it=group->getStatements().begin();
-        it!=group->getStatements().end(); it++) {
-        (*it)->accept(m_this);
+        m_out_c->dec_ind();
+        m_out_c->println("}");
+    } else if (execs.size() > 1) {
+        // Multiple functions
+        // Want a single top-level function that invokes the sub-functions
+    } else { // zero -- stub out function
+
     }
-    // int32_t start_i = -1;
-    // for (std::vector<arl::dm::ITypeExecUP>::const_iterator
-    //         it=execs.begin();
-    //         it!=execs.end(); it++) {
-    //     m_out_c->println("case %d: {", idx++);
-    //     m_out_c->inc_ind();
-    //     m_out_c->println("this_p->idx++;");
-    //     arl::dm::ITypeExecProc *exec = 
-    //         dynamic_cast<arl::dm::ITypeExecProc *>(it->get());
-    //     if (is_b.check(exec->getBody())) {
-    //         m_out_c->println("zsp_rt_task_t *task = zsp_rt_task_enter(");
-    //         m_out_c->inc_ind();
-    //         m_out_c->println("&actor->actor,");
-    //         m_out_c->println("sizeof(zsp_rt_task_t),");
-    //         m_out_c->println("0);");
-    //         m_out_c->dec_ind();
-    //         m_out_c->println("task->func = (zsp_rt_task_f)&exec_%p;", exec->getBody());
-    //         m_out_c->println("if ((ret=zsp_rt_task_run(&actor->actor, task))) {");
-    //         m_out_c->println("    break;");
-    //         m_out_c->println("}");
-    //     } else {
-    //         // TaskGenerateExecModelExecScopeNB(m_gen, m_refgen, m_out_c).generate(
-    //         //     exec->getBody(), false);
-    //     }
+    
+    m_ctxt->nameMap()->pop();
 
-    //     m_out_c->dec_ind();
-    //     m_out_c->println("}");
-    // }
-
-    m_out_c->dec_ind();
-    m_out_c->println("}"); // end-switch
-
-    m_out_c->println("// TODO:");
-    m_out_c->println("ret = zsp_thread_return(thread, 0);");
-    m_out_c->println("return ret;");
-
-    m_out_c->dec_ind();
-    m_out_c->println("}");
 }
 
 void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) {
@@ -156,6 +120,15 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         it!=s->getStatements().end(); it++) {
         (*it)->accept(m_this);
     }
+    if (s->id() == -1) {
+        // Check whether the function has explicitly returned. 
+        // If not, then perform a default termination
+        m_out_c->println("if (ret == thread->leaf) {");
+        m_out_c->inc_ind();
+        m_out_c->println("ret = zsp_thread_return(thread, 0);");
+        m_out_c->dec_ind();
+        m_out_c->println("}");
+    }
 
     m_out_c->dec_ind();
     m_out_c->println("}");
@@ -170,8 +143,6 @@ void TaskGenerateExecBlockB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s
     if (!m_expr_terminated) {
         m_out_c->write(";\n");
     }
-
-    TaskGenerateExprB(m_ctxt, m_refgen, m_out_c).generate(s->getExpr());
     DEBUG_LEAVE("visitTypeProcStmtExpr");
 }
 

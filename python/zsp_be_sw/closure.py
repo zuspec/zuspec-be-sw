@@ -27,7 +27,6 @@ class TaskClosure(Closure):
     args : Any = None
 
     async def body(self):
-        print("body")
         try:
             ret = await self.impl(*self.args)
 
@@ -38,6 +37,11 @@ class TaskClosure(Closure):
             api = Api.inst()
             api._zsp_thread_return(self.thread, ret)
             api._zsp_thread_schedule(self.sched, self.thread)
+
+            # Evaluate any immediate activity prompted by unblocking
+            # the thread
+            while api._zsp_scheduler_run(self.sched) != 0:
+                pass
         except Exception as e:
             print("Exception in TaskClosure.body: %s" % e, flush=True)
         pass

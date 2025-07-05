@@ -13,17 +13,16 @@ import target function void doit();
 component pss_top {
     action Entry {
         exec body {
-            int a;
-            int b;
-            {
-                int a;
-                int b;
-                doit();
-            }
-            {
-                int c;
-                doit();
-            }
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
         }
     }
 }

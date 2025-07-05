@@ -57,6 +57,7 @@ void TaskGenerateExecBlockB::generate(
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
     int32_t idx = 0;
+    m_fname = fname;
 
     // Add a new namespace for the locals
     m_ctxt->nameMap()->push();
@@ -122,9 +123,10 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
             s->scopes().back()->getAssociatedData());
         m_out_c->println("%s_t *__locals;", m_ctxt->nameMap()->getName(data->type()).c_str());
-        m_out_c->println("ret = (%s_t *)zsp_thread_alloc_frame(thread, sizeof(%s_t), &__FUNCTION__);",
+        m_out_c->println("ret = (%s_t *)zsp_thread_alloc_frame(thread, sizeof(%s_t), &%s);",
             m_ctxt->nameMap()->getName(data->type()).c_str(),
-            m_ctxt->nameMap()->getName(data->type()).c_str());
+            m_ctxt->nameMap()->getName(data->type()).c_str(),
+            m_fname.c_str());
         m_out_c->println("__locals = zsp_frame_locals(ret, %s_t);",
             m_ctxt->nameMap()->getName(data->type()).c_str());
         m_out_c->println("__locals->__exec_b = va_arg(*args, zsp_executor_t *);");

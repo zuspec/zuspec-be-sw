@@ -26,7 +26,6 @@ typedef enum {
 typedef struct zsp_frame_s {
     zsp_task_func       func;
     struct zsp_frame_s  *prev;
-    zsp_thread_flags_e  flags;
     int32_t             idx;
 } zsp_frame_t;
 

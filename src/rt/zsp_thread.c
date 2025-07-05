@@ -20,6 +20,7 @@ void zsp_thread_schedule(zsp_scheduler_t *sched, zsp_thread_t *thread) {
     sched->active++;
     fprintf(stdout, "[sched] Scheduling thread: %p (%d)\n", thread, sched->active);
     fflush(stdout);
+    thread->flags &= ~ZSP_THREAD_FLAGS_BLOCKED;
     thread->next = 0;
     if (sched->next) {
         sched->tail->next = thread;
@@ -55,6 +56,9 @@ void zsp_scheduler_init_threadv(
     if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Reschedule the thread
         zsp_thread_schedule(sched, thread);
+    } else {
+        thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
+        thread->next = 0;
     }
 }
 
@@ -99,18 +103,23 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
 
     if (thread) {
         sched->active--;
-        thread->sched = sched;
-        thread->leaf = thread->leaf->func(
-            thread,
-            thread->leaf->idx,
-            0);
+
+        // The scheduler is the last thing to see a thread before it ends.
+        // We may be handling an already-completed thread
+        if (thread->leaf) {
+            thread->sched = sched;
+            thread->leaf = thread->leaf->func(
+                thread,
+                thread->leaf->idx,
+                0);
+        }
 
         // TODO: Should only add back to the queue if not blocked.
         // Threads that yield are added back, such that they will 
         // be automatically resumed
         if (thread->leaf) {
             if ((thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
-                // Thread is suspended. Reinsert
+                // Thread was suspended. Reinsert
                 thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
 
                 // TODO: Mutex this
@@ -118,6 +127,7 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
             } else {
                 // Thread is blocked. Clear 'next' to ensure that we
                 // know it is not scheduled
+                thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
                 thread->next = 0;
             }
         } else {
@@ -173,8 +183,8 @@ zsp_thread_t *zsp_thread_init(
     ret = func(thread, 0, &args);
     va_end(args);
 
-    // Clean up automatically, so the thread doesn't need to do this
-    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
+//    // Clean up automatically, so the thread doesn't need to do this
+//    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
     thread->leaf = ret;
 
@@ -182,6 +192,9 @@ zsp_thread_t *zsp_thread_init(
         // Schedule the thread
         thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
         zsp_thread_schedule(sched, thread);
+    } else {
+        thread->next = 0;
+        thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
     }
 
     return thread;
@@ -294,7 +307,6 @@ zsp_frame_t *zsp_thread_alloc_frame(
 
     ret->func = func;
     ret->prev = thread->leaf;
-    ret->flags = 0;
     ret->idx = 0;
     thread->leaf = ret;
 
@@ -427,13 +439,13 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
     // Roll back the 'base' pointer to the previous frame
     thread->block->base = (uintptr_t)frame;
 
-    if (frame->prev && (frame->prev->flags & ZSP_THREAD_FLAGS_SUSPEND)) {
+    if (frame->prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
         zsp_frame_t *prev = frame->prev;
 
         thread->leaf = prev;
 
         // Unblock the frame before calling
-        prev->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+        thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
         thread->leaf = prev->func(thread, prev->idx, 0);
 
     } else {

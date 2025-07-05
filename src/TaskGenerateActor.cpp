@@ -141,6 +141,7 @@ void TaskGenerateActor::generate(
     m_out_c->println("%s__action_init);", action_name.c_str());
     m_out_c->dec_ind();
 
+    m_out_c->println("if (ret) break;");
     m_out_c->dec_ind();
     m_out_c->println("}");
     m_out_c->println("default: {");
@@ -150,6 +151,7 @@ void TaskGenerateActor::generate(
     m_out_c->println("}");
     m_out_c->dec_ind();
     m_out_c->println("}");
+    m_out_c->println("return ret;");
     m_out_c->dec_ind();
     m_out_c->println("}");
     m_out_c->println("");

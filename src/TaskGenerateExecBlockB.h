@@ -66,6 +66,7 @@ private:
     IOutput                             *m_out_c;
     bool                                m_expr_terminated;
     TypeProcStmtAsyncScope              *m_scope;
+    std::string                         m_fname;
 
 };
 

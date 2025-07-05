@@ -59,11 +59,6 @@ TypeProcStmtAsyncScopeGroup *TaskBuildAsyncScopeGroup::build(vsc::dm::IAccept *s
 
     DEBUG("%d local scopes are identified", m_locals_type_l.size());
 
-    // We require at least one type
-    if (!m_locals_type_l.size()) {
-        mk_type();
-    }
-
     if (m_locals_root) {
         build_scope_types(m_locals_root);
     }
@@ -244,6 +239,12 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     // Already know we need a type
     if (s->getNumVariables()) {
         locals->type = mk_type();
+    } else {
+        if (locals->upper) {
+            locals->type = locals->upper->type;
+        } else {
+            locals->type = mk_type();
+        }
     }
 
     if (!m_locals_root) {
@@ -291,7 +292,7 @@ vsc::dm::IDataTypeStruct *TaskBuildAsyncScopeGroup::mk_type() {
 }
 
 void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
-    DEBUG_ENTER("build_scope_types %s %d", l->type->name().c_str(), l->children.size());
+    DEBUG_ENTER("build_scope_types %s %d", (l->type)?l->type->name().c_str():"<null>", l->children.size());
     if (l->children.size()) {
         for (std::vector<Locals *>::iterator
             it=l->children.begin();

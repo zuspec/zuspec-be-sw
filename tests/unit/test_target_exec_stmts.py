@@ -20,9 +20,6 @@ component pss_top {
             doit();
             doit();
             doit();
-            doit();
-            doit();
-            doit();
         }
     }
 }
@@ -31,8 +28,9 @@ component pss_top {
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
 
     async def doit():
-        print("doit", flush=True)
+#        print("doit", flush=True)
         pass
 
-    actor = model.mk_actor()
+    # TODO: fix name mangling
+    actor = model.mk_actor("pss_top__Entry")
     asyncio.run(actor.run())

@@ -11,50 +11,53 @@ from .import_linker import ImportLinker
 from .scheduler import Scheduler
 from .thread import Thread, zsp_thread_exit_f
 from .model_types import Signature
+from .zsp_object_type_s import zsp_object_type_s
 
 @dc.dataclass
 class Actor(object):
     sched : Scheduler
-    model : 'Model'
+    comp_t : ctypes.c_void_p
+    action_t : ctypes.c_void_p
     api : ctypes.Structure
-    hndl : ctypes.c_void_p
+    hndl : ctypes.c_void_p = None
     thread : Thread = None
     _ev : asyncio.Event = dc.field(default_factory=asyncio.Event)
-    _dflt_func_m : Dict[str, Callable] = dc.field(default_factory=dict)
-    _task = None
 
     def __post_init__(self):
-        self._dflt_func_m.update({
-            "print": self._print,
-            "message": self._message,
-        })
         self.sched.add_actor(self)
 
-    def _print(self, msg):
-        sys.stdout.write(msg.decode())
-
-    def _message(self, level, msg):
-        sys.stdout.write(msg.decode())
-
-    def _do_work(self):
-        print("--> _do_work", flush=True)
-        # This is a placeholder for actual work that the actor might do
-        # In a real implementation, this would likely involve calling methods
-        # on the actor's API or performing some computation.
-        print("<-- _do_work", flush=True)
+    # def _do_work(self):
+    #     print("--> _do_work", flush=True)
+    #     # This is a placeholder for actual work that the actor might do
+    #     # In a real implementation, this would likely involve calling methods
+    #     # on the actor's API or performing some computation.
+    #     print("<-- _do_work", flush=True)
 
     async def run(self, args=None):
+        from .api import Api
+        comp_t = ctypes.cast(self.comp_t, ctypes.POINTER(zsp_object_type_s))
+        action_t = ctypes.cast(self.action_t, ctypes.POINTER(zsp_object_type_s))
         print("--> run.task", flush=True)
-#        loop = asyncio.get_event_loop()
 
-#        self.sched.init_loop(loop)
+        print("comp: %s action: %s" % (
+            comp_t.contents.name.decode(),
+            action_t.contents.name.decode()), flush=True)
+
+        api : Api = Api.inst()
+
+        thread_h = api._zsp_actor_create(
+            self.sched.hndl,
+            ctypes.byref(self.api),
+            self.comp_t,
+            self.action_t
+        )
 
         # TODO: Start actor (which initializes the thread)
-        actor_type_h : zsp_actor_type_t = Api.inst()._zsp_actor_type(self.hndl)
-        thread_h = actor_type_h.contents.run(
-            self.hndl, 
-            self.sched.hndl,
-            None)
+#        actor_type_h : zsp_actor_type_t = Api.inst()._zsp_actor_type(self.hndl)
+#        thread_h = actor_type_h.contents.run(
+#            self.hndl, 
+#            self.sched.hndl,
+#            None)
 
         self.thread = Thread(thread_h, self.sched)
 
@@ -84,31 +87,5 @@ class Actor(object):
         print("Default: %s")
         raise Exception("Unimplemented: %s"% name)
 
-    def init_api(self, linker : ImportLinker):
-        i = 0
-        for sig in self.model.signatures:
-            name = sig.name
-            print("name: %s, istask: %s" % (name, sig.istask), flush=True)
-
-            impl = None
-
-            # TODO: Search for an available implementation
-
-            if impl is None and name in self._dflt_func_m.keys():
-                if sig.istask:
-                    impl = TaskClosure(
-                        sig, 
-                        self._dflt_func_m[name], 
-                        self.sched)
-                else:
-                    impl = Closure(sig, self._dflt_func_m[name])
-            
-            if impl is None:
-                impl = linker.get_closure(sig)
-
-            if impl is None:
-                raise Exception("No implementation found for %s" % name)
-
-            setattr(self.api, name, sig.ftype(impl.func))
-        pass
+   
     pass

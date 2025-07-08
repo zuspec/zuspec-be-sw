@@ -12,8 +12,11 @@ struct zsp_executor_s;
 
 typedef void (*zsp_solve_exec_f)(struct zsp_executor_s *, struct zsp_struct_s *);
 
+typedef void (*zsp_struct_init_f)(struct zsp_struct_s *self, struct zsp_alloc_s *alloc);
+
 typedef struct zsp_struct_type_s {
     zsp_object_type_t   base;
+    zsp_struct_init_f   init;
 
     zsp_solve_exec_f    pre_solve;
     zsp_solve_exec_f    post_solve;
@@ -27,9 +30,9 @@ typedef struct zsp_struct_s {
 
 #define zsp_struct(obj) ((zsp_struct_t *)(obj))
 
-#define zsp_struct_call(method, actor, this_p) \
+#define zsp_struct_call(method, exec_b, this_p) \
     ((zsp_struct_type_t *)((zsp_object_t *)(this_p))->type)-> method ( \
-        (struct zsp_actor_s *)(actor), \
+        (struct zsp_exec_b *)(exec_b), \
         (struct zsp_struct_s *)(this_p));
 
 #define zsp_struct_pre_solve(actor, this_p) \

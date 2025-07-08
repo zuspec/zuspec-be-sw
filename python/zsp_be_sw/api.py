@@ -7,6 +7,7 @@ class Api(object):
     _inst : ClassVar = None
     _librt : ctypes.CDLL = None
     _zsp_alloc_malloc_create = None
+    _zsp_actor_create = None
     _zsp_scheduler_create = None
     _zsp_scheduler_run = None
     _zsp_actor_start = None
@@ -23,6 +24,10 @@ class Api(object):
 
         self._librt = ctypes.cdll.LoadLibrary(lib_rt())
         rt = self._librt
+
+        self._zsp_actor_create = rt.zsp_actor_create
+        self._zsp_actor_create.restype = ctypes.c_void_p
+        self._zsp_actor_create.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
 
         self._zsp_alloc_malloc_create = rt.zsp_alloc_malloc_create
         self._zsp_alloc_malloc_create.restype = ctypes.c_void_p

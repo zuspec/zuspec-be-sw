@@ -22,10 +22,11 @@ typedef enum {
 } zsp_activity_ctxt_flags_e;
 
 typedef struct zsp_activity_ctxt_funcs_s {
-    void *(*pre_traverse)(
-        struct zsp_activity_ctxt_s      *ctxt,
-        struct zsp_thread_s             *thread,
-        struct zsp_activity_traversal_s *traversal);
+    /**
+     * exec, 
+     */
+    zsp_task_func       pre_traverse;
+    zsp_task_func       join;
 } zsp_activity_ctxt_funcs_t;
 
 typedef struct zsp_activity_ctxt_s {

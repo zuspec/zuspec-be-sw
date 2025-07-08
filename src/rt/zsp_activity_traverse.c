@@ -4,6 +4,7 @@
 #include "zsp/be/sw/rt/zsp_activity_ctxt.h"
 #include "zsp/be/sw/rt/zsp_activity_traverse.h"
 #include "zsp/be/sw/rt/zsp_component.h"
+#include "zsp/be/sw/rt/zsp_object.h"
 #include "zsp/be/sw/rt/zsp_thread.h"
 
 struct zsp_frame_s *zsp_activity_traverse(
@@ -48,7 +49,8 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
             __locals->ctxt = ctxt;
             __locals->action_t = action_t;
 
-            ((zsp_object_type_t *)action_t)->init(0, zsp_object(__locals->action));
+            // TODO: Where is action 'init'?
+//            ((zsp_object_type_t *)action_t)->init(zsp_object(__locals->action));
 
             if (init) {
                 // Call the traversal's initialization 'hook' method

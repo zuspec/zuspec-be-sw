@@ -114,7 +114,7 @@ void TaskGenerateModel::generate(
         out_h.close();
     }
 
-    generate_interface(pss_top, actions_l);
+    generate_interface();
 
     generate_api();
 
@@ -147,26 +147,50 @@ void TaskGenerateModel::attach_custom_gen() {
     DEBUG_LEAVE("attach_custom_gen");
 }
 
-void TaskGenerateModel::generate_interface(
-        arl::dm::IDataTypeComponent             *pss_top,
-        const std::vector<vsc::dm::IAccept *>   &actors) {
-    // First, generate an actor for each...
-    for (std::vector<vsc::dm::IAccept *>::const_iterator
-        it=actors.begin();
-        it!=actors.end(); it++) {
-        if (dynamic_cast<arl::dm::IDataTypeAction *>(*it)) {
-            arl::dm::IDataTypeAction *action = dynamic_cast<arl::dm::IDataTypeAction *>(*it);
-            std::string name = action->name();
-            std::replace(name.begin(), name.end(), ':', '_');
-
-            std::ofstream out_cs(m_outdir + "/" + name + "_actor.c");
-            std::ofstream out_hs(m_outdir + "/" + name + "_actor.h");
-            IOutputUP out_c(new Output(&out_cs, false));
-            IOutputUP out_h(new Output(&out_hs, false));
-
-            TaskGenerateActor(m_ctxt, out_h.get(), out_c.get()).generate(pss_top, action);
+void TaskGenerateModel::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
+    if (m_kind == kind_e::ACTION or m_kind == kind_e::BOTH) {
+        const std::string &name = t->name();
+        if (name.find("executor_pkg::") == -1 && name.find("addr_reg_pkg::") == -1) {
+            switch (m_mode) {
+                case mode_e::COUNT: m_count++; break;
+                case mode_e::INCLUDE: m_out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(t).c_str()); break;
+                case mode_e::GETTYPE: m_out->println("*(at_p++) = (zsp_action_type_t *)%s__type();", m_ctxt->nameMap()->getName(t).c_str()); break;
+            }
         }
     }
+}
+
+void TaskGenerateModel::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
+    if (m_kind == kind_e::COMPONENT or m_kind == kind_e::BOTH) {
+        const std::string &name = t->name();
+        if (name.find("executor_pkg::") == -1 && name.find("addr_reg_pkg::") == -1) {
+            switch (m_mode) {
+                case mode_e::COUNT: m_count++; break;
+                case mode_e::INCLUDE: m_out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(t).c_str()); break;
+                case mode_e::GETTYPE: m_out->println("*(ct_p++) = (zsp_component_type_t *)%s__type();", m_ctxt->nameMap()->getName(t).c_str()); break;
+            }
+        }
+    }
+}
+
+void TaskGenerateModel::generate_interface() {
+    // // First, generate an actor for each...
+    // for (std::vector<vsc::dm::IAccept *>::const_iterator
+    //     it=actors.begin();
+    //     it!=actors.end(); it++) {
+    //     if (dynamic_cast<arl::dm::IDataTypeAction *>(*it)) {
+    //         arl::dm::IDataTypeAction *action = dynamic_cast<arl::dm::IDataTypeAction *>(*it);
+    //         std::string name = action->name();
+    //         std::replace(name.begin(), name.end(), ':', '_');
+
+    //         std::ofstream out_cs(m_outdir + "/" + name + "_actor.c");
+    //         std::ofstream out_hs(m_outdir + "/" + name + "_actor.h");
+    //         IOutputUP out_c(new Output(&out_cs, false));
+    //         IOutputUP out_h(new Output(&out_hs, false));
+
+    //         TaskGenerateActor(m_ctxt, out_h.get(), out_c.get()).generate(pss_top, action);
+    //     }
+    // }
 
     std::ofstream out_cs(m_outdir + "/model.c");
     std::ofstream out_hs(m_outdir + "/model.h");
@@ -178,13 +202,14 @@ void TaskGenerateModel::generate_interface(
     out_h->println("#ifndef INCLUDED_MODEL_H");
     out_h->println("#define INCLUDED_MODEL_H");
     out_h->println("#include \"zsp/be/sw/rt/zsp_actor.h\"");
+    out_h->println("#include \"zsp/be/sw/rt/zsp_model.h\"");
     out_h->println("#include \"model_api.h\"");
+
     out_h->println("#ifdef __cplusplus");
     out_h->println("extern \"C\" {");
     out_h->println("#endif");
     out_h->println("");
-    out_h->println("zsp_actor_type_t **model_get_actor_types();");
-    out_h->println("const char **model_get_import_types();");
+    out_h->println("zsp_model_t *pss_model();");
     out_h->println("");
     out_h->println("#ifdef __cplusplus");
     out_h->println("}");
@@ -193,39 +218,70 @@ void TaskGenerateModel::generate_interface(
     out_h->println("#endif /* INCLUDED_MODEL_H */");
 
     out_c->println("#include \"model.h\"");
-    for (std::vector<vsc::dm::IAccept *>::const_iterator
-        it=actors.begin();
-        it!=actors.end(); it++) {
-        if (dynamic_cast<arl::dm::IDataTypeAction *>(*it)) {
-            arl::dm::IDataTypeAction *action = dynamic_cast<arl::dm::IDataTypeAction *>(*it);
-            std::string name = action->name();
-            std::replace(name.begin(), name.end(), ':', '_');
-            out_c->println("#include \"%s_actor.h\"", name.c_str());
-        }
+    // Generate includes for each component and action
+    m_mode = mode_e::INCLUDE;
+    m_kind = kind_e::BOTH;
+    m_out = out_c.get();
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        (*it)->accept(m_this);
     }
 
+    m_mode = mode_e::COUNT;
+    m_kind = kind_e::ACTION;
+    m_count = 0;
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    int32_t n_action_t = m_count;
+
+    m_mode = mode_e::COUNT;
+    m_kind = kind_e::COMPONENT;
+    m_count = 0;
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    int32_t n_comp_t = m_count;
+
     out_c->println("");
-    out_c->println("zsp_actor_type_t **model_get_actor_types() {");
+    out_c->println("zsp_model_t *pss_model() {");
     out_c->inc_ind();
-    out_c->println("static zsp_actor_type_t *actors[%d];", actors.size()+1);
+    out_c->println("extern const char **model_get_import_types();");
+    out_c->println("static zsp_action_type_t *action_t[%d+1];", n_action_t);
+    out_c->println("static zsp_component_type_t *comp_t[%d+1];", n_comp_t);
+    out_c->println("static zsp_model_t model = {.action_types = action_t, .comp_types = comp_t};");
     out_c->println("static int initialized = 0;");
     out_c->println("if (!initialized) {");
     out_c->inc_ind();
-    out_c->println("int i=0;");
-    for (std::vector<vsc::dm::IAccept *>::const_iterator
-        it=actors.begin();
-        it!=actors.end(); it++) {
-        if (dynamic_cast<arl::dm::IDataTypeAction *>(*it)) {
-            arl::dm::IDataTypeAction *action = dynamic_cast<arl::dm::IDataTypeAction *>(*it);
-            std::string name = action->name();
-            std::replace(name.begin(), name.end(), ':', '_');
-            out_c->println("actors[i++] = (zsp_actor_type_t *)%s_actor__type(),", name.c_str());
-        }
+    out_c->println("zsp_action_type_t **at_p = action_t;");
+    out_c->println("zsp_component_type_t **ct_p = comp_t;");
+    out_c->println("initialized = 1;");
+
+    out_c->println("");
+    out_c->println("model.methods = model_get_import_types();");
+    out_c->println("");
+    out_c->println("action_t[%d] = 0;", n_action_t);
+    out_c->println("comp_t[%d] = 0;", n_comp_t);
+    out_c->println("");
+
+
+    m_mode = mode_e::GETTYPE;
+    m_kind = kind_e::BOTH;
+    m_out = out_c.get();
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        (*it)->accept(m_this);
     }
-    out_c->println("actors[i] = 0;");
+
     out_c->dec_ind();
     out_c->println("}");
-    out_c->println("return actors;");
+    out_c->println("return &model;");
     out_c->dec_ind();
     out_c->println("}");
 

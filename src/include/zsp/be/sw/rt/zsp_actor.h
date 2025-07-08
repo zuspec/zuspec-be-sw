@@ -24,19 +24,26 @@ typedef struct zsp_actor_s {
     comp_t ## _t        comp; \
     }
 
+zsp_thread_t *zsp_actor_create(
+    zsp_scheduler_t         *sched,
+    zsp_api_t               *api,
+    zsp_component_type_t    *comp_t,
+    zsp_action_type_t       *action_t);
+
 void zsp_actor_init(
-    zsp_actor_t             *actor,
+    zsp_thread_t            *thread,
+    zsp_scheduler_t         *sched,
     zsp_api_t               *api,
     zsp_component_type_t    *comp_t,
     zsp_action_type_t       *action_t);
 
 void zsp_actor_elab(zsp_actor_t *actor);
 
-// Starts a new thread for the actor
-struct zsp_thread_s *zsp_actor_start(
-    zsp_actor_t             *actor,
-    zsp_scheduler_t         *sched,
-    void                    *action_args);
+// // Starts a new thread for the actor
+// struct zsp_thread_s *zsp_actor_start(
+//     zsp_actor_t             *actor,
+//     zsp_scheduler_t         *sched,
+//     void                    *action_args);
 
 #ifdef __cplusplus
 }

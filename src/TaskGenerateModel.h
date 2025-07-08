@@ -20,6 +20,7 @@
  */
 #pragma once
 #include "dmgr/IDebugMgr.h"
+#include "zsp/arl/dm/impl/VisitorBase.h"
 #include "zsp/be/sw/IContext.h"
 
 namespace zsp {
@@ -28,7 +29,8 @@ namespace sw {
 
 
 
-class TaskGenerateModel {
+class TaskGenerateModel :
+    public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateModel(
         IContext                        *ctxt,
@@ -40,20 +42,38 @@ public:
         arl::dm::IDataTypeComponent *pss_top,
         const std::vector<arl::dm::IDataTypeAction *> &actions);
 
+    virtual void visitDataTypeAction(arl::dm::IDataTypeAction *t) override;
+
+    virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
+
 protected:
     void attach_custom_gen();
 
-    void generate_interface(
-        arl::dm::IDataTypeComponent             *pss_top,
-        const std::vector<vsc::dm::IAccept *>   &actors);
+    void generate_interface();
         
     void generate_api();
+
+    enum class mode_e {
+        COUNT,
+        INCLUDE,
+        GETTYPE
+    };
+    enum class kind_e {
+        ACTION,
+        COMPONENT,
+        BOTH
+    };
 
 private:
     static dmgr::IDebug             *m_dbg;
     IContext                        *m_ctxt;
     std::string                     m_outdir;
     std::string                     m_model_name;
+    mode_e                          m_mode;
+    kind_e                          m_kind;
+    int32_t                         m_count;
+    IOutput                         *m_out;
 
 };
 

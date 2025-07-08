@@ -2,6 +2,7 @@
 #define INCLUDED_ZSP_COMPONENT_H
 #include <stdint.h>
 #include "zsp/be/sw/rt/zsp_alloc.h"
+#include "zsp/be/sw/rt/zsp_map.h"
 #include "zsp/be/sw/rt/zsp_struct.h"
 #include "zsp/be/sw/rt/zsp_thread.h"
 
@@ -27,6 +28,9 @@ typedef struct zsp_component_type_s {
     zsp_solve_exec_f        do_init;
     zsp_task_func           do_run_start;
 
+    zsp_solve_exec_f        init_down;
+    zsp_solve_exec_f        init_up;
+
 } zsp_component_type_t;
 
 typedef struct zsp_component_s {
@@ -36,6 +40,8 @@ typedef struct zsp_component_s {
     struct zsp_component_s  *sibling;
     struct zsp_component_s  *children;
     const char              *name;
+    // component type -> listof<inst>
+    zsp_int_obj_map_t       comp_t_m;
     struct zsp_executor_s   *default_executor;
 } zsp_component_t;
 

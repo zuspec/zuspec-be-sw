@@ -123,8 +123,7 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
             s->scopes().back()->getAssociatedData());
         m_out_c->println("%s_t *__locals;", m_ctxt->nameMap()->getName(data->type()).c_str());
-        m_out_c->println("ret = (%s_t *)zsp_thread_alloc_frame(thread, sizeof(%s_t), &%s);",
-            m_ctxt->nameMap()->getName(data->type()).c_str(),
+        m_out_c->println("ret = zsp_thread_alloc_frame(thread, sizeof(%s_t), &%s);",
             m_ctxt->nameMap()->getName(data->type()).c_str(),
             m_fname.c_str());
         m_out_c->println("__locals = zsp_frame_locals(ret, %s_t);",

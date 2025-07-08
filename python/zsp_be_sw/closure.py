@@ -48,7 +48,6 @@ class TaskClosure(Closure):
 
     def func(self, thread, idx, args):
         api = Api.inst()
-        print("TaskClosure.func: thread=%s, idx=%s, args=%s" % (thread, idx, args), flush=True)
 
         # Save this so we can complete the task call later
         self.thread = thread

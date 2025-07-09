@@ -50,6 +50,10 @@ static struct zsp_frame_s *zsp_activity_traverse_type_task(
             __locals->action_t = action_t;
 
             // TODO: Where is action 'init'?
+            ((zsp_struct_type_t *)action_t)->init(
+                thread->sched->alloc,
+                (zsp_action_t *)__locals->action);
+
 //            ((zsp_object_type_t *)action_t)->init(zsp_object(__locals->action));
 
             if (init) {

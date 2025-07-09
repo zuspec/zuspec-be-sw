@@ -12,18 +12,18 @@ static void zsp_do_init(zsp_actor_t *actor, zsp_component_t *comp) {
 }
 
 
-static void zsp_actor_elab_comp(
-    zsp_actor_t         *actor, 
-    zsp_component_t     *comp) {
-    zsp_component_type_t *comp_t = zsp_component_type(comp);
+// static void zsp_actor_elab_comp(
+//     zsp_actor_t         *actor, 
+//     zsp_component_t     *comp) {
+//     zsp_component_type_t *comp_t = zsp_component_type(comp);
 
-    // First, evaluate init_down
-}
+//     // First, evaluate init_down
+// }
 
-void zsp_actor_elab(zsp_actor_t *actor) {
-    zsp_component_type(&actor->comp)->do_init(actor, (zsp_struct_t *)&actor->comp);
+// void zsp_actor_elab(zsp_actor_t *actor) {
+//     zsp_component_type(&actor->comp)->do_init(actor, (zsp_struct_t *)&actor->comp);
 
-}
+// }
 
 static struct zsp_frame_s *zsp_actor_trampoline(
     struct zsp_thread_s *thread,
@@ -55,7 +55,8 @@ static struct zsp_frame_s *zsp_actor_trampoline(
             __locals->api = api;
             __locals->comp_t = comp_t;
             __locals->action_t = action_t;
-            __locals->comp = (zsp_component_t *)(__locals + sizeof(struct __locals_s));
+            __locals->comp = (zsp_component_t *)(
+                ((uintptr_t)__locals) + sizeof(struct __locals_s));
 
             // Initialize the component
             init_ctxt.alloc = 0;
@@ -65,6 +66,7 @@ static struct zsp_frame_s *zsp_actor_trampoline(
             // Setup the default executor
 
             // Elaborate the component
+            __locals->default_exec.api = __locals->api;
             zsp_component_type(__locals->comp)->do_init(
                 &__locals->default_exec,
                 (zsp_struct_t *)__locals->comp);
@@ -77,6 +79,10 @@ static struct zsp_frame_s *zsp_actor_trampoline(
                 &__locals->ctxt,
                 action_t,
                 0);
+            
+            if (ret) {
+                break;
+            }
         }
 
         default: {

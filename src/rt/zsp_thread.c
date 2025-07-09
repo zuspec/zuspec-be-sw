@@ -438,7 +438,9 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
     }
 
     // Roll back the 'base' pointer to the previous frame
-    thread->block->base = (uintptr_t)frame;
+    if (thread->block) {
+        thread->block->base = (uintptr_t)frame;
+    }
 
     if (frame->prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
         zsp_frame_t *prev = frame->prev;

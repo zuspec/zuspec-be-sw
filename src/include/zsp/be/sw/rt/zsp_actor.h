@@ -37,7 +37,7 @@ void zsp_actor_init(
     zsp_component_type_t    *comp_t,
     zsp_action_type_t       *action_t);
 
-void zsp_actor_elab(zsp_actor_t *actor);
+//void zsp_actor_elab(zsp_actor_t *actor);
 
 // // Starts a new thread for the actor
 // struct zsp_thread_s *zsp_actor_start(

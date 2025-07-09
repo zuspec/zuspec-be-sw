@@ -85,7 +85,8 @@ void TaskGenerateCompType::generate_type_inst(vsc::dm::IDataTypeStruct *t) {
         m_out_c->println("((zsp_object_type_t *)&__type)->super = 0;");
     }
 
-    m_out_c->println("((zsp_object_type_t *)&__type)->name = \"%s\";",
+    m_out_c->println("((zsp_object_type_t *)&__type)->name = \"%s\";", t->name().c_str());
+    m_out_c->println("((zsp_object_type_t *)&__type)->size = sizeof(%s_t);",
         m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("((zsp_component_type_t *)&__type)->init = (zsp_component_init_f)&%s__init;",
         m_ctxt->nameMap()->getName(t).c_str());

@@ -14,12 +14,14 @@ component pss_top {
     action Entry {
         exec body {
             doit();
+            /*
             doit();
             doit();
             doit();
             doit();
             doit();
             doit();
+             */
         }
     }
 }
@@ -32,5 +34,5 @@ component pss_top {
         pass
 
     # TODO: fix name mangling
-    actor = model.mk_actor("pss_top__Entry")
+    actor = model.mk_actor("pss_top::Entry")
     asyncio.run(actor.run())

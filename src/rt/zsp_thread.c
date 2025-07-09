@@ -398,6 +398,10 @@ void zsp_thread_yield(zsp_thread_t *thread) {
     thread->flags |= ZSP_THREAD_FLAGS_SUSPEND;
 }
 
+void zsp_thread_block(zsp_thread_t *thread) {
+    thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
+}
+
 uintptr_t zsp_thread_getsp(zsp_thread_t *thread) {
     return thread->block->base;
 }

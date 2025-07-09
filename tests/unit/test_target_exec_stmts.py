@@ -14,13 +14,13 @@ component pss_top {
     action Entry {
         exec body {
             doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
+            doit();
             /*
-            doit();
-            doit();
-            doit();
-            doit();
-            doit();
-            doit();
              */
         }
     }
@@ -30,7 +30,7 @@ component pss_top {
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
 
     async def doit():
-#        print("doit", flush=True)
+        print("doit", flush=True)
         pass
 
     # TODO: fix name mangling

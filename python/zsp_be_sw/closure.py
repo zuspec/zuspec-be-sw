@@ -70,12 +70,18 @@ class TaskClosure(Closure):
 
         # Create a frame for the call
         ret = api._zsp_thread_alloc_frame(thread, 0, None)
+
+        # Preemptively block the thread in case the function 
+        # is effectively non-blocking
+        api._zsp_thread_block(thread)
+
         # Extract built-in arguments
         # - API
         # Use signature to extract user arguments
         # Use the event look to start the body
         loop = asyncio.get_event_loop()
         loop.create_task(self.body())
+
 
 #        self.api = api
 #        self.args = tuple(*args)

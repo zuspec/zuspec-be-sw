@@ -47,6 +47,10 @@ class Api(object):
         self._zsp_thread_alloc_frame.restype = ctypes.c_void_p
         self._zsp_thread_alloc_frame.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p]
 
+        self._zsp_thread_block = rt.zsp_thread_block
+        self._zsp_thread_block.restype = None
+        self._zsp_thread_block.argtypes = [ctypes.c_void_p]
+
         self._zsp_thread_return = rt.zsp_thread_return
         self._zsp_thread_return.restype = ctypes.c_void_p
         self._zsp_thread_return.argtypes = [ctypes.c_void_p, ctypes.c_uint64]

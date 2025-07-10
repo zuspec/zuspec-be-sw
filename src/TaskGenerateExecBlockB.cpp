@@ -98,6 +98,15 @@ void TaskGenerateExecBlockB::generate(
         // Multiple functions
         // Want a single top-level function that invokes the sub-functions
     } else { // zero -- stub out function
+        m_out_c->println("static zsp_frame_t *%s(zsp_thread_t *thread, int32_t idx, va_list *args) {", fname.c_str());
+        m_out_c->inc_ind();
+
+        m_out_c->println("zsp_frame_t *ret = zsp_thread_alloc_frame(thread, 16, 0);");
+        m_out_c->println("ret = zsp_thread_return(thread, 0);");
+        m_out_c->println("return ret;");
+
+        m_out_c->dec_ind();
+        m_out_c->println("}");
 
     }
     
@@ -182,6 +191,37 @@ void TaskGenerateExecBlockB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s
         m_out_c->write(";\n");
     }
     DEBUG_LEAVE("visitTypeProcStmtExpr");
+}
+
+void TaskGenerateExecBlockB::visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) {
+    DEBUG_ENTER("visitTypeProcStmtIfElse");
+    for (std::vector<arl::dm::ITypeProcStmtIfClauseUP>::const_iterator
+        it=s->getIfClauses().begin();
+        it!=s->getIfClauses().end(); it++) {
+        m_out_c->indent();
+        if (it == s->getIfClauses().begin()) {
+            m_out_c->write("if (");
+        } else {
+            m_out_c->write("} else if (");
+        }
+        TaskGenerateExprNB(m_ctxt, m_refgen, m_out_c).generate((*it)->getCond());
+        m_out_c->write(") {\n");
+    }
+
+    if (s->getElseClause()) {
+        m_out_c->println("} else {");
+    } else {
+        m_out_c->println("}");
+    }
+    DEBUG_LEAVE("visitTypeProcStmtIfElse");
+}
+
+void TaskGenerateExecBlockB::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) {
+    DEBUG_ENTER("visitTypeProcStmtRepeat");
+    m_refgen->pushScope(s);
+
+    m_refgen->popScope();
+    DEBUG_LEAVE("visitTypeProcStmtRepeat");
 }
 
 void TaskGenerateExecBlockB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {

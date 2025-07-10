@@ -54,6 +54,10 @@ public:
 
     virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
 
+    virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
+
+    virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
+
     virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
@@ -66,6 +70,7 @@ private:
     IOutput                             *m_out_c;
     bool                                m_expr_terminated;
     TypeProcStmtAsyncScope              *m_scope;
+    vsc::dm::IDataTypeStruct            *m_locals_t;
     std::string                         m_fname;
 
 };

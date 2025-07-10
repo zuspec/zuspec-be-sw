@@ -54,6 +54,8 @@ public:
 
     virtual void visitTypeExecProc(arl::dm::ITypeExecProc *e) override;
 
+    virtual void visitTypeProcStmt(arl::dm::ITypeProcStmt *s) override;
+
 	virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
 
 	virtual void visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcStmtRepeatWhile *s) override;
@@ -114,9 +116,11 @@ private:
     vsc::dm::ITypeExprUP                        m_expr;
     std::vector<TypeProcStmtAsyncScopeUP>       m_scopes;
     std::vector<vsc::dm::ITypeVarScope *>       m_scope_s;
+    bool                                        m_scope_changed;
     Locals                                      *m_locals_root;
     std::vector<Locals *>                       m_locals_s;
     std::vector<vsc::dm::IDataTypeStructUP>     m_locals_type_l;
+    std::vector<arl::dm::ITypeProcStmtScopeUP>  m_vscopes;
 
 };
 

@@ -26,11 +26,16 @@ namespace be {
 namespace sw {
 
 
-TypeProcStmtGotoAsyncScope::TypeProcStmtGotoAsyncScope() {
+TypeProcStmtGotoAsyncScope::TypeProcStmtGotoAsyncScope(TypeProcStmtAsyncScope *t) :
+    m_target(t) {
 
 }
 
 TypeProcStmtGotoAsyncScope::~TypeProcStmtGotoAsyncScope() {
+
+}
+
+void TypeProcStmtGotoAsyncScope::accept(vsc::dm::IVisitor *v) {
 
 }
 

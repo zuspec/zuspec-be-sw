@@ -19,18 +19,26 @@
  *     Author: 
  */
 #pragma once
+#include "zsp/arl/dm/ITypeProcStmt.h"
 
 namespace zsp {
 namespace be {
 namespace sw {
 
+class TypeProcStmtAsyncScope;
 
-
-class TypeProcStmtGotoAsyncScope {
+class TypeProcStmtGotoAsyncScope : 
+    public virtual arl::dm::ITypeProcStmt {
 public:
-    TypeProcStmtGotoAsyncScope();
+    TypeProcStmtGotoAsyncScope(TypeProcStmtAsyncScope *t);
 
     virtual ~TypeProcStmtGotoAsyncScope();
+
+    virtual void accept(vsc::dm::IVisitor *v) override;
+
+private:
+    TypeProcStmtAsyncScope          *m_target;
+
 
 };
 

@@ -41,6 +41,8 @@ public:
 
     int32_t id() const { return m_id; }
 
+    void setId(int32_t i) { m_id = i; }
+
     void pushScope(vsc::dm::ITypeVarScope *scope);
 
     const std::vector<vsc::dm::ITypeVarScope *> &scopes() const { return m_scopes; }

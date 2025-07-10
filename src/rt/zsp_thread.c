@@ -446,18 +446,16 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
         thread->block->base = (uintptr_t)frame;
     }
 
-    if (frame->prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+    // Note: frame is null if we've finished unwiding the stack
+    if (frame) {
         zsp_frame_t *prev = frame->prev;
 
         thread->leaf = prev;
-
-        // Unblock the frame before calling
-        thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-        thread->leaf = prev->func(thread, prev->idx, 0);
-
-    } else {
-        // Unwind either way
-        thread->leaf = frame->prev;
+        if (frame->prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+            // Unblock the frame before calling
+            thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+            thread->leaf = prev->func(thread, prev->idx, 0);
+        }
     }
 
     return thread->leaf;

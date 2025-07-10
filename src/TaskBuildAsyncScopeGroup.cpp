@@ -22,6 +22,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskBuildAsyncScopeGroup.h"
 #include "ScopeLocalsAssociatedData.h"
+#include "TypeProcStmtGotoAsyncScope.h"
 
 
 namespace zsp {
@@ -30,7 +31,7 @@ namespace sw {
 
 
 TaskBuildAsyncScopeGroup::TaskBuildAsyncScopeGroup(IContext *ctxt) : 
-    m_ctxt(ctxt), m_locals_root(0) {
+    m_ctxt(ctxt), m_locals_root(0), m_scope_changed(false) {
     DEBUG_INIT("zsp.be.sw.TaskBuildAsyncScopeGroup", ctxt->getDebugMgr());
 }
 
@@ -188,11 +189,64 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprM
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeExecProc(arl::dm::ITypeExecProc *e) {
-    VisitorBase::visitTypeExecProc(e);
+    e->getBody()->accept(m_this);
+}
+
+void TaskBuildAsyncScopeGroup::visitTypeProcStmt(arl::dm::ITypeProcStmt *s) {
+    DEBUG_ENTER("visitTypeProcStmt");
+    DEBUG_LEAVE("visitTypeProcStmt");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) { 
+    DEBUG_ENTER("vistTypeProcStmtRepeat");
 
+    // Create a new scope to hold iteration variables
+
+    // Establish a scope to hold the key statements
+//    arl::dm::ITypeProcStmtScope *scope = m_ctxt->ctxt()->mkTypeProcStmtScope();
+//    m_vscopes.push_back(arl::dm::ITypeProcStmtScopeUP(scope));
+
+    // Entering the scope that declares and initializes the iteration variable
+    // New-scope ensures that the variable declaration is applied
+    enter_scope(s);
+
+    // TODO: Add an initialization statement
+
+    // Establish a new async scope that serves as the head of the loop
+    TypeProcStmtAsyncScope *head = newScope();
+
+    // Create an end-of-loop scope
+    TypeProcStmtAsyncScope *tail = new TypeProcStmtAsyncScope(-1);
+
+    // TODO: Add a conditional jump to tail scope
+    arl::dm::ITypeProcStmtIfClause *i_c = m_ctxt->ctxt()->mkTypeProcStmtIfClause(
+        m_ctxt->ctxt()->mkTypeExprBin(
+            m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, 0),
+            vsc::dm::BinOp::Eq,
+            m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, 0)
+        ),
+        new TypeProcStmtGotoAsyncScope(tail)
+    );
+    std::vector<arl::dm::ITypeProcStmtIfClause *> if_clauses;
+    if_clauses.push_back(i_c);
+    arl::dm::ITypeProcStmtIfElse *if_then = m_ctxt->ctxt()->mkTypeProcStmtIfElse(
+        if_clauses,
+        0
+    );
+    head->addStatement(if_then, true);
+
+    // Process the body -- potentially adding new async scopes
+    s->getBody()->accept(m_this);
+
+    // Finish up by inserting the tail node
+    // It will go just before the terminal node
+    tail->setId(m_scopes.size()-1);
+    m_scopes.insert(m_scopes.end()-1, TypeProcStmtAsyncScopeUP(tail));
+
+    leave_scope();
+
+
+    DEBUG_LEAVE("vistTypeProcStmtRepeat");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcStmtRepeatWhile *s) { 
@@ -200,9 +254,15 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeatWhile(arl::dm::ITypeProcSt
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtScope");
     enter_scope(s);
-    VisitorBase::visitTypeProcStmtScope(s);
+	for (std::vector<arl::dm::ITypeProcStmtUP>::const_iterator
+		it=s->getStatements().begin();
+		it!=s->getStatements().end(); it++) {
+		(*it)->accept(m_this);
+	}
     leave_scope();
+    DEBUG_LEAVE("visitTypeProcStmtScope");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtWhile(arl::dm::ITypeProcStmtWhile *s) { 
@@ -230,6 +290,7 @@ TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
 void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back():0);
     m_scope_s.push_back(s);
+    m_scope_changed = true;
 
     if (m_scopes.front()->scopes().size() == 0) {
         m_scopes.front()->pushScope(s);
@@ -279,6 +340,7 @@ void TaskBuildAsyncScopeGroup::leave_scope() {
 
     m_locals_s.pop_back();
     m_scope_s.pop_back();
+    m_scope_changed = true;
 }
 
 vsc::dm::IDataTypeStruct *TaskBuildAsyncScopeGroup::mk_type() {

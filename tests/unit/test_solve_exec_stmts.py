@@ -256,7 +256,7 @@ component pss_top {
     generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
 
-    actor = model.mk_actor()
+    actor = model.mk_actor("pss_top::Entry")
     asyncio.run(actor.run())
 
 

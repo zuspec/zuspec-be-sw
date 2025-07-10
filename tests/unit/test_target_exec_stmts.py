@@ -36,3 +36,29 @@ component pss_top {
     # TODO: fix name mangling
     actor = model.mk_actor("pss_top::Entry")
     asyncio.run(actor.run())
+
+def test_repeat_1(tmpdir):
+    pss_top = """
+import target function void doit();
+
+component pss_top {
+    action Entry {
+        exec body {
+            repeat (i : 6) {
+                int x;
+                doit();
+                // 
+            }
+        }
+    }
+}
+"""
+    generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
+    model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
+
+    async def doit():
+        print("doit", flush=True)
+        pass
+
+    actor = model.mk_actor("pss_top::Entry")
+    asyncio.run(actor.run())

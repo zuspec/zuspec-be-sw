@@ -274,6 +274,13 @@ void TaskGenerateExecBlockB::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepea
     DEBUG_LEAVE("visitTypeProcStmtRepeat");
 }
 
+void TaskGenerateExecBlockB::visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtScope");
+    enter_stmt(s);
+    VisitorBase::visitTypeProcStmtScope(s);
+    DEBUG_LEAVE("visitTypeProcStmtScope");
+}
+
 void TaskGenerateExecBlockB::visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) {
     DEBUG_ENTER("visitTypeExprMethodCallContext");
 
@@ -339,9 +346,9 @@ void TaskGenerateExecBlockB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMet
 }
 
 void TaskGenerateExecBlockB::enter_stmt(arl::dm::ITypeProcStmt *s) {
-    DEBUG_ENTER("enter_stmt");
     ScopeLocalsAssociatedData *data = 
         dynamic_cast<ScopeLocalsAssociatedData *>(s->getAssociatedData());
+    DEBUG_ENTER("enter_stmt (%p %d)", data, data?data->scopes().size():-1);
     
     if (data) {
         if (data->scopes().size() > m_scope_s.size()) {
@@ -354,6 +361,8 @@ void TaskGenerateExecBlockB::enter_stmt(arl::dm::ITypeProcStmt *s) {
                 m_out_c->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);",
                     data->type()->name().c_str(),
                     data->type()->name().c_str());
+                
+                // TODO: initialize fields
             }
         } else if (data->scopes().size() < m_scope_s.size()) {
             DEBUG("POP: ");

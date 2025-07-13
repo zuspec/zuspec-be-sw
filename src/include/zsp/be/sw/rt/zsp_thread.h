@@ -1,6 +1,7 @@
 #ifndef INCLUDED_ZSP_THREAD_H
 #define INCLUDED_ZSP_THREAD_H
 
+#include <setjmp.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include "zsp_alloc.h"
@@ -101,6 +102,7 @@ typedef struct zsp_scheduler_s {
     zsp_thread_t       *next;
     zsp_thread_t       *tail;
     int32_t            active;
+    jmp_buf            *env_p;
 } zsp_scheduler_t;
 
 #define zsp_thread_clear_flags_transient(thread) \

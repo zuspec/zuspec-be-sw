@@ -205,7 +205,9 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprM
 
     if (blocking) {
         // Initiate the call
-        currentScope()->addStatement(m_ctxt->ctxt()->mkTypeProcStmtExpr(e, false));
+        arl::dm::ITypeProcStmt *stmt = m_ctxt->ctxt()->mkTypeProcStmtExpr(e, false);
+        visit_stmt(stmt);
+        currentScope()->addStatement(stmt);
 
         TypeProcStmtAsyncScope *next = newScope();
         // Must signal that the statement above has been broken up
@@ -235,7 +237,15 @@ void TaskBuildAsyncScopeGroup::visitTypeExecProc(arl::dm::ITypeExecProc *e) {
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmt(arl::dm::ITypeProcStmt *s) {
     DEBUG_ENTER("visitTypeProcStmt");
+    visit_stmt(s);
     DEBUG_LEAVE("visitTypeProcStmt");
+}
+
+void TaskBuildAsyncScopeGroup::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
+    DEBUG_ENTER("visitTypeProcStmtExpr");
+    visit_stmt(s);
+    s->getExpr()->accept(m_this);
+    DEBUG_LEAVE("visitTypeProcStmtExpr");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) { 
@@ -274,7 +284,7 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRep
 //        m_ctxt->ctxt()->mkTypeExprUnary(
             m_ctxt->ctxt()->mkTypeExprBin(
                 m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, 0),
-                vsc::dm::BinOp::Eq,
+                vsc::dm::BinOp::Ge,
                 m_ctxt->ctxt()->mkTypeExprRef(s->getExpr(), false)
             ),
 //            true,
@@ -360,6 +370,7 @@ TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
 }
 
 void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
+    DEBUG_ENTER("enter_scope");
     Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back():0);
     m_scope_s.push_back(s);
 
@@ -368,7 +379,8 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     }
 
     // Already know we need a type
-    if (s->getNumVariables() && m_locals_type_l.size()) {
+    if (s->getNumVariables() || !m_locals_type_l.size()) {
+        DEBUG("new locals scope: numVariables=%d", s->getNumVariables());
         locals->type = mk_type();
     } else {
         if (locals->upper) {
@@ -381,6 +393,7 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     s->setAssociatedData(new ScopeLocalsAssociatedData(
         locals->type, m_scope_s));
     m_locals_s.push_back(locals);
+    DEBUG_LEAVE("enter_scope");
 }
 
 void TaskBuildAsyncScopeGroup::visit_stmt(arl::dm::ITypeProcStmt *s) {
@@ -444,15 +457,17 @@ void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
         }
     }
 
+    DEBUG("build_scope_types: back to %s %d", (l->type)?l->type->name().c_str():"<null>", l->children.size());
+
     // Now worry about this type
     std::set<std::string> local_names;
     int32_t shadow_id=0;
+
     // for (std::vector<vsc::dm::ITypeVarUP>::const_iterator
     //     it=l->scope->getVariables().begin();
-    //     it!=l->scope->getVariables().end(); it++) {
+    //      it!=l->scope->getVariables().end(); it++) {
     //     local_names.insert((*it)->name());
     // }
-
     add_fields(l->type, l, local_names, shadow_id);
     DEBUG_LEAVE("build_scope_types");
 }
@@ -483,7 +498,6 @@ void TaskBuildAsyncScopeGroup::add_fields(
         std::set<std::string>       &names,
         int32_t                     &shadow_id) {
     DEBUG_ENTER("add_fields %s", type->name().c_str());
-    // Add fields depth-first
 
     // Create the fields that we will add, observing
     // shadowing rules
@@ -494,11 +508,13 @@ void TaskBuildAsyncScopeGroup::add_fields(
         std::string name = (*it)->name();
         DEBUG("name: %s", name.c_str());
         if (names.find(name) != names.end()) {
+            DEBUG("-- already shadowed");
             char tmp[64];
             // Create a shadow name
             snprintf(tmp, sizeof(tmp), "__shadow_%d", shadow_id++);
             name = tmp;
         } else {
+            DEBUG("-- new name");
             names.insert(name);
         }
         fields.push_back(m_ctxt->ctxt()->mkTypeFieldPhy(
@@ -509,6 +525,7 @@ void TaskBuildAsyncScopeGroup::add_fields(
             0));
     }
 
+    // Add fields depth-first
     if (l->upper) {
         add_fields(type, l->upper, names, shadow_id);
     }

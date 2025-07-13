@@ -63,6 +63,8 @@ public:
 
     virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
 
+    virtual void visitTypeProcStmtScope(arl::dm::ITypeProcStmtScope *s) override;
+
     virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;

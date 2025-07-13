@@ -28,7 +28,7 @@ class ImportLinkerScope(ImportLinker):
             self._locals = scope.f_locals
             self._globals = scope.f_globals
 
-    def get_closure(self, sig : Signature, ):
+    def get_closure(self, sig : Signature):
         """
         Get a closure for the specified method. If the method is not found
         in the current scope, it will be searched in the global scope.
@@ -49,6 +49,15 @@ class ImportLinkerScope(ImportLinker):
 
         if method is not None:
             code = method.__code__
+            nargs = code.co_argcount
+
+            if nargs and code.co_varnames[0] == "self":
+                nargs -= 1
+
+            print("ptypes: %d (%s) nargs: %d" % (len(sig.ptypes), str(sig.ptypes), nargs), flush=True)
+            if (len(sig.ptypes)-1) != nargs:
+                raise Exception("Expecting %s to accept %d parameters, but accepts %d instead" % (
+                    sig.name, len(sig.ptypes)-1, nargs))
             if sig.istask:
                 if not ins.iscoroutinefunction(method):
                     raise Exception("Require async") 

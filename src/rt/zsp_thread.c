@@ -93,6 +93,7 @@ void zsp_scheduler_init_threadv(
 
 int zsp_scheduler_run(zsp_scheduler_t *sched) {
     // TODO: Mutex this
+    jmp_buf env;
     zsp_thread_t *thread = sched->next;
     if (sched->next) {
         sched->next = sched->next->next;
@@ -108,10 +109,15 @@ int zsp_scheduler_run(zsp_scheduler_t *sched) {
         // We may be handling an already-completed thread
         if (thread->leaf) {
             thread->sched = sched;
-            thread->leaf = thread->leaf->func(
-                thread,
-                thread->leaf->idx,
-                0);
+            if (setjmp(env)) {
+                // TODO: Exception
+            } else {
+                sched->env_p = &env;
+                thread->leaf = thread->leaf->func(
+                    thread,
+                    thread->leaf->idx,
+                    0);
+            }
         }
 
         // TODO: Should only add back to the queue if not blocked.

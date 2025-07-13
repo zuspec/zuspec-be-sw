@@ -31,7 +31,7 @@ using TypeProcStmtAsyncScopeGroupUP=vsc::dm::UP<TypeProcStmtAsyncScopeGroup>;
 class TypeProcStmtAsyncScopeGroup :
     public virtual arl::dm::ITypeProcStmtScope {
 public:
-    TypeProcStmtAsyncScopeGroup();
+    TypeProcStmtAsyncScopeGroup(vsc::dm::IDataTypeStruct *largest_locals);
 
     virtual ~TypeProcStmtAsyncScopeGroup();
 
@@ -41,6 +41,10 @@ public:
 
     const std::vector<vsc::dm::IDataTypeStructUP> &localsTypes() const {
         return m_locals_types;
+    }
+
+    vsc::dm::IDataTypeStruct *largest_locals() const {
+        return m_largest_locals;
     }
 
     virtual void addStatement(ITypeProcStmt *stmt, bool owned=true) override;
@@ -65,8 +69,8 @@ public:
 
     virtual vsc::dm::IDataTypeStruct *getLocalsT() const override { return 0; }
 
-    virtual void setAssociatedData(vsc::dm::IAssociatedData *data) override {
-        m_assoc_data = vsc::dm::IAssociatedDataUP(data);
+    virtual void setAssociatedData(vsc::dm::IAssociatedData *data, bool owned=true) override {
+        m_assoc_data = vsc::dm::IAssociatedDataUP(data, owned);
     }
 
     virtual vsc::dm::IAssociatedData *getAssociatedData() const override {
@@ -78,6 +82,7 @@ public:
 private:
     std::vector<arl::dm::ITypeProcStmtUP>   m_statements;
     std::vector<vsc::dm::IDataTypeStructUP> m_locals_types;
+    vsc::dm::IDataTypeStruct                *m_largest_locals;
     vsc::dm::IAssociatedDataUP              m_assoc_data;
 
 };

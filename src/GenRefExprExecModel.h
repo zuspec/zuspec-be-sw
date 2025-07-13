@@ -55,7 +55,7 @@ public:
 
     virtual ResT isRefCountedField(vsc::dm::IAccept *ref) override;
     
-    virtual void pushScope(arl::dm::ITypeProcStmtDeclScope *s) override {
+    virtual void pushScope(vsc::dm::ITypeVarScope *s) override {
         m_scope_s.push_back(s);
     }
 
@@ -105,7 +105,7 @@ private:
     bool                                            m_isFieldRef;
     bool                                            m_isRefFieldRef;
     bool                                            m_isRefCountedField;
-    std::vector<arl::dm::ITypeProcStmtDeclScope *>  m_scope_s;
+    std::vector<vsc::dm::ITypeVarScope *>           m_scope_s;
 
 };
 

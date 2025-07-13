@@ -34,10 +34,23 @@ public:
 
     virtual ~TypeProcStmtGotoAsyncScope();
 
+    virtual TypeProcStmtAsyncScope *target() const {
+        return m_target;
+    }
+
+    virtual void setAssociatedData(vsc::dm::IAssociatedData *data, bool owned=true) override {
+        m_assoc_data = vsc::dm::IAssociatedDataUP(data, owned);
+    }
+
+    virtual vsc::dm::IAssociatedData *getAssociatedData() const override {
+        return m_assoc_data.get();
+    }
+
     virtual void accept(vsc::dm::IVisitor *v) override;
 
 private:
     TypeProcStmtAsyncScope          *m_target;
+    vsc::dm::IAssociatedDataUP      m_assoc_data;
 
 
 };

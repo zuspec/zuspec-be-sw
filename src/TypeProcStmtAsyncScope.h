@@ -33,19 +33,11 @@ class TypeProcStmtAsyncScope :
 public:
     TypeProcStmtAsyncScope(int32_t id);
 
-    TypeProcStmtAsyncScope(
-        int32_t                                     id,
-        const std::vector<vsc::dm::ITypeVarScope *> &scope);
-
     virtual ~TypeProcStmtAsyncScope();
 
     int32_t id() const { return m_id; }
 
     void setId(int32_t i) { m_id = i; }
-
-    void pushScope(vsc::dm::ITypeVarScope *scope);
-
-    const std::vector<vsc::dm::ITypeVarScope *> &scopes() const { return m_scopes; }
 
     virtual void addStatement(ITypeProcStmt *stmt, bool owned=true) override;
 
@@ -69,8 +61,8 @@ public:
 
     virtual vsc::dm::IDataTypeStruct *getLocalsT() const override { return 0; }
 
-    virtual void setAssociatedData(vsc::dm::IAssociatedData *data) override {
-        m_assoc_data = vsc::dm::IAssociatedDataUP(data);
+    virtual void setAssociatedData(vsc::dm::IAssociatedData *data, bool owned=true) override {
+        m_assoc_data = vsc::dm::IAssociatedDataUP(data, owned);
     }
 
     virtual vsc::dm::IAssociatedData *getAssociatedData() const override {
@@ -82,7 +74,6 @@ public:
 private:
     int32_t                                 m_id;
     std::vector<arl::dm::ITypeProcStmtUP>   m_statements;
-    std::vector<vsc::dm::ITypeVarScope *>   m_scopes;
     vsc::dm::IAssociatedDataUP              m_assoc_data;
 
 };

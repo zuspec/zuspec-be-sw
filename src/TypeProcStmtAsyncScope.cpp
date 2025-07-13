@@ -32,19 +32,8 @@ TypeProcStmtAsyncScope::TypeProcStmtAsyncScope(int32_t id) : m_id(id) {
 
 }
 
-TypeProcStmtAsyncScope::TypeProcStmtAsyncScope(
-    int32_t                                     id,
-    const std::vector<vsc::dm::ITypeVarScope *> &scopes) : 
-    m_id(id), m_scopes(scopes.begin(), scopes.end()) {
-
-}
-
 TypeProcStmtAsyncScope::~TypeProcStmtAsyncScope() {
 
-}
-
-void TypeProcStmtAsyncScope::pushScope(vsc::dm::ITypeVarScope *scope) {
-    m_scopes.push_back(scope);
 }
 
 void TypeProcStmtAsyncScope::addStatement(ITypeProcStmt *stmt, bool owned) {

@@ -18,6 +18,7 @@
  * Created on:
  *     Author:
  */
+#include "IVisitor.h"
 #include "TypeProcStmtGotoAsyncScope.h"
 
 
@@ -36,7 +37,9 @@ TypeProcStmtGotoAsyncScope::~TypeProcStmtGotoAsyncScope() {
 }
 
 void TypeProcStmtGotoAsyncScope::accept(vsc::dm::IVisitor *v) {
-
+    if (dynamic_cast<be::sw::IVisitor *>(v)) {
+        dynamic_cast<be::sw::IVisitor *>(v)->visitTypeProcStmtGotoAsyncScope(this);
+    }
 }
 
 }

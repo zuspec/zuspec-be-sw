@@ -28,7 +28,8 @@ namespace be {
 namespace sw {
 
 
-TypeProcStmtAsyncScopeGroup::TypeProcStmtAsyncScopeGroup() {
+TypeProcStmtAsyncScopeGroup::TypeProcStmtAsyncScopeGroup(
+    vsc::dm::IDataTypeStruct *largest_locals) : m_largest_locals(largest_locals) {
 
 }
 

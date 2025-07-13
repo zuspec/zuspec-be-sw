@@ -87,6 +87,10 @@ private:
     };
 
 private:
+    using AssocDataAccL=std::vector<vsc::dm::IAssociatedDataAcc *>;
+    using ScopeSpec=std::vector<vsc::dm::ITypeVarScope *>;
+
+private:
 
     TypeProcStmtAsyncScope *currentScope() {
         return m_scopes.at(m_scopes.size()-2).get();
@@ -95,6 +99,8 @@ private:
     TypeProcStmtAsyncScope *newScope();
 
     void enter_scope(vsc::dm::ITypeVarScope *scope);
+
+    void visit_stmt(arl::dm::ITypeProcStmt *s);
 
     void leave_scope();
 
@@ -116,10 +122,10 @@ private:
     vsc::dm::ITypeExprUP                        m_expr;
     std::vector<TypeProcStmtAsyncScopeUP>       m_scopes;
     std::vector<vsc::dm::ITypeVarScope *>       m_scope_s;
-    bool                                        m_scope_changed;
     Locals                                      *m_locals_root;
     std::vector<Locals *>                       m_locals_s;
     std::vector<vsc::dm::IDataTypeStructUP>     m_locals_type_l;
+    std::vector<ScopeSpec>                      m_locals_scope_l;
     std::vector<arl::dm::ITypeProcStmtScopeUP>  m_vscopes;
 
 };

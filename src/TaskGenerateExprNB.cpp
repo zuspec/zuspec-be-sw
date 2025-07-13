@@ -193,8 +193,16 @@ void TaskGenerateExprNB::visitTypeExprSubField(vsc::dm::ITypeExprSubField *e) {
     DEBUG_LEAVE("visitTypeExprSubField");
 }
 
-void TaskGenerateExprNB::visitTypeExprUnary(vsc::dm::ITypeExprUnary *e) { 
-
+void TaskGenerateExprNB::visitTypeExprUnary(vsc::dm::ITypeExprUnary *e) {
+    DEBUG_ENTER("visitTypeExprUnary");
+    switch (e->op()) {
+        case vsc::dm::UnaryOp::Not: m_out->write("!"); break;
+        default: DEBUG_ERROR("Unhandled unary op %d", (int)e->op());
+    }
+    m_out->write("(");
+    e->target()->accept(m_this);
+    m_out->write(")");
+    DEBUG_LEAVE("visitTypeExprUnary");
 }
 
 void TaskGenerateExprNB::visitTypeExprVal(vsc::dm::ITypeExprVal *e) {

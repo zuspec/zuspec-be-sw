@@ -32,6 +32,7 @@ namespace zsp {
 namespace be {
 namespace sw {
 
+class ScopeLocalsAssociatedData;
 class TaskGenerateExecModel;
 
 class TaskGenerateExecBlockB :
@@ -50,9 +51,13 @@ public:
         const std::string                           &tname,
         const std::vector<arl::dm::ITypeExecUP>     &execs);
 
+    virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
+
     virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) override;
 
     virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
+
+    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *s) override;
 
     virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
 
@@ -62,6 +67,9 @@ public:
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
 
+protected:
+    virtual void enter_stmt(arl::dm::ITypeProcStmt *s);
+
 private:
     static dmgr::IDebug                 *m_dbg;
     IContext                            *m_ctxt;
@@ -69,7 +77,10 @@ private:
     IOutput                             *m_out_h;
     IOutput                             *m_out_c;
     bool                                m_expr_terminated;
-    TypeProcStmtAsyncScope              *m_scope;
+    ScopeLocalsAssociatedData           *m_scope;
+    vsc::dm::IDataTypeStruct            *m_largest_locals;
+    std::vector<vsc::dm::ITypeVarScope *>   m_scope_s;
+    int32_t                             m_next_scope_id;
     vsc::dm::IDataTypeStruct            *m_locals_t;
     std::string                         m_fname;
 

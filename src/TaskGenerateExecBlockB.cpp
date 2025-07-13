@@ -31,6 +31,7 @@
 #include "TaskGenerateLocals.h"
 #include "TaskCheckIsExecBlocking.h"
 #include "TaskBuildAsyncScopeGroup.h"
+#include "TypeProcStmtGotoAsyncScope.h"
 
 
 namespace zsp {
@@ -65,6 +66,7 @@ void TaskGenerateExecBlockB::generate(
     if (execs.size() == 1) {
         TypeProcStmtAsyncScopeGroupUP group(
             TaskBuildAsyncScopeGroup(m_ctxt).build(execs.front().get()));
+        m_largest_locals = group->largest_locals();
         OutputStr out(m_out_c->ind());
 
         m_out_c->println("static zsp_frame_t *%s(zsp_thread_t *thread, int32_t idx, va_list *args) {", fname.c_str());
@@ -114,45 +116,78 @@ void TaskGenerateExecBlockB::generate(
 
 }
 
+void TaskGenerateExecBlockB::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
+    DEBUG_ENTER("visitTypeProcStmtAssign");
+    enter_stmt(s);
+    m_out_c->indent();
+    TaskGenerateExprNB(m_ctxt, m_refgen, m_out_c).generate(s->getLhs());
+
+    switch (s->op()) {
+        case arl::dm::TypeProcStmtAssignOp::Eq: m_out_c->write(" = "); break;
+        case arl::dm::TypeProcStmtAssignOp::PlusEq: m_out_c->write(" += "); break;
+        case arl::dm::TypeProcStmtAssignOp::MinusEq: m_out_c->write(" -= "); break;
+        case arl::dm::TypeProcStmtAssignOp::ShlEq: m_out_c->write(" <<= "); break;
+        case arl::dm::TypeProcStmtAssignOp::ShrEq: m_out_c->write(" >>= "); break;
+        case arl::dm::TypeProcStmtAssignOp::OrEq: m_out_c->write(" |= "); break;
+        case arl::dm::TypeProcStmtAssignOp::AndEq: m_out_c->write(" &= "); break;
+    }
+
+    TaskGenerateExprNB(m_ctxt, m_refgen, m_out_c).generate(s->getRhs());
+    m_out_c->write(";\n");
+
+    DEBUG_LEAVE("visitTypeProcStmtAssign");
+}
+
 void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) {
     DEBUG_ENTER("visitTypeProcStmtAsyncScope");
-    m_scope = s;
+    ScopeLocalsAssociatedData *scope = 
+        dynamic_cast<ScopeLocalsAssociatedData *>(s->getAssociatedData());
+
     if (s->id() != -1) {
         m_out_c->println("case %d: {", s->id());
         m_out_c->inc_ind();
         m_out_c->println("CASE_%d:", s->id());
+        m_next_scope_id = s->id()+1;
     } else {
         m_out_c->println("default: {");
         m_out_c->inc_ind();
         m_out_c->println("CASE_DEFAULT:");
+        m_next_scope_id = -2;
     }
-    int32_t depth = 0;
+
+    m_scope_s.clear();
+    for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+        it=scope->scopes().begin();
+        it!=scope->scopes().end(); it++) {
+        m_scope_s.push_back(*it);
+        m_refgen->pushScope(*it);
+    }
+
     if (s->id() == 0) {
         // Entry scope is unique in that we must grab parameters
-        ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
-            s->scopes().back()->getAssociatedData());
-        m_out_c->println("%s_t *__locals;", m_ctxt->nameMap()->getName(data->type()).c_str());
+        m_out_c->println("%s_t *__locals;", m_ctxt->nameMap()->getName(scope->type()).c_str());
         m_out_c->println("ret = zsp_thread_alloc_frame(thread, sizeof(%s_t), &%s);",
-            m_ctxt->nameMap()->getName(data->type()).c_str(),
+            m_ctxt->nameMap()->getName(m_largest_locals).c_str(),
             m_fname.c_str());
         m_out_c->println("__locals = zsp_frame_locals(ret, %s_t);",
-            m_ctxt->nameMap()->getName(data->type()).c_str());
+            m_ctxt->nameMap()->getName(scope->type()).c_str());
         m_out_c->println("__locals->__exec_b = va_arg(*args, zsp_executor_t *);");
         m_out_c->println("__locals->__api = (model_api_t *)__locals->__exec_b->api;");
     } else {
-        for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
-            it=s->scopes().begin();
-            it!=s->scopes().end(); it++) {
-            ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
-                (*it)->getAssociatedData());
-            if (it != s->scopes().begin()) {
-                m_out_c->println("{");
-                m_out_c->inc_ind();
-                depth++;
+        if (scope) {
+            for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+                it=scope->scopes().begin();
+                it!=scope->scopes().end(); it++) {
+                ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
+                    (*it)->getAssociatedData());
+                if (it != scope->scopes().begin()) {
+                    m_out_c->println("{");
+                    m_out_c->inc_ind();
+                }
+                m_out_c->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);", 
+                    m_ctxt->nameMap()->getName(data->type()).c_str(),
+                    m_ctxt->nameMap()->getName(data->type()).c_str());
             }
-            m_out_c->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);", 
-                m_ctxt->nameMap()->getName(data->type()).c_str(),
-                m_ctxt->nameMap()->getName(data->type()).c_str());
         }
     }
 
@@ -171,30 +206,42 @@ void TaskGenerateExecBlockB::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope 
         m_out_c->println("}");
     }
 
-    while (depth) {
+    for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+        it=m_scope_s.begin();
+        it!=m_scope_s.end(); it++) {
+        m_refgen->popScope();
         m_out_c->dec_ind();
         m_out_c->println("}");
-        depth--;
     }
 
-    m_out_c->dec_ind();
-    m_out_c->println("}");
+    // m_out_c->dec_ind();
+    // m_out_c->println("}");
     DEBUG_LEAVE("visitTypeProcStmtAsyncScope");
 }
 
 void TaskGenerateExecBlockB::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
     DEBUG_ENTER("visitTypeProcStmtExpr");
+    // Ensure we're in the right scope
+    enter_stmt(s);
     m_expr_terminated = false;
     m_out_c->indent();
     s->getExpr()->accept(m_this);
     if (!m_expr_terminated) {
         m_out_c->write(";\n");
     }
+//    leave_stmt(s);
     DEBUG_LEAVE("visitTypeProcStmtExpr");
+}
+
+void TaskGenerateExecBlockB::visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtGotoAsyncScope");
+    m_out_c->println("goto CASE_%d;", s->target()->id());
+    DEBUG_LEAVE("visitTypeProcStmtGotoAsyncScope");
 }
 
 void TaskGenerateExecBlockB::visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) {
     DEBUG_ENTER("visitTypeProcStmtIfElse");
+    enter_stmt(s);
     for (std::vector<arl::dm::ITypeProcStmtIfClauseUP>::const_iterator
         it=s->getIfClauses().begin();
         it!=s->getIfClauses().end(); it++) {
@@ -206,6 +253,9 @@ void TaskGenerateExecBlockB::visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfEls
         }
         TaskGenerateExprNB(m_ctxt, m_refgen, m_out_c).generate((*it)->getCond());
         m_out_c->write(") {\n");
+        m_out_c->inc_ind();
+        (*it)->getStmt()->accept(m_this);
+        m_out_c->dec_ind();
     }
 
     if (s->getElseClause()) {
@@ -262,7 +312,7 @@ void TaskGenerateExecBlockB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMet
     ITaskGenerateExecModelCustomGen *custom_gen = 
         dynamic_cast<ITaskGenerateExecModelCustomGen *>(e->getTarget()->getAssociatedData());
 
-    m_out_c->write("ret->idx = %d;\n", m_scope->id()+1);
+    m_out_c->write("ret->idx = %d;\n", m_next_scope_id);
 
     if (custom_gen) {
         custom_gen->genExprMethodCallStaticB(
@@ -286,6 +336,70 @@ void TaskGenerateExecBlockB::visitTypeExprMethodCallStatic(arl::dm::ITypeExprMet
     }
     m_expr_terminated = true;
     DEBUG_LEAVE("visitTypeExprMethodCallStatic");
+}
+
+void TaskGenerateExecBlockB::enter_stmt(arl::dm::ITypeProcStmt *s) {
+    DEBUG_ENTER("enter_stmt");
+    ScopeLocalsAssociatedData *data = 
+        dynamic_cast<ScopeLocalsAssociatedData *>(s->getAssociatedData());
+    
+    if (data) {
+        if (data->scopes().size() > m_scope_s.size()) {
+            DEBUG("PUSH: ");
+            for (uint32_t i=m_scope_s.size(); i<data->scopes().size(); i++) {
+                m_refgen->pushScope(data->scopes().at(i));
+                m_scope_s.push_back(data->scopes().at(i));
+                m_out_c->println("{");
+                m_out_c->inc_ind();
+                m_out_c->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);",
+                    data->type()->name().c_str(),
+                    data->type()->name().c_str());
+            }
+        } else if (data->scopes().size() < m_scope_s.size()) {
+            DEBUG("POP: ");
+            while (data->scopes().size() < m_scope_s.size()) {
+                m_scope_s.pop_back();
+                m_refgen->popScope();
+                m_out_c->dec_ind();
+                m_out_c->println("}");
+            }
+        } else if (data->scopes().back() != m_scope_s.back()) {
+            DEBUG("SWAP: ");
+        }
+        // // Handle push-scope via entry
+        // if (!m_scope || m_scope != data) {
+        //     // New scope
+        //     if (m_scope) {
+        //         // See if we're pushing or popping
+        //         if (data->scopes().size() > m_scope->scopes().size()) {
+        //             // Pushing
+        //             for (uint32_t i=m_scope->scopes().size(); 
+        //                 i<data->scopes().size(); i++) {
+        //                 m_refgen->pushScope(data->scopes().at(i));
+        //                 m_out_c->print("{");
+        //                 m_out_c->inc_ind();
+        //             }
+        //         } else {
+        //             // Popping
+        //             for (uint32_t i=data->scopes().size(); 
+        //                 i<m_scope->scopes().size(); i++) {
+        //                 m_refgen->popScope();
+        //                 m_out_c->dec_ind();
+        //                 m_out_c->print("}");
+        //             }
+        //         }
+        //     } else {
+        //         for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+        //             it=data->scopes().begin();
+        //             it!=data->scopes().end(); it++) {
+        //             m_refgen->pushScope(*it);
+        //         }
+        //     }
+        //     m_scope = data;
+        // }
+    }
+
+    DEBUG_LEAVE("enter_stmt");
 }
 
 dmgr::IDebug *TaskGenerateExecBlockB::m_dbg = 0;

@@ -39,14 +39,14 @@ component pss_top {
 
 def test_repeat_1(tmpdir):
     pss_top = """
-import target function void doit();
+import target function void doit(int i);
 
 component pss_top {
     action Entry {
         exec body {
-            repeat (i : 6) {
+            repeat (i : 100) {
                 int x;
-                doit();
+                doit(0);
                 // 
             }
         }
@@ -56,8 +56,8 @@ component pss_top {
     generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
 
-    async def doit():
-        print("doit", flush=True)
+    async def doit(i):
+#        print("doit %d" % i, flush=True)
         pass
 
     actor = model.mk_actor("pss_top::Entry")

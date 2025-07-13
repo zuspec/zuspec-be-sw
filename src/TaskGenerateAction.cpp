@@ -75,7 +75,7 @@ void TaskGenerateAction::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutp
 //        TaskGenerateExecModelActivity(m_ctxt, m_out_h, m_out_c).generate(action_t);
     } else {
 
-        GenRefExprExecModel refgen(m_ctxt->getDebugMgr(), t, "this_p", true);
+        GenRefExprExecModel refgen(m_ctxt->getDebugMgr(), t, "this_p", true, "(*__locals)");
         const std::vector<arl::dm::ITypeExecUP> &execs = action_t->getExecs(arl::dm::ExecKindT::Body);
         DEBUG("%d execs for body", execs.size());
         std::string tname = m_ctxt->nameMap()->getName(t);

@@ -21,6 +21,7 @@
 #pragma once
 #include "vsc/dm/IAssociatedData.h"
 #include "vsc/dm/IDataTypeStruct.h"
+#include "vsc/dm/ITypeVarScope.h"
 
 namespace zsp {
 namespace be {
@@ -31,14 +32,20 @@ namespace sw {
 class ScopeLocalsAssociatedData :
     public virtual vsc::dm::IAssociatedData {
 public:
-    ScopeLocalsAssociatedData(vsc::dm::IDataTypeStruct *type) : m_type(type) { }
+    ScopeLocalsAssociatedData(
+        vsc::dm::IDataTypeStruct                    *type,
+        const std::vector<vsc::dm::ITypeVarScope *> &scopes) : 
+        m_type(type), m_scopes(scopes.begin(), scopes.end())  { }
 
     virtual ~ScopeLocalsAssociatedData() { }
 
     vsc::dm::IDataTypeStruct *type() const { return m_type; }
 
+    const std::vector<vsc::dm::ITypeVarScope *> &scopes() const { return m_scopes; }
+
 private:
-    vsc::dm::IDataTypeStruct            *m_type;
+    vsc::dm::IDataTypeStruct                *m_type;
+    std::vector<vsc::dm::ITypeVarScope *>   m_scopes;
 
 };
 

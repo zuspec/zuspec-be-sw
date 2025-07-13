@@ -104,7 +104,7 @@ def generate_model(rundir, pss_src, actions=None, debug=False):
                 srcs.append(os.path.join(rundir, "model", f))
         
         cmd = ["gcc", "-o", os.path.join(rundir, "model", "libmodel.so"),
-               "-shared", "-fPIC", "-g",
+               "-shared", "-fPIC", "-g", "-O3"
                ]
         cmd.append("-I%s" % os.path.join(rundir, "model"))
         cmd.append("-I%s" % zsp_be_sw_incdir)

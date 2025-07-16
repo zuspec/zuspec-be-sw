@@ -26,7 +26,7 @@
 #include "zsp/be/sw/IContext.h"
 #include "zsp/be/sw/IOutput.h"
 #include "IGenRefExpr.h"
-#include "VisitorBase.h"
+#include "TaskGenerateAsyncBase.h"
 
 namespace zsp {
 namespace be {
@@ -36,20 +36,18 @@ class ScopeLocalsAssociatedData;
 class TaskGenerateExecModel;
 
 class TaskGenerateExecBlockB :
-    public virtual VisitorBase {
+    public virtual TaskGenerateAsyncBase {
 public:
     TaskGenerateExecBlockB(
         IContext                    *ctxt,
         IGenRefExpr                 *refgen,
         IOutput                     *out_h,
-        IOutput                     *out_c);
+        IOutput                     *out_c,
+        const std::string           &fname);
 
     virtual ~TaskGenerateExecBlockB();
 
-    void generate(
-        const std::string                           &fname,
-        const std::string                           &tname,
-        const std::vector<arl::dm::ITypeExecUP>     &execs);
+    void generate(const std::vector<arl::dm::ITypeExecUP> &execs);
 
     virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
@@ -69,22 +67,9 @@ public:
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
 
-protected:
-    virtual void enter_stmt(arl::dm::ITypeProcStmt *s);
 
 private:
-    static dmgr::IDebug                 *m_dbg;
-    IContext                            *m_ctxt;
-    IGenRefExpr                         *m_refgen;
     IOutput                             *m_out_h;
-    IOutput                             *m_out_c;
-    bool                                m_expr_terminated;
-    ScopeLocalsAssociatedData           *m_scope;
-    vsc::dm::IDataTypeStruct            *m_largest_locals;
-    std::vector<vsc::dm::ITypeVarScope *>   m_scope_s;
-    int32_t                             m_next_scope_id;
-    vsc::dm::IDataTypeStruct            *m_locals_t;
-    std::string                         m_fname;
 
 };
 

@@ -63,3 +63,40 @@ component pss_top {
 
     actor = model.mk_actor("pss_top::Entry")
     asyncio.run(actor.run())
+
+def test_comp_activity_1(tmpdir):
+    pss_top = """
+import target function void doit(int i, int j);
+
+component pss_top {
+    activity {
+        do Sub;
+    }
+
+    action Sub {
+        exec body {
+            doit(42, 42);
+        }
+    }
+
+    action Entry {
+        exec body {
+            repeat (i : 100) {
+                int x = 5;
+//                repeat (j : 5) {
+                    doit(i, x);
+//                }
+            }
+        }
+    }
+}
+"""
+    generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
+    model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
+
+    async def doit(i, j):
+        print("doit %d,%d" % (i,j), flush=True)
+        pass
+
+    actor = model.mk_actor("pss_top::Entry")
+    asyncio.run(actor.run())

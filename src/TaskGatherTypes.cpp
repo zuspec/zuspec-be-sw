@@ -28,7 +28,7 @@ namespace sw {
 
 
 TaskGatherTypes::TaskGatherTypes(IContext *ctxt) : m_ctxt(ctxt) {
-    DEBUG_INIT("zsp::be::sw", ctxt->getDebugMgr());
+    DEBUG_INIT("zsp::be::sw::TaskGatherTypes", ctxt->getDebugMgr());
 }
 
 TaskGatherTypes::~TaskGatherTypes() {
@@ -44,9 +44,17 @@ void TaskGatherTypes::gather(vsc::dm::IAccept *item) {
 void TaskGatherTypes::visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) {
     DEBUG_ENTER("visitDataTypeArlStruct");
     if (m_types_s.find(t) == m_types_s.end()) {
-        m_types_s.insert(t);
-        m_types.push_back(t);
-        arl::dm::VisitorBase::visitDataTypeArlStruct(t);
+        const std::string &name = t->name();
+
+        DEBUG("name: %s", name.c_str());
+
+        if (name.find("std_pkg::") == -1 
+            && name.find("addr_reg_pkg::") == -1
+            && name.find("executor_pkg::") == -1) {
+            m_types_s.insert(t);
+            m_types.push_back(t);
+            arl::dm::VisitorBase::visitDataTypeArlStruct(t);
+        }
     }
     DEBUG_LEAVE("visitDataTypeArlStruct");
 }
@@ -54,9 +62,17 @@ void TaskGatherTypes::visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) {
 void TaskGatherTypes::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct %s", t->name().c_str());
     if (m_types_s.find(t) == m_types_s.end()) {
-        m_types_s.insert(t);
-        m_types.push_back(t);
-        arl::dm::VisitorBase::visitDataTypeStruct(t);
+        const std::string &name = t->name();
+
+        DEBUG("name: %s", name.c_str());
+
+        if (name.find("std_pkg::") == -1 
+            && name.find("addr_reg_pkg::") == -1
+            && name.find("executor_pkg::") == -1) {
+            m_types_s.insert(t);
+            m_types.push_back(t);
+            arl::dm::VisitorBase::visitDataTypeStruct(t);
+        }
     }
     DEBUG_LEAVE("visitDataTypeStruct %s", t->name().c_str());
 }

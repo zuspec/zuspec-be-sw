@@ -1,5 +1,5 @@
 /**
- * TaskGenerateExecModelActivity.h
+ * TaskGenerateActivity.h
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -21,6 +21,9 @@
 #pragma once
 #include "dmgr/IDebugMgr.h"
 #include "zsp/arl/dm/IDataTypeActivity.h"
+#include "zsp/be/sw/IContext.h"
+#include "zsp/be/sw/IOutput.h"
+#include "TaskGenerateAsyncBase.h"
 
 namespace zsp {
 namespace be {
@@ -28,19 +31,19 @@ namespace sw {
 
 class TaskGenerateExecModel;
 
-class TaskGenerateExecModelActivity {
+class TaskGenerateActivity :
+    public virtual TaskGenerateAsyncBase {
 public:
-    TaskGenerateExecModelActivity(
-        TaskGenerateExecModel   *gen
-    );
+    TaskGenerateActivity(
+        IContext                *ctxt,
+        IGenRefExpr             *refgen,
+        IOutput                 *out,
+        const std::string       &fname);
 
-    virtual ~TaskGenerateExecModelActivity();
+    virtual ~TaskGenerateActivity();
 
     void generate(vsc::dm::IDataType *activity);
 
-private:
-    static dmgr::IDebug                                 *m_dbg;
-    TaskGenerateExecModel                               *m_gen;
 
 };
 

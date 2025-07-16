@@ -237,17 +237,14 @@ component pss_top {
 
 def test_repeat_1(tmpdir):
     pss_top = """
-//import solve function bool condition1();
-//import solve function bool condition2();
-//import solve function void report_branch(int branch_num);
+import solve function void doit(int i);
 
 component pss_top {
     action Entry {
         exec post_solve {
             repeat (i : 6) {
                 int x;
-                print("Hello");
-                // 
+                doit(i);
             }
         }
     }
@@ -255,6 +252,9 @@ component pss_top {
 """
     generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
     model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
+
+    def doit(i):
+        print("doit: %d" % i)
 
     actor = model.mk_actor("pss_top::Entry")
     asyncio.run(actor.run())

@@ -58,23 +58,23 @@ void TaskGenerateModel::generate(
 
     FileUtil::mkdirs(m_outdir);
 
-    std::vector<arl::dm::IDataTypeComponent *> comp_types;
+    // std::vector<arl::dm::IDataTypeComponent *> comp_types;
 
-    TaskGatherCompTypes(m_ctxt).gather(pss_top, comp_types);
+    // TaskGatherCompTypes(m_ctxt).gather(pss_top, comp_types);
 
-    for (std::vector<arl::dm::IDataTypeComponent *>::const_iterator
-        it=comp_types.begin();
-        it!=comp_types.end(); it++) {
-        std::string basename = m_outdir + "/";
-        basename += m_ctxt->nameMap()->getName(*it);
+    // for (std::vector<arl::dm::IDataTypeComponent *>::const_iterator
+    //     it=comp_types.begin();
+    //     it!=comp_types.end(); it++) {
+    //     std::string basename = m_outdir + "/";
+    //     basename += m_ctxt->nameMap()->getName(*it);
 
-        std::ofstream out_c(basename + ".c");
-        std::ofstream out_h(basename + ".h");
+    //     std::ofstream out_c(basename + ".c");
+    //     std::ofstream out_h(basename + ".h");
 
-        TaskGenerateType(m_ctxt, &out_h, &out_c).generate(*it);
-        out_c.close();
-        out_h.close();
-    }
+    //     TaskGenerateType(m_ctxt, &out_h, &out_c).generate(*it);
+    //     out_c.close();
+    //     out_h.close();
+    // }
 
     // TODO: must find root actions in the scope of root component
     if (!actions.size()) {
@@ -88,10 +88,10 @@ void TaskGenerateModel::generate(
 
     TaskGatherTypes types(m_ctxt);
 
-    for (std::vector<vsc::dm::IAccept *>::const_iterator
-        it=actions_l.begin();
-        it!=actions_l.end(); it++) {
-        types.gather(*it);
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        types.gather(it->get());
     }
 
     // TODO: Generate the import API

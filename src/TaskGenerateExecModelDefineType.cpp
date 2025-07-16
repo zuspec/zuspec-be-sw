@@ -22,7 +22,7 @@
 #include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateAction.h"
-#include "TaskGenerateExecModelActivity.h"
+#include "TaskGenerateActivity.h"
 #include "TaskGenerateExecModelAddrClaim.h"
 #include "TaskGenerateExecModelAddrSpace.h"
 #include "TaskGenerateComp.h"

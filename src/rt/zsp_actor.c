@@ -71,13 +71,28 @@ static struct zsp_frame_s *zsp_actor_trampoline(
                 &__locals->default_exec,
                 (zsp_struct_t *)__locals->comp);
 
+            // Start component activities before starting
+            // root activity
+            ret->idx = 1;
+            ret = zsp_thread_call(
+                thread,
+                zsp_component_type(__locals->comp)->do_run_start);
+
+            if (ret) {
+                break;
+            }
+        }
+
+        case 1: {
+            struct __locals_s *__locals = zsp_frame_locals(ret, struct __locals_s);
+
             __locals->ctxt.comp = __locals->comp;
 
-            ret->idx = 1;
+            ret->idx = 2;
             ret = zsp_activity_traverse_type(
                 thread,
                 &__locals->ctxt,
-                action_t,
+                __locals->action_t,
                 0);
             
             if (ret) {

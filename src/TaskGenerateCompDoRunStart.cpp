@@ -19,6 +19,7 @@
  *     Author:
  */
 #include "dmgr/impl/DebugMacros.h"
+#include "TaskGenerateActivity.h"
 #include "TaskGenerateCompDoRunStart.h"
 
 
@@ -50,37 +51,51 @@ void TaskGenerateCompDoRunStart::generate(vsc::dm::IDataTypeStruct *t) {
         m_ctxt->nameMap()->getName(t).c_str());
 
     if (comp_t->activities().size() > 0) {
-        m_out_c->println("static zsp_frame_t *%s__activity(zsp_thread_t *thread, zsp_frame_t *frame, va_list *args) {",
-            m_ctxt->nameMap()->getName(t).c_str());
-        m_out_c->inc_ind();
-        m_out_c->println("zsp_frame_t *ret = 0;");
-        m_out_c->println("int initial = (frame == 0);");
-        m_out_c->println("struct __locals_s {");
-        m_out_c->inc_ind();
-        m_out_c->println("%s_t *self;", m_ctxt->nameMap()->getName(t).c_str());
-        m_out_c->println("zsp_executor_t *executor;");
-        m_out_c->dec_ind();
-        m_out_c->println("} *__locals;");
-        m_out_c->println("");
-        m_out_c->println("if (!frame) {");
-        m_out_c->inc_ind();
-        m_out_c->println("frame = zsp_thread_alloc_frame(thread, sizeof(struct __locals_s), &%s__activity);",
-            m_ctxt->nameMap()->getName(t).c_str());
-        m_out_c->dec_ind();
-        m_out_c->println("}");
-        m_out_c->println("__locals = (struct __locals_s *)&((zsp_frame_wrap_t *)frame)->locals;");
-        m_out_c->println("ret = frame;");
+        std::string fname = m_ctxt->nameMap()->getName(t);
+        fname += "__activity";
+        IGenRefExpr *refgen = 0;
+        TaskGenerateActivity(m_ctxt, refgen, m_out_c, fname).generate(
+            comp_t->activities().at(0)->getDataType());
 
-        m_out_c->println("if (initial) {");
-        m_out_c->inc_ind();
-        m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
-            m_ctxt->nameMap()->getName(t).c_str());
-        m_out_c->dec_ind();
-        m_out_c->println("}");
+        // m_out_c->println("static zsp_frame_t *%s__activity(zsp_thread_t *thread, int32_t idx, va_list *args) {",
+        //     m_ctxt->nameMap()->getName(t).c_str());
+        // m_out_c->inc_ind();
+        // m_out_c->println("zsp_frame_t *ret = thread->leaf;");
+        // m_out_c->println("struct __locals_s {");
+        // m_out_c->inc_ind();
+        // m_out_c->println("%s_t *self;", m_ctxt->nameMap()->getName(t).c_str());
+        // m_out_c->println("zsp_executor_t *executor;");
+        // m_out_c->dec_ind();
+        // m_out_c->println("} *__locals;");
+        // m_out_c->println("");
+        // m_out_c->println("switch (idx) {");
+        // m_out_c->println("case 0: {");
+        // m_out_c->inc_ind();
+        // m_out_c->println("ret = zsp_thread_alloc_frame(thread, sizeof(struct __locals_s), &%s__activity);",
+        //     m_ctxt->nameMap()->getName(t).c_str());
+        // m_out_c->println("__locals = zsp_frame_locals(ret, struct __locals_s);");
+        // m_out_c->println("");
+        // m_out_c->println("ret->idx = 1;");
+        // m_out_c->dec_ind();
+        // m_out_c->println("}");
 
-        m_out_c->println("return ret;");
-        m_out_c->dec_ind();
-        m_out_c->println("}");
+        // m_out_c->println("if (!frame) {");
+        // m_out_c->inc_ind();
+        // m_out_c->dec_ind();
+        // m_out_c->println("}");
+        // m_out_c->println("__locals = (struct __locals_s *)&((zsp_frame_wrap_t *)frame)->locals;");
+        // m_out_c->println("ret = frame;");
+
+        // m_out_c->println("if (initial) {");
+        // m_out_c->inc_ind();
+        // m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
+        //     m_ctxt->nameMap()->getName(t).c_str());
+        // m_out_c->dec_ind();
+        // m_out_c->println("}");
+
+        // m_out_c->println("return ret;");
+        // m_out_c->dec_ind();
+        // m_out_c->println("}");
     }
 
     m_out_c->println("zsp_frame_t *%s__do_run_start(zsp_thread_t *thread, int32_t idx, va_list *args) {",

@@ -29,7 +29,7 @@
 #include "TaskGenerateActionDtor.h"
 #include "TaskGenerateActionStruct.h"
 #include "TaskGenerateActionType.h"
-#include "TaskGenerateExecModelActivity.h"
+#include "TaskGenerateActivity.h"
 #include "TaskGenerateExecBlockB.h"
 #include "TaskGenerateExecBlockNB.h"
 #include "TaskGenerateExecBlockB.h"
@@ -80,10 +80,7 @@ void TaskGenerateAction::generate_exec_blocks(vsc::dm::IDataTypeStruct *t, IOutp
         DEBUG("%d execs for body", execs.size());
         std::string tname = m_ctxt->nameMap()->getName(t);
         std::string fname = tname + "__body";
-        TaskGenerateExecBlockB(m_ctxt, &refgen, m_out_h, m_out_c).generate(
-            fname,
-            tname,
-            execs);
+        TaskGenerateExecBlockB(m_ctxt, &refgen, m_out_h, m_out_c, fname).generate(execs);
     }
 
 

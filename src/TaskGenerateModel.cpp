@@ -28,6 +28,7 @@
 #include "TaskGenerateModel.h"
 #include "TaskGenerateType.h"
 #include "TaskGenerateImportApi.h"
+#include "TaskGenerateExecModelAddrHandle.h"
 #include "FileUtil.h"
 #include "Output.h"
 
@@ -88,6 +89,14 @@ void TaskGenerateModel::generate(
 
     TaskGatherTypes types(m_ctxt);
 
+    DEBUG_ENTER("Struct types:");
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        DEBUG("Struct: %s", (*it)->name().c_str());
+    }
+    DEBUG_LEAVE("Struct types:");
+
     for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
         it=m_ctxt->ctxt()->getDataTypeStructs().begin();
         it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
@@ -103,15 +112,35 @@ void TaskGenerateModel::generate(
     for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
         it=types.types().begin();
         it!=types.types().end(); it++) {
+        const std::string &name = (*it)->name();
         std::string basename = m_outdir + "/";
         basename += m_ctxt->nameMap()->getName(*it);
 
-        std::ofstream out_c(basename + ".c");
-        std::ofstream out_h(basename + ".h");
+        std::ofstream os_c(basename + ".c");
+        std::ofstream os_h(basename + ".h");
+        IOutputUP out_c(new Output(&os_c, false));
+        IOutputUP out_h(new Output(&os_h, false));
 
-        TaskGenerateType(m_ctxt, &out_h, &out_c).generate(*it);
-        out_c.close();
-        out_h.close();
+        ITaskGenerateExecModelCustomGen *gen = 
+            dynamic_cast<ITaskGenerateExecModelCustomGen *>(
+                (*it)->getAssociatedData()
+            );
+        if (gen) {
+            DEBUG("Type %s has a custom generator", (*it)->name().c_str());
+            if (!gen->hasFlags(ITaskGenerateExecModelCustomGen::Flags::Builtin)) {
+                DEBUG("Calling generator");
+                gen->genDefinition(m_ctxt, out_h.get(), out_c.get(), *it);
+            } else {
+                DEBUG("Built-in type");
+            }
+        } else {
+            DEBUG("Type %s does not have a custom generator", (*it)->name().c_str());
+            TaskGenerateType(m_ctxt, out_h.get(), out_c.get()).generate(*it);
+        }
+        out_c->close();
+        out_h->close();
+        os_c.close();
+        os_h.close();
     }
 
     generate_interface();
@@ -122,7 +151,29 @@ void TaskGenerateModel::generate(
 }
 
 void TaskGenerateModel::attach_custom_gen() {
-    DEBUG_ENTER("attach_custom_gen");
+    DEBUG_ENTER("attach_custom_gen %d structs ; %d functions",
+        m_ctxt->ctxt()->getDataTypeStructs().size(),
+        m_ctxt->ctxt()->getDataTypeFunctions().size());
+
+    for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
+        it=m_ctxt->ctxt()->getDataTypeStructs().begin();
+        it!=m_ctxt->ctxt()->getDataTypeStructs().end(); it++) {
+        const std::string &name = (*it)->name();
+        DEBUG("Struct: %s", name.c_str());
+
+        if (name.find("addr_reg_pkg::") == 0) {
+            int len = std::string("addr_reg_pkg::").size();
+            const std::string leaf = name.substr(len);
+
+            DEBUG("addr_reg_pkg: leaf=%s", leaf.c_str());
+
+            if (leaf == "addr_handle_t") {
+                DEBUG("Attach addr_handle_t generator data");
+                (*it)->setAssociatedData(
+                    new TaskGenerateExecModelAddrHandle(m_ctxt->getDebugMgr()));
+            }
+        }
+    }
 
     for (std::vector<arl::dm::IDataTypeFunction *>::const_iterator
         it=m_ctxt->ctxt()->getDataTypeFunctions().begin();
@@ -130,7 +181,11 @@ void TaskGenerateModel::attach_custom_gen() {
         const std::string &name = (*it)->name();
         DEBUG("Function: %s ; flags=0x%08x", name.c_str(), (*it)->getFlags());
 
-        if (name.find("std_pkg::") == 0) {
+        if (name.find("addr_reg_pkg::") == 0) {
+            int len = std::string("addr_reg_pkg::").size();
+            const std::string leaf = name.substr(len);
+
+        } else if (name.find("std_pkg::") == 0) {
             if (name.find("::print") > 0 || name.find("::message")) {
                 // These methods are implemented externally
                 (*it)->setAssociatedData(new CustomGenImportCall(m_ctxt->getDebugMgr()));

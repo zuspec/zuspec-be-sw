@@ -27,7 +27,7 @@ namespace sw {
 
 
 TaskGenerateExecModelAddrHandle::TaskGenerateExecModelAddrHandle(
-    dmgr::IDebugMgr *dmgr) : TaskGenerateExecModelCustomGenBase(dmgr) {
+    dmgr::IDebugMgr *dmgr) : TaskGenerateExecModelCustomGenBase(dmgr, Flags::Builtin) {
 
 }
 
@@ -35,10 +35,11 @@ TaskGenerateExecModelAddrHandle::~TaskGenerateExecModelAddrHandle() {
 
 }
 
-void TaskGenerateExecModelAddrHandle::genFwdDecl(
+void TaskGenerateExecModelAddrHandle::genDeclaration(
         IContext                            *ctxt,
         IOutput                             *out,
-        vsc::dm::IDataType                  *type) {
+        vsc::dm::IDataType                  *type,
+        bool                                fwd) {
     // Do nothing
 }
 

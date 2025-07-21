@@ -36,6 +36,11 @@ class ITaskGenerateExecModelCustomGen :
     public virtual vsc::dm::IAssociatedData {
 public:
 
+    enum class Flags {
+        None = 0,
+        Builtin = (1 << 0)
+    };
+
     virtual ~ITaskGenerateExecModelCustomGen() { }
 
     virtual void genExprMethodCallStaticB(
@@ -62,16 +67,19 @@ public:
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) = 0;
 
-    virtual void genFwdDecl(
+    virtual void genDeclaration(
         IContext                            *ctxt,
         IOutput                             *out,
-        vsc::dm::IDataType                  *type) = 0;
+        vsc::dm::IDataType                  *type,
+        bool                                fwd) = 0;
 
     virtual void genDefinition(
         IContext                            *ctxt,
         IOutput                             *out_h,
         IOutput                             *out_c,
         vsc::dm::IDataType                  *type) = 0;
+
+    virtual bool hasFlags(Flags flags) = 0;
 
 };
 

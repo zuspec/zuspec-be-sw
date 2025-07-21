@@ -34,10 +34,11 @@ public:
 
     virtual ~TaskGenerateExecModelAddrHandle();
 
-    virtual void genFwdDecl(
+    virtual void genDeclaration(
         IContext                            *ctxt,
         IOutput                             *out,
-        vsc::dm::IDataType                  *type) override;
+        vsc::dm::IDataType                  *type,
+        bool                                fwd) override;
 
 };
 

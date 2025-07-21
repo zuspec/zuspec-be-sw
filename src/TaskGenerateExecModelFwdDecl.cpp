@@ -51,10 +51,11 @@ void TaskGenerateExecModelFwdDecl::generate(vsc::dm::IAccept *item) {
     }
 
     if (custom_gen) {
-        custom_gen->genFwdDecl(
+        custom_gen->genDeclaration(
             m_ctxt,
             m_out,
-            dynamic_cast<vsc::dm::IDataType *>(item)
+            dynamic_cast<vsc::dm::IDataType *>(item),
+            true
         );
     } else {
         generate_dflt(item);

@@ -110,34 +110,28 @@ void TaskGenerateCompDoRunStart::generate(vsc::dm::IDataTypeStruct *t) {
     m_out_c->println("%s_t *self;", m_ctxt->nameMap()->getName(t).c_str());
     m_out_c->println("zsp_executor_t *executor;");
     m_out_c->dec_ind();
-    m_out_c->println("} *__locals;");
-    // m_out_c->println("if (!frame) {");
-    // m_out_c->inc_ind();
-    // m_out_c->println("frame = zsp_thread_alloc_frame(thread, zsp_frame_size(struct __locals_s), &%s__do_run_start);",
-    //     m_ctxt->nameMap()->getName(t).c_str());
-    // m_out_c->dec_ind();
-    // m_out_c->println("}");
-    // m_out_c->println("__locals = (struct __locals_s *)&((zsp_frame_wrap_t *)frame)->locals;");
-    // m_out_c->println("ret = frame;");
-
-
-    // m_out_c->println("");
-    // m_out_c->println("if (initial) {");
-    // m_out_c->inc_ind();
-    // m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
-    //     m_ctxt->nameMap()->getName(t).c_str());
-    // m_out_c->println("__locals->executor = va_arg(*args, zsp_executor_t *);");
-    // m_out_c->dec_ind();
-    // m_out_c->println("}");
-
+    m_out_c->println("} *__locals = zsp_frame_locals(ret, struct __locals_s);");
+    m_out_c->println("");
     m_out_c->println("switch (idx) {");
     m_out_c->inc_ind();
+    m_out_c->println("case 0: {");
+    m_out_c->inc_ind();
+    m_out_c->println("ret = zsp_thread_alloc_frame(thread, sizeof(struct __locals_s), &%s__do_run_start);",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->println("__locals = zsp_frame_locals(ret, struct __locals_s);");
+    m_out_c->println("__locals->self = va_arg(*args, %s_t *);",
+        m_ctxt->nameMap()->getName(t).c_str());
+    m_out_c->dec_ind();
+    m_out_c->println("}");
+
     // Step 0..N: Evaluate each sub-component 
     // Evaluate bottom-up
+    m_idx++;
     for (auto it=t->getFields().begin();
             it!=t->getFields().end(); it++) {
         (*it)->accept(this);
     }
+
     // Step N+1: Launch local activity (if present)
     // If we have local activities, start those now
     if (comp_t->activities().size() > 0) {

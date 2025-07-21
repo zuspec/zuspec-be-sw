@@ -58,7 +58,7 @@ void TaskGenerateExecBlockB::generate(
         const std::vector<arl::dm::ITypeExecUP>     &execs) {
 
     if (execs.size() == 1) {
-
+        TaskGenerateAsyncBase::generate(execs.front().get());
     } else if (execs.size() > 1) {
         // Multiple functions
         // Want a single top-level function that invokes the sub-functions

@@ -130,6 +130,22 @@ void TaskBuildAsyncScopeGroup::visitDataTypeActivity(arl::dm::IDataTypeActivity 
     DEBUG_LEAVE("visitDataTypeActivity");
 }
 
+void TaskBuildAsyncScopeGroup::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) {
+    DEBUG_ENTER("visitDataTypeActivitySequence");
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+        it=t->getActivities().begin();
+        it!=t->getActivities().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    DEBUG_LEAVE("visitDataTypeActivitySequence");
+}
+
+void TaskBuildAsyncScopeGroup::visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) {
+    DEBUG_ENTER("visitDataTypeActivityTraverseType");
+
+    DEBUG_LEAVE("visitDataTypeActivityTraverseType");
+}
+
 void TaskBuildAsyncScopeGroup::visitDataTypeFunction(arl::dm::IDataTypeFunction *t) {
     DEBUG_ENTER("visitDataTypeFunction");
     Locals *locals = new Locals(t->getParamScope(), m_locals_s.size()?m_locals_s.back():0);

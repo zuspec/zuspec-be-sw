@@ -46,12 +46,13 @@ void zsp_scheduler_init_threadv(
     thread->leaf = 0;
     thread->next = 0;
     thread->sched = sched;
-    thread->flags = flags;
+    thread->flags = (flags | ZSP_THREAD_FLAGS_INITIAL);
     zsp_frame_t *ret;
 
     ret = func(thread, 0, args);
 
     thread->leaf = ret;
+    thread->flags &= ~ZSP_THREAD_FLAGS_INITIAL;
 
     if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Reschedule the thread
@@ -189,10 +190,13 @@ zsp_thread_t *zsp_thread_init(
     ret = func(thread, 0, &args);
     va_end(args);
 
+
 //    // Clean up automatically, so the thread doesn't need to do this
 //    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
     thread->leaf = ret;
+
+    thread->flags &= ~ZSP_THREAD_FLAGS_INITIAL;
 
     if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Schedule the thread
@@ -249,9 +253,7 @@ zsp_thread_t *zsp_thread_create(
     thread->block = 0;
     thread->leaf = 0;
     thread->sched = sched;
-    thread->flags = flags;
-    // TODO: new thread dictates new thread-specific allocator
-//    new_thread->alloc = thread->alloc;
+    thread->flags = (flags | ZSP_THREAD_FLAGS_INITIAL);
     zsp_frame_t *ret;
 
     ret = func(thread, 0, &args);
@@ -261,6 +263,7 @@ zsp_thread_t *zsp_thread_create(
     zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
 
     thread->leaf = ret;
+    thread->flags &= ~ZSP_THREAD_FLAGS_INITIAL;
 
     if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
         // Schedule the thread
@@ -431,8 +434,8 @@ uintptr_t zsp_thread_setsp(zsp_thread_t *thread, uintptr_t sp) {
 }
 
 zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
-    zsp_frame_t *frame = thread->leaf;
-    uintptr_t frame_v = (uintptr_t)frame;
+    zsp_frame_t *ret = thread->leaf;
+    uintptr_t frame_v = (uintptr_t)ret;
     thread->rval = rval;
 
     // First, remove blocks until we find the one containing the frame
@@ -449,22 +452,25 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
 
     // Roll back the 'base' pointer to the previous frame
     if (thread->block) {
-        thread->block->base = (uintptr_t)frame;
+        thread->block->base = (uintptr_t)ret;
     }
 
-    // Note: frame is null if we've finished unwiding the stack
-    if (frame) {
-        zsp_frame_t *prev = frame->prev;
+    // Note: frame is null if we've finished unwinding the stack
+    if (ret) {
+        zsp_frame_t *prev = ret->prev;
 
         thread->leaf = prev;
-        if (frame->prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+        if ((thread->flags & ZSP_THREAD_FLAGS_INITIAL) != 0) {
+            ret = 0;
+        } else if (prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
             // Unblock the frame before calling
             thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-            thread->leaf = prev->func(thread, prev->idx, 0);
+            ret = prev->func(thread, prev->idx, 0);
+            thread->leaf = ret;
         }
     }
 
-    return thread->leaf;
+    return ret;
 }
 
 struct zsp_scheduler_s *zsp_thread_scheduler(zsp_thread_t *thread) {

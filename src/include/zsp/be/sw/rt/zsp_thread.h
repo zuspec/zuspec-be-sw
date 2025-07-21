@@ -19,8 +19,9 @@ typedef struct zsp_frame_s *(*zsp_task_func)(struct zsp_thread_s *, int idx, va_
 
 typedef enum {
   ZSP_THREAD_FLAGS_NONE = 0,
-  ZSP_THREAD_FLAGS_SUSPEND = 0x1,
-  ZSP_THREAD_FLAGS_BLOCKED = 0x2
+  ZSP_THREAD_FLAGS_INITIAL = (1 << 0),
+  ZSP_THREAD_FLAGS_SUSPEND = (1 << 1),
+  ZSP_THREAD_FLAGS_BLOCKED = (1 << 2)
 } zsp_thread_flags_e;
 
 

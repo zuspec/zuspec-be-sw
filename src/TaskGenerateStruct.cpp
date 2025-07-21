@@ -20,6 +20,7 @@
  */
 #include "dmgr/impl/DebugMacros.h"
 #include "GenRefExprExecModel.h"
+#include "ITaskGenerateExecModelCustomGen.h"
 #include "TaskGenerateStruct.h"
 #include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecBlockNB.h"
@@ -94,7 +95,13 @@ void TaskGenerateStruct::generate_header_includes(vsc::dm::IDataTypeStruct *t, I
     for (std::set<vsc::dm::IDataTypeStruct *>::const_iterator
          it=m_info->referencedValTypes().begin();
          it!=m_info->referencedValTypes().end(); it++) {
-        out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(*it).c_str());
+        ITaskGenerateExecModelCustomGen *gen = 
+            dynamic_cast<ITaskGenerateExecModelCustomGen *>((*it)->getAssociatedData());
+        if (gen) {
+            gen->genDeclaration(m_ctxt, out, *it, true);
+        } else {
+            out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(*it).c_str());
+        }
     }
     out->println("#include \"model_api.h\"");
 

@@ -93,8 +93,14 @@ void TaskGenerateTypes::generate(vsc::dm::IDataTypeStruct *root) {
         std::string name = m_ctxt->nameMap()->getName(t);
         std::ofstream out_h_s(m_outdir + "/" + name + ".h");
         std::ofstream out_c_s(m_outdir + "/" + name + ".c");
+        IOutputUP out_h(new Output(&out_h_s, false));
+        IOutputUP out_c(new Output(&out_c_s, false));
 
-        TaskGenerateType(m_ctxt, &out_h_s, &out_c_s).generate(t);
+        TaskGenerateType(m_ctxt, out_h.get(), out_c.get()).generate(t);
+        out_h->close();
+        out_c->close();
+        out_h_s.close();
+        out_c_s.close();
     }
     DEBUG_LEAVE("generate %s", root->name().c_str());
 }

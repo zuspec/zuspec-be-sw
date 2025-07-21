@@ -48,12 +48,9 @@ namespace sw {
 
 
 TaskGenerateType::TaskGenerateType(
-        IContext                 *ctxt,
-        std::ostream             *out_h,
-        std::ostream             *out_c) :
-        m_ctxt(ctxt),
-        m_out_c(new Output(out_c, false)),
-        m_out_h(new Output(out_h, false)) {
+        IContext        *ctxt,
+        IOutput         *out_h,
+        IOutput         *out_c) : m_ctxt(ctxt), m_out_c(out_c), m_out_h(out_h) {
     DEBUG_INIT("zsp::be::sw::TaskGenerateType", ctxt->getDebugMgr());
 }
 
@@ -69,21 +66,21 @@ void TaskGenerateType::generate(vsc::dm::IDataTypeStruct *type_t) {
 void TaskGenerateType::visitDataTypeAction(arl::dm::IDataTypeAction *t) {
     DEBUG_ENTER("visitDataTypeAction");
     TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
-    TaskGenerateAction(m_ctxt, type_info.get(), m_out_h.get(), m_out_c.get()).generate(t);
+    TaskGenerateAction(m_ctxt, type_info.get(), m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeAction");
 }
 
 void TaskGenerateType::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
     DEBUG_ENTER("visitDataTypeComponent");
     TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
-    TaskGenerateComp(m_ctxt, type_info.get(), m_out_h.get(), m_out_c.get()).generate(t);
+    TaskGenerateComp(m_ctxt, type_info.get(), m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeComponent");
 }
 
 void TaskGenerateType::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {
     DEBUG_ENTER("visitDataTypeStruct");
     TypeInfoUP type_info = TypeInfoUP(TaskBuildTypeInfo(m_ctxt).build(t));
-    TaskGenerateStruct(m_ctxt, type_info.get(), m_out_h.get(), m_out_c.get()).generate(t);
+    TaskGenerateStruct(m_ctxt, type_info.get(), m_out_h, m_out_c).generate(t);
     DEBUG_LEAVE("visitDataTypeStruct");
 }
 

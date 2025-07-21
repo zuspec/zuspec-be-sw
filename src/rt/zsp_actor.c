@@ -47,6 +47,7 @@ static struct zsp_frame_s *zsp_actor_trampoline(
             zsp_action_type_t *action_t = va_arg(*args, zsp_action_type_t *);
             void *action_args = va_arg(*args, void *);
             zsp_init_ctxt_t init_ctxt;
+            zsp_frame_t *ret_t;
 
             ret = zsp_thread_alloc_frame(thread, 
                 sizeof(struct __locals_s)+((zsp_object_type_t *)comp_t)->size,
@@ -74,28 +75,31 @@ static struct zsp_frame_s *zsp_actor_trampoline(
             // Start component activities before starting
             // root activity
             ret->idx = 1;
-            ret = zsp_thread_call(
+            ret_t = zsp_thread_call(
                 thread,
                 zsp_component_type(__locals->comp)->do_run_start);
 
-            if (ret) {
+            if (ret_t) {
+                ret = ret_t;
                 break;
             }
         }
 
         case 1: {
             struct __locals_s *__locals = zsp_frame_locals(ret, struct __locals_s);
+            zsp_frame_t *ret_t;
 
             __locals->ctxt.comp = __locals->comp;
 
             ret->idx = 2;
-            ret = zsp_activity_traverse_type(
+            ret_t = zsp_activity_traverse_type(
                 thread,
                 &__locals->ctxt,
                 __locals->action_t,
                 0);
             
-            if (ret) {
+            if (ret_t) {
+                ret = ret_t;
                 break;
             }
         }

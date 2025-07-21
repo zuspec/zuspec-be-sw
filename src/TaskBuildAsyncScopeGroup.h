@@ -44,6 +44,10 @@ public:
 
     virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
 
+    virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+
+    virtual void visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) override;
+
     virtual void visitDataTypeFunction(arl::dm::IDataTypeFunction *t) override;
 
 	virtual void visitTypeExprBin(vsc::dm::ITypeExprBin *e) override;

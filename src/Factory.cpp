@@ -104,7 +104,11 @@ void Factory::generateType(
         vsc::dm::IDataTypeStruct                        *comp_t,
         std::ostream                                    *out_c,
         std::ostream                                    *out_h) {
-    TaskGenerateType(ctxt, out_c, out_h).generate(comp_t);
+    IOutputUP c_out(new Output(out_c, false));
+    IOutputUP h_out(new Output(out_h, false));
+    TaskGenerateType(ctxt, h_out.get(), c_out.get()).generate(comp_t);
+    c_out->close();
+    h_out->close();
 }
 
 void Factory::generateTypes(

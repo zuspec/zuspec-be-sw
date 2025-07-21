@@ -33,7 +33,8 @@ class TaskGenerateExecModelCustomGenBase :
     public virtual ITaskGenerateExecModelCustomGen {
 public:
     TaskGenerateExecModelCustomGenBase(
-        dmgr::IDebugMgr     *dmgr
+        dmgr::IDebugMgr     *dmgr,
+        Flags               flags=Flags::None
     );
 
     virtual ~TaskGenerateExecModelCustomGenBase();
@@ -62,10 +63,11 @@ public:
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) override;
 
-    virtual void genFwdDecl(
+    virtual void genDeclaration(
         IContext                            *ctxt,
         IOutput                             *out,
-        vsc::dm::IDataType                  *type) override;
+        vsc::dm::IDataType                  *type,
+        bool                                fwd) override;
 
     virtual void genDefinition(
         IContext                            *ctxt,
@@ -73,8 +75,16 @@ public:
         IOutput                             *out_c,
         vsc::dm::IDataType                  *type) override;
 
+    virtual bool hasFlags(Flags flags) override {
+        return ((
+            static_cast<uint32_t>(flags) 
+            & static_cast<uint32_t>(m_flags)) 
+            == static_cast<uint32_t>(flags));
+    }
+
 protected:
     dmgr::IDebug                *m_dbg;
+    Flags                       m_flags;
 
 };
 

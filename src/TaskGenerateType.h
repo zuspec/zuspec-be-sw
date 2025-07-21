@@ -42,9 +42,9 @@ class TaskGenerateType :
     public virtual arl::dm::VisitorBase {
 public:
     TaskGenerateType(
-        IContext                 *ctxt,   
-        std::ostream             *out_h,
-        std::ostream             *out_c);
+        IContext    *ctxt,
+        IOutput     *out_h,
+        IOutput     *out_c);
 
     virtual ~TaskGenerateType();
 
@@ -61,8 +61,8 @@ public:
 private:
     static dmgr::IDebug                 *m_dbg;
     IContext                            *m_ctxt;    
-    IOutputUP                            m_out_c;
-    IOutputUP                            m_out_h;
+    IOutput                             *m_out_c;
+    IOutput                             *m_out_h;
 };
 
 }

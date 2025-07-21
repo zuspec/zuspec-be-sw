@@ -28,7 +28,8 @@ namespace sw {
 
 
 TaskGenerateExecModelCustomGenBase::TaskGenerateExecModelCustomGenBase(
-    dmgr::IDebugMgr         *dmgr) : m_dbg(0) {
+    dmgr::IDebugMgr         *dmgr,
+    Flags                   flags) : m_dbg(0), m_flags(flags) {
 
 }
 
@@ -60,10 +61,11 @@ void TaskGenerateExecModelCustomGenBase::genExprMethodCallContextNB(
         IGenRefExpr                         *refgen,
         arl::dm::ITypeExprMethodCallContext *call) { }
         
-void TaskGenerateExecModelCustomGenBase::genFwdDecl(
+void TaskGenerateExecModelCustomGenBase::genDeclaration(
         IContext                            *ctxt,
         IOutput                             *out,
-        vsc::dm::IDataType                  *type) {
+        vsc::dm::IDataType                  *type,
+        bool                                fwd) {
     TaskGenerateExecModelFwdDecl(ctxt, out).generate_dflt(type);
 }
 

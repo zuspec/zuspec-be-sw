@@ -70,7 +70,7 @@ import target function void doit(int i, int j);
 
 component pss_top {
     activity {
-        do Sub;
+        do pss_top::Sub;
     }
 
     action Sub {

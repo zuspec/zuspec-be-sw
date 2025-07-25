@@ -1,5 +1,5 @@
-/**
- * TaskGenerateActionStruct.h
+/*
+ * TaskGenerateLocalsActivity.cpp
  *
  * Copyright 2023 Matthew Ballance and Contributors
  *
@@ -16,43 +16,30 @@
  * limitations under the License.
  *
  * Created on:
- *     Author: 
+ *     Author:
  */
-#pragma once
-#include "dmgr/IDebugMgr.h"
-#include "zsp/be/sw/IContext.h"
-#include "zsp/be/sw/IOutput.h"
-#include "TaskGenerateStructStruct.h"
+#include "TaskGenerateLocalsActivity.h"
+
 
 namespace zsp {
 namespace be {
 namespace sw {
 
 
+TaskGenerateLocalsActivity::TaskGenerateLocalsActivity(
+    IContext                *ctxt,
+    IOutput                 *out) : TaskGenerateLocals(ctxt, out) {
 
-class TaskGenerateActionStruct : 
-    public virtual TaskGenerateStructStruct {
-public:
-    TaskGenerateActionStruct(
-        IContext       *ctxt,
-        TypeInfo       *type_info,
-        IOutput        *out_h);
+}
 
-    virtual ~TaskGenerateActionStruct();
+TaskGenerateLocalsActivity::~TaskGenerateLocalsActivity() {
 
-    void generate(arl::dm::IDataTypeAction *action_t);
+}
 
-    virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
-
-    virtual void visitTypeFieldActivity(arl::dm::ITypeFieldActivity *t) override;
-
-protected:
-
-
-};
+void TaskGenerateLocalsActivity::generate_core_fields() {
+    m_out->println("zsp_activity_ctxt_t *__ctxt;");
+}
 
 }
 }
 }
-
-

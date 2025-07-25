@@ -66,6 +66,7 @@ component pss_top {
 
 def test_comp_activity_1(tmpdir):
     pss_top = """
+import target function void doit1(int i, int j);
 import target function void doit(int i, int j);
 
 component pss_top {
@@ -81,7 +82,7 @@ component pss_top {
 
     action Entry {
         exec body {
-            repeat (i : 100) {
+            repeat (i : 2) {
                 int x = 5;
 //                repeat (j : 5) {
                     doit(i, x);
@@ -96,6 +97,10 @@ component pss_top {
 
     async def doit(i, j):
         print("doit %d,%d" % (i,j), flush=True)
+        pass
+
+    async def doit1(i, j):
+        print("doit1 %d,%d" % (i,j), flush=True)
         pass
 
     actor = model.mk_actor("pss_top::Entry")

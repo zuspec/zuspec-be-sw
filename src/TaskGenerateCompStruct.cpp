@@ -40,8 +40,23 @@ TaskGenerateCompStruct::~TaskGenerateCompStruct() {
 
 }
 
+void TaskGenerateCompStruct::generate_suffix(vsc::dm::IDataTypeStruct *i) {
+    arl::dm::IDataTypeComponent *c = dynamic_cast<arl::dm::IDataTypeComponent *>(i);
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+        it=c->activities().begin();
+        it!=c->activities().end(); it++) {
+        m_out->println("zsp_thread_t activity_%p_thread;", it->get());
+        m_out->println("zsp_activity_ctxt_t activity_%p_ctxt;", it->get());
+    }
+    TaskGenerateStructStruct::generate_suffix(i);
+}
+
 void TaskGenerateCompStruct::visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) {
     m_out->write("%s_t ", m_ctxt->nameMap()->getName(t).c_str());
+}
+
+void TaskGenerateCompStruct::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
+    visitDataTypeArlStruct(t);
 }
 
 }

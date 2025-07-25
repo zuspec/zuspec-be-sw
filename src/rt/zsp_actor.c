@@ -77,7 +77,8 @@ static struct zsp_frame_s *zsp_actor_trampoline(
             ret->idx = 1;
             ret_t = zsp_thread_call(
                 thread,
-                zsp_component_type(__locals->comp)->do_run_start);
+                zsp_component_type(__locals->comp)->do_run_start,
+                __locals->comp);
 
             if (ret_t) {
                 ret = ret_t;

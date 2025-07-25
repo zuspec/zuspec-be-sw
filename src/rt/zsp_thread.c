@@ -460,14 +460,17 @@ zsp_frame_t *zsp_thread_return(zsp_thread_t *thread, uintptr_t rval) {
         zsp_frame_t *prev = ret->prev;
 
         thread->leaf = prev;
+        ret = prev;
         if ((thread->flags & ZSP_THREAD_FLAGS_INITIAL) != 0) {
             ret = 0;
-        } else if (prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
-            // Unblock the frame before calling
-            thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-            ret = prev->func(thread, prev->idx, 0);
-            thread->leaf = ret;
-        }
+        } else {
+            if (prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
+                // Unblock the frame before calling
+                thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+                ret = prev->func(thread, prev->idx, 0);
+                thread->leaf = ret;
+            }
+        } 
     }
 
     return ret;

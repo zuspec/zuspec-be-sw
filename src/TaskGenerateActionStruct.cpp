@@ -43,7 +43,8 @@ TaskGenerateActionStruct::~TaskGenerateActionStruct() {
 
 void TaskGenerateActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
     DEBUG_ENTER("generate");
-
+    TaskGenerateStructStruct::generate(action_t);
+#ifdef UNDEFINED
     m_depth = 0;
     m_ptr = 0;
     m_field = 0;
@@ -52,7 +53,6 @@ void TaskGenerateActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
     m_out->println("typedef struct %s_s {", 
         m_ctxt->nameMap()->getName(action_t).c_str());
     m_out->inc_ind();
-    m_out->println("zsp_rt_task_t task;");
 
     // Setup to handle shadowed variables
     for (std::vector<vsc::dm::ITypeFieldUP>::const_reverse_iterator
@@ -78,8 +78,14 @@ void TaskGenerateActionStruct::generate(arl::dm::IDataTypeAction *action_t) {
     m_out->dec_ind();
     m_out->println("} %s_t;", 
         m_ctxt->nameMap()->getName(action_t).c_str());
+#endif // UNDEFINED
 
     DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateActionStruct::visitTypeFieldActivity(arl::dm::ITypeFieldActivity *t) {
+    DEBUG_ENTER("visitTypeFieldActivity");
+    DEBUG_LEAVE("visitTypeFieldActivity");
 }
 
 void TaskGenerateActionStruct::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {

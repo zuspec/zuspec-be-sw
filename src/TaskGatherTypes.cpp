@@ -41,6 +41,32 @@ void TaskGatherTypes::gather(vsc::dm::IAccept *item) {
     DEBUG_LEAVE("gather");
 }
 
+void TaskGatherTypes::visitDataTypeActivity(arl::dm::IDataTypeActivity *t) {
+    DEBUG_ENTER("visitDataTypeActivity");
+    DEBUG("Note: ignoring activity type %p", t);
+    DEBUG_LEAVE("visitDataTypeActivity");
+}
+
+void TaskGatherTypes::visitDataTypeActivityParallel(arl::dm::IDataTypeActivityParallel *t) {
+    DEBUG_ENTER("visitDataTypeActivityParallel");
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+            it=t->getActivities().begin();
+            it!=t->getActivities().end(); it++) {
+        (*it)->getDataType()->accept(m_this);
+    }
+    DEBUG_LEAVE("visitDataTypeActivityParallel");
+}
+
+void TaskGatherTypes::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) {
+    DEBUG_ENTER("visitDataTypeActivitySequence");
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+            it=t->getActivities().begin();
+            it!=t->getActivities().end(); it++) {
+        (*it)->getDataType()->accept(m_this);
+    }
+    DEBUG_LEAVE("visitDataTypeActivitySequence");
+}
+
 void TaskGatherTypes::visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) {
     DEBUG_ENTER("visitDataTypeArlStruct");
     if (m_types_s.find(t) == m_types_s.end()) {
@@ -57,6 +83,17 @@ void TaskGatherTypes::visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) {
         }
     }
     DEBUG_LEAVE("visitDataTypeArlStruct");
+}
+
+void TaskGatherTypes::visitDataTypeComponent(arl::dm::IDataTypeComponent *t) {
+    DEBUG_ENTER("visitDataTypeComponent %s", t->name().c_str());
+    visitDataTypeArlStruct(t);
+    for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
+            it=t->activities().begin();
+            it!=t->activities().end(); it++) {
+        (*it)->getDataType()->accept(m_this);
+    }
+    DEBUG_LEAVE("visitDataTypeComponent %s", t->name().c_str());
 }
 
 void TaskGatherTypes::visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) {

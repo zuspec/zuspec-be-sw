@@ -54,6 +54,13 @@ TaskGenerateAction::~TaskGenerateAction() {
 
 }
 
+void TaskGenerateAction::generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) {
+    DEBUG_ENTER("generate_data_type");
+    TaskGenerateActionStruct(m_ctxt, m_info, out).generate(
+        dynamic_cast<arl::dm::IDataTypeAction *>(t));
+    DEBUG_LEAVE("generate_data_type");
+}
+
 void TaskGenerateAction::generate_type(
     vsc::dm::IDataTypeStruct    *t,
     IOutput                     *out_h,

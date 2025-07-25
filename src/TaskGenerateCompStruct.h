@@ -41,9 +41,13 @@ public:
 
     virtual const char *default_base_type() const { return "zsp_component_t"; }
 
+    virtual void generate_suffix(vsc::dm::IDataTypeStruct *i) override;
+
     virtual void generate_dtor(vsc::dm::IDataTypeStruct *i) override { }
 
     virtual void visitDataTypeAddrSpaceTransparentC(arl::dm::IDataTypeAddrSpaceTransparentC *t) override;
+
+    virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
 
 
 };

@@ -66,6 +66,13 @@ void TaskGenerateComp::generate(vsc::dm::IDataTypeStruct *t) {
     m_out_h->println("#endif /* INCLUDED_%s_H */", m_ctxt->nameMap()->getName(t).c_str());
 }
 
+void TaskGenerateComp::generate_header_includes(vsc::dm::IDataTypeStruct *t, IOutput *out) {
+    DEBUG_ENTER("generate_header_includes");
+    TaskGenerateStruct::generate_header_includes(t, out);
+    out->println("#include \"zsp/be/sw/rt/zsp_activity_ctxt.h\"");
+    DEBUG_LEAVE("generate_header_includes");
+}
+
 void TaskGenerateComp::generate_init(
         vsc::dm::IDataTypeStruct *t, 
         IOutput                 *out_h,

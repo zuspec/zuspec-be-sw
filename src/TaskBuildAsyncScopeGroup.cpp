@@ -132,17 +132,32 @@ void TaskBuildAsyncScopeGroup::visitDataTypeActivity(arl::dm::IDataTypeActivity 
 
 void TaskBuildAsyncScopeGroup::visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) {
     DEBUG_ENTER("visitDataTypeActivitySequence");
+    Locals *locals = new Locals(t, m_locals_s.size()?m_locals_s.back():0);
+    enter_scope(t);
+
+
+    if (!m_locals_root) {
+        m_locals_root = locals;
+    }
+    m_locals_s.push_back(locals);
+
+
     for (std::vector<arl::dm::ITypeFieldActivityUP>::const_iterator
         it=t->getActivities().begin();
         it!=t->getActivities().end(); it++) {
         (*it)->accept(m_this);
     }
+
+    leave_scope();
+
     DEBUG_LEAVE("visitDataTypeActivitySequence");
 }
 
 void TaskBuildAsyncScopeGroup::visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) {
     DEBUG_ENTER("visitDataTypeActivityTraverseType");
+    m_scopes.at(m_scopes.size()-2)->addStatement(t, false);
 
+    newScope();
     DEBUG_LEAVE("visitDataTypeActivityTraverseType");
 }
 
@@ -390,10 +405,6 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back():0);
     m_scope_s.push_back(s);
 
-    if (!m_locals_root) {
-        m_locals_root = locals;
-    }
-
     // Already know we need a type
     if (s->getNumVariables() || !m_locals_type_l.size()) {
         DEBUG("new locals scope: numVariables=%d", s->getNumVariables());
@@ -404,6 +415,14 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
         } else {
             locals->type = mk_type();
         }
+    }
+
+    if (!m_locals_root) {
+        m_locals_root = locals;
+
+        DEBUG("setAssociatedData");
+        m_scopes.front()->setAssociatedData(
+            new ScopeLocalsAssociatedData(m_locals_type_l.front().get(), m_scope_s));
     }
 
     s->setAssociatedData(new ScopeLocalsAssociatedData(

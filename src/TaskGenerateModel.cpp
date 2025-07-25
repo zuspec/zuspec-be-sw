@@ -116,6 +116,8 @@ void TaskGenerateModel::generate(
         std::string basename = m_outdir + "/";
         basename += m_ctxt->nameMap()->getName(*it);
 
+        DEBUG("Generating type: %s", basename.c_str());
+
         std::ofstream os_c(basename + ".c");
         std::ofstream os_h(basename + ".h");
         IOutputUP out_c(new Output(&os_c, false));

@@ -49,6 +49,8 @@ public:
 
     virtual const char *default_base_header() const { return "zsp_action.h"; }
 
+    virtual void generate_data_type(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
+
     virtual void generate_type(
         vsc::dm::IDataTypeStruct    *t, 
         IOutput                     *out_h,

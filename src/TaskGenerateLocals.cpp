@@ -40,8 +40,7 @@ TaskGenerateLocals::~TaskGenerateLocals() {
 void TaskGenerateLocals::generate(vsc::dm::IDataTypeStruct *t) {
     m_out->println("typedef struct %s_s {", m_ctxt->nameMap()->getName(t).c_str());
     m_out->inc_ind();
-    m_out->println("zsp_executor_t *__exec_b;");
-    m_out->println("model_api_t *__api;");
+    generate_core_fields();
     for (std::vector<vsc::dm::ITypeFieldUP>::const_iterator
         it=t->getFields().begin();
         it!=t->getFields().end(); it++) {
@@ -78,6 +77,11 @@ void TaskGenerateLocals::visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) {
     m_field = f;
     m_isref = true;
     f->getDataType()->accept(m_this);
+}
+
+void TaskGenerateLocals::generate_core_fields() {
+    m_out->println("zsp_executor_t *__exec_b;");
+    m_out->println("model_api_t *__api;");
 }
 
 dmgr::IDebug *TaskGenerateLocals::m_dbg = 0;

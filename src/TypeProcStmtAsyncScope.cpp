@@ -36,10 +36,11 @@ TypeProcStmtAsyncScope::~TypeProcStmtAsyncScope() {
 
 }
 
-void TypeProcStmtAsyncScope::addStatement(ITypeProcStmt *stmt, bool owned) {
-    m_statements.push_back(arl::dm::ITypeProcStmtUP(stmt, owned));
+void TypeProcStmtAsyncScope::addStatement(IAccept *stmt, bool owned) {
+    m_statements.push_back(vsc::dm::IAcceptUP(stmt, owned));
 }
 
+#ifdef UNDEFINED
 void TypeProcStmtAsyncScope::insertStatement(
         int32_t                 i,
         ITypeProcStmt           *stmt) {
@@ -69,12 +70,14 @@ int32_t TypeProcStmtAsyncScope::addVariable(vsc::dm::ITypeVar *v, bool owned) {
     return -1;
 }
 
+#endif // UNDEFINED
+
 void TypeProcStmtAsyncScope::accept(vsc::dm::IVisitor *v) {
     if (dynamic_cast<IVisitor *>(v)) {
         dynamic_cast<IVisitor *>(v)->visitTypeProcStmtAsyncScope(this);
-    } else if (dynamic_cast<arl::dm::IVisitor *>(v)) {
-        dynamic_cast<arl::dm::IVisitor *>(v)->visitTypeProcStmtScope(this);
-    }
+    }// else if (dynamic_cast<arl::dm::IVisitor *>(v)) {
+//        dynamic_cast<arl::dm::IVisitor *>(v)->visitTypeProcStmtScope(this);
+//    }
 }
 
 }

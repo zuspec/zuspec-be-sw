@@ -47,7 +47,10 @@ public:
 
     virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
 
-private:
+protected:
+    virtual void generate_core_fields();
+
+protected:
     static dmgr::IDebug         *m_dbg;
     IContext                    *m_ctxt;
     IOutput                     *m_out;

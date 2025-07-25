@@ -51,11 +51,7 @@ public:
 
     virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
 
-    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) override;
-
     virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
-
-    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *s) override;
 
     virtual void visitTypeProcStmtIfElse(arl::dm::ITypeProcStmtIfElse *s) override;
 
@@ -66,6 +62,12 @@ public:
     virtual void visitTypeExprMethodCallContext(arl::dm::ITypeExprMethodCallContext *e) override;
 
     virtual void visitTypeExprMethodCallStatic(arl::dm::ITypeExprMethodCallStatic *e) override;
+
+protected:
+
+    virtual void generate_locals(vsc::dm::IDataTypeStruct *locals_t) override;
+
+    virtual void generate_init_locals() override;
 
 
 private:

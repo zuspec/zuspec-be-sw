@@ -48,6 +48,8 @@ public:
 
     virtual void generate(vsc::dm::IDataTypeStruct *t) override;
 
+    virtual void generate_header_includes(vsc::dm::IDataTypeStruct *t, IOutput *out) override;
+
     virtual void generate_init(
         vsc::dm::IDataTypeStruct *t, 
         IOutput                 *out_h,

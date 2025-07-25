@@ -44,6 +44,13 @@ public:
 
     void generate(vsc::dm::IDataType *activity);
 
+    virtual void visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) override;
+
+protected:
+
+    virtual void generate_locals(vsc::dm::IDataTypeStruct *locals_t) override;
+
+    virtual void generate_init_locals() override;
 
 };
 

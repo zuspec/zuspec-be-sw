@@ -45,11 +45,20 @@ public:
         return m_types;
     }
 
+    virtual void visitDataTypeActivity(arl::dm::IDataTypeActivity *t) override;
+
+    virtual void visitDataTypeActivityParallel(arl::dm::IDataTypeActivityParallel *t) override;
+
+    virtual void visitDataTypeActivitySequence(arl::dm::IDataTypeActivitySequence *t) override;
+
+    virtual void visitDataTypeComponent(arl::dm::IDataTypeComponent *t) override;
+
     virtual void visitDataTypeStruct(vsc::dm::IDataTypeStruct *t) override;
 
     virtual void visitDataTypeArlStruct(arl::dm::IDataTypeArlStruct *t) override;
 
     virtual void visitTypeFieldRef(vsc::dm::ITypeFieldRef *f) override;
+
 
 
 private:

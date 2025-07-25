@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "TaskGenerateExecModel.h"
 #include "TaskGenerateActivity.h"
+#include "TaskGenerateLocalsActivity.h"
 #include "TaskBuildAsyncScopeGroup.h"
 
 
@@ -46,6 +47,22 @@ void TaskGenerateActivity::generate(vsc::dm::IDataType *activity) {
     DEBUG_ENTER("generate");
     TaskGenerateAsyncBase::generate(activity);
     DEBUG_LEAVE("generate");
+}
+
+void TaskGenerateActivity::visitDataTypeActivityTraverseType(arl::dm::IDataTypeActivityTraverseType *t) {
+    DEBUG_ENTER("visitDataTypeActivityTraverseType");
+    m_out->write("ret->idx = %d;\n", m_next_scope_id);
+    m_out->println("ret = zsp_activity_traverse_type(thread, __locals->__ctxt, %s__type(), 0);",
+        m_ctxt->nameMap()->getName(t->getTarget()).c_str());
+    DEBUG_LEAVE("visitDataTypeActivityTraverseType");
+}
+
+void TaskGenerateActivity::generate_locals(vsc::dm::IDataTypeStruct *locals_t) {
+    TaskGenerateLocalsActivity(m_ctxt, m_out).generate(locals_t);
+}
+
+void TaskGenerateActivity::generate_init_locals() {
+    m_out->println("__locals->__ctxt = va_arg(*args, zsp_activity_ctxt_t *);");
 }
 
 

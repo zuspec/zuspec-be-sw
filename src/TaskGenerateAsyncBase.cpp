@@ -22,6 +22,7 @@
 #include "TaskBuildAsyncScopeGroup.h"
 #include "TaskGenerateAsyncBase.h"
 #include "TaskGenerateLocals.h"
+#include "TypeProcStmtGotoAsyncScope.h"
 #include "OutputStr.h"
 
 namespace zsp {
@@ -42,6 +43,92 @@ TaskGenerateAsyncBase::~TaskGenerateAsyncBase() {
 
 }
 
+void TaskGenerateAsyncBase::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtAsyncScope");
+    ScopeLocalsAssociatedData *scope = 
+        dynamic_cast<ScopeLocalsAssociatedData *>(s->getAssociatedData());
+
+    if (s->id() != -1) {
+        m_out->println("case %d: {", s->id());
+        m_out->inc_ind();
+        m_out->println("CASE_%d:", s->id());
+        m_next_scope_id = s->id()+1;
+    } else {
+        m_out->println("default: {");
+        m_out->inc_ind();
+        m_out->println("CASE_DEFAULT:");
+        m_next_scope_id = -2;
+    }
+
+    m_scope_s.clear();
+    for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+        it=scope->scopes().begin();
+        it!=scope->scopes().end(); it++) {
+        m_scope_s.push_back(*it);
+        m_refgen->pushScope(*it);
+    }
+
+    if (s->id() == 0) {
+        // Entry scope is unique in that we must grab parameters
+        m_out->println("%s_t *__locals;", m_ctxt->nameMap()->getName(scope->type()).c_str());
+        m_out->println("ret = zsp_thread_alloc_frame(thread, sizeof(%s_t), &%s);",
+            m_ctxt->nameMap()->getName(m_largest_locals).c_str(),
+            m_fname.c_str());
+        m_out->println("__locals = zsp_frame_locals(ret, %s_t);",
+            m_ctxt->nameMap()->getName(scope->type()).c_str());
+        generate_init_locals();
+    } else {
+        if (scope) {
+            for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+                it=scope->scopes().begin();
+                it!=scope->scopes().end(); it++) {
+                ScopeLocalsAssociatedData *data = dynamic_cast<ScopeLocalsAssociatedData *>(
+                    (*it)->getAssociatedData());
+                if (it != scope->scopes().begin()) {
+                    m_out->println("{");
+                    m_out->inc_ind();
+                }
+                m_out->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);", 
+                    m_ctxt->nameMap()->getName(data->type()).c_str(),
+                    m_ctxt->nameMap()->getName(data->type()).c_str());
+            }
+        }
+    }
+
+    for (std::vector<vsc::dm::IAcceptUP>::const_iterator
+        it=s->getStatements().begin();
+        it!=s->getStatements().end(); it++) {
+        (*it)->accept(m_this);
+    }
+    if (s->id() == -1) {
+        // Check whether the function has explicitly returned. 
+        // If not, then perform a default termination
+        m_out->println("if (ret == thread->leaf) {");
+        m_out->inc_ind();
+        m_out->println("ret = zsp_thread_return(thread, 0);");
+        m_out->dec_ind();
+        m_out->println("}");
+    }
+
+    for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
+        it=m_scope_s.begin();
+        it!=m_scope_s.end(); it++) {
+        m_refgen->popScope();
+        m_out->dec_ind();
+        m_out->println("}");
+    }
+
+    // m_out->dec_ind();
+    // m_out->println("}");
+    DEBUG_LEAVE("visitTypeProcStmtAsyncScope");
+}
+
+void TaskGenerateAsyncBase::visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *s) {
+    DEBUG_ENTER("visitTypeProcStmtGotoAsyncScope");
+    m_out->println("goto CASE_%d;", s->target()->id());
+    DEBUG_LEAVE("visitTypeProcStmtGotoAsyncScope");
+}
+
 void TaskGenerateAsyncBase::generate(vsc::dm::IAccept *it) {
     // Add a new namespace for the locals
     m_ctxt->nameMap()->push();
@@ -57,7 +144,7 @@ void TaskGenerateAsyncBase::generate(vsc::dm::IAccept *it) {
     for (std::vector<vsc::dm::IDataTypeStructUP>::const_iterator
         it=group->localsTypes().begin();
         it!=group->localsTypes().end(); it++) {
-        TaskGenerateLocals(m_ctxt, m_out).generate(it->get());
+        generate_locals(it->get());
     }
     m_out->println("zsp_frame_t *ret = thread->leaf;");
 

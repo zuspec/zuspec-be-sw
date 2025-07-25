@@ -42,10 +42,18 @@ public:
 
     virtual ~TaskGenerateAsyncBase();
 
+    virtual void visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *s) override;
+
+    virtual void visitTypeProcStmtGotoAsyncScope(TypeProcStmtGotoAsyncScope *s) override;
+
 protected:
     virtual void generate(vsc::dm::IAccept *it);
 
     virtual void enter_stmt(arl::dm::ITypeProcStmt *s);
+
+    virtual void generate_locals(vsc::dm::IDataTypeStruct *locals_t) = 0;
+
+    virtual void generate_init_locals() = 0;
 
 protected:
     dmgr::IDebug                            *m_dbg;

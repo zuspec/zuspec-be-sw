@@ -24,11 +24,10 @@ class TaskClosure(Closure):
     sched : ctypes.c_void_p = None
     thread : ctypes.c_void_p = None
     api : Any = None
-    args : Any = None
 
-    async def body(self):
+    async def body(self, args):
         try:
-            ret = await self.impl(*self.args)
+            ret = await self.impl(*args)
 
             if ret is None:
                 ret = 0
@@ -54,7 +53,7 @@ class TaskClosure(Closure):
         self.sched = api._zsp_thread_scheduler(thread)
 
         # TODO:
-        self.args = []
+        t_args = []
 
         try:
             # First argument is always the API class. Ignore
@@ -64,7 +63,7 @@ class TaskClosure(Closure):
                     if pt == ctypes.c_char_p:
                         # TODO: convert to string
                         pass
-                    self.args.append(val)
+                    t_args.append(val)
         except Exception as e:
             print("Exception in TaskClosure.func: %s" % e, flush=True)
 
@@ -80,7 +79,7 @@ class TaskClosure(Closure):
         # Use signature to extract user arguments
         # Use the event look to start the body
         loop = asyncio.get_event_loop()
-        loop.create_task(self.body())
+        loop.create_task(self.body(t_args))
 
 
 #        self.api = api

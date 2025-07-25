@@ -21,6 +21,7 @@
 #include "dmgr/impl/DebugMacros.h"
 #include "GenRefExprExecModel.h"
 #include "ITaskGenerateExecModelCustomGen.h"
+#include "TaskGatherTypes.h"
 #include "TaskGenerateStruct.h"
 #include "TaskBuildTypeInfo.h"
 #include "TaskGenerateExecBlockNB.h"
@@ -118,9 +119,17 @@ void TaskGenerateStruct::generate_header_typedefs(vsc::dm::IDataTypeStruct *t, I
 
 void TaskGenerateStruct::generate_source_includes(vsc::dm::IDataTypeStruct *t, IOutput *out) {
     DEBUG_ENTER("generate_source_includes");
+    TaskGatherTypes types(m_ctxt);
+    types.gather(t);
+    out->println("#include \"zsp/be/sw/rt/zsp_activity_traverse.h\"");
     out->println("#include \"zsp/be/sw/rt/zsp_executor.h\"");
     out->println("#include \"zsp/be/sw/rt/zsp_thread.h\"");
     out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(t).c_str());
+    for (std::vector<vsc::dm::IDataTypeStruct *>::const_iterator
+        it=types.types().begin();
+        it!=types.types().end(); it++) {
+        out->println("#include \"%s.h\"", m_ctxt->nameMap()->getName(*it).c_str());
+    }
     // TODO: need to include *our* actor...
     out->println("#include \"zsp/be/sw/rt/zsp_actor.h\"");
     out->println("");

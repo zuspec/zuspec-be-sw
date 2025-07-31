@@ -55,6 +55,8 @@ protected:
 
     virtual void generate_init_locals() = 0;
 
+    virtual void init_locals(vsc::dm::IDataTypeStruct *t, int32_t start=0);
+
 protected:
     dmgr::IDebug                            *m_dbg;
     IContext                                *m_ctxt;

@@ -252,7 +252,7 @@ void TaskBuildAsyncScopeGroup::visitTypeExprMethodCallStatic(arl::dm::ITypeExprM
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeExecProc(arl::dm::ITypeExecProc *e) {
-    DEBUG_ENTER("visitTypeProcStmtScope");
+    DEBUG_ENTER("visitTypeExecProc");
     enter_scope(e->getBody());
     // Explicitly set the context data for the entry scope
     m_scopes.front()->setAssociatedData(
@@ -263,13 +263,24 @@ void TaskBuildAsyncScopeGroup::visitTypeExecProc(arl::dm::ITypeExecProc *e) {
 		(*it)->accept(m_this);
 	}
     leave_scope();
-    DEBUG_LEAVE("visitTypeProcStmtScope");
+    DEBUG_LEAVE("visitTypeExecProc");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmt(arl::dm::ITypeProcStmt *s) {
     DEBUG_ENTER("visitTypeProcStmt");
     visit_stmt(s);
     DEBUG_LEAVE("visitTypeProcStmt");
+}
+
+void TaskBuildAsyncScopeGroup::visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) {
+    DEBUG_ENTER("visitTypeProcStmtAssign");
+    // Partition the expression if required
+    s->getRhs()->accept(m_this);
+
+    visit_stmt(s);
+    // TODO: Create a new statement if the RHS has been paritioned
+    add_to_scope(s, false);
+    DEBUG_LEAVE("visitTypeProcStmtAssign");
 }
 
 void TaskBuildAsyncScopeGroup::visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) {
@@ -295,12 +306,12 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRep
     vsc::dm::IAssociatedData *s_assoc_data = currentScope()->getAssociatedData();
 
     // TODO: Add an initialization statement
-    arl::dm::ITypeProcStmtAssign *assign = m_ctxt->ctxt()->mkTypeProcStmtAssign(
-            m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, 0),
-            arl::dm::TypeProcStmtAssignOp::Eq,
-            m_ctxt->ctxt()->mkTypeExprVal(m_ctxt->ctxt()->mkValRefInt(0, true, 32)));
-    currentScope()->addStatement(assign);
-    visit_stmt(assign);
+    // arl::dm::ITypeProcStmtAssign *assign = m_ctxt->ctxt()->mkTypeProcStmtAssign(
+    //         m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, 0),
+    //         arl::dm::TypeProcStmtAssignOp::Eq,
+    //         m_ctxt->ctxt()->mkTypeExprVal(m_ctxt->ctxt()->mkValRefInt(0, true, 32)));
+    // currentScope()->addStatement(assign);
+    // visit_stmt(assign);
 
     // Establish a new async scope that serves as the head of the loop
     TypeProcStmtAsyncScope *head = newScope();
@@ -391,6 +402,10 @@ void TaskBuildAsyncScopeGroup::visitTypeProcStmtYield(arl::dm::ITypeProcStmtYiel
     DEBUG_LEAVE("visitTypeProcStmtYield");
 }
 
+void TaskBuildAsyncScopeGroup::add_to_scope(vsc::dm::IAccept *s, bool owned) {
+    currentScope()->addStatement(s, owned);
+}
+
 TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
     Locals *l = m_locals_s.back();
     TypeProcStmtAsyncScope *cur = currentScope();
@@ -402,13 +417,27 @@ TypeProcStmtAsyncScope *TaskBuildAsyncScopeGroup::newScope() {
 
 void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
     DEBUG_ENTER("enter_scope");
+    bool new_scope = false;
     Locals *locals = new Locals(s, m_locals_s.size()?m_locals_s.back():0);
     m_scope_s.push_back(s);
 
     // Already know we need a type
     if (s->getNumVariables() || !m_locals_type_l.size()) {
         DEBUG("new locals scope: numVariables=%d", s->getNumVariables());
+        uint32_t start = 0;
+        if (m_locals_type_l.size()) {
+            start = m_locals_type_l.back()->getFields().size();
+        }
+
         locals->type = mk_type();
+
+        DEBUG("start=%d fields=%d", start, locals->type->getFields().size());
+
+        for (uint32_t i=0; i<s->getNumVariables(); i++) {
+            DEBUG("Initialize field %s", s->getVariables().at(i)->name().c_str());
+            init_var(s->getVariables().at(i).get(), i);
+        }
+        new_scope = true;
     } else {
         if (locals->upper) {
             locals->type = locals->upper->type;
@@ -421,14 +450,14 @@ void TaskBuildAsyncScopeGroup::enter_scope(vsc::dm::ITypeVarScope *s) {
         m_locals_root = locals;
 
         DEBUG("setAssociatedData");
-        m_scopes.front()->setAssociatedData(
-            new ScopeLocalsAssociatedData(m_locals_type_l.front().get(), m_scope_s));
+        m_scopes.front()->setAssociatedData(new ScopeLocalsAssociatedData(
+            m_locals_type_l.front().get(), m_scope_s, new_scope));
     }
 
     s->setAssociatedData(new ScopeLocalsAssociatedData(
-        locals->type, m_scope_s));
+        locals->type, m_scope_s, new_scope));
     m_locals_s.push_back(locals);
-    DEBUG_LEAVE("enter_scope");
+    DEBUG_LEAVE("enter_scope (new_scope=%d)", new_scope);
 }
 
 void TaskBuildAsyncScopeGroup::visit_stmt(arl::dm::ITypeProcStmt *s) {
@@ -503,7 +532,9 @@ void TaskBuildAsyncScopeGroup::build_scope_types(Locals *l) {
     //      it!=l->scope->getVariables().end(); it++) {
     //     local_names.insert((*it)->name());
     // }
-    add_fields(l->type, l, local_names, shadow_id);
+    if (!l->upper || l->type != l->upper->type) {
+        add_fields(l->type, l, local_names, shadow_id);
+    }
     DEBUG_LEAVE("build_scope_types");
 }
 
@@ -532,7 +563,7 @@ void TaskBuildAsyncScopeGroup::add_fields(
         Locals                      *l,
         std::set<std::string>       &names,
         int32_t                     &shadow_id) {
-    DEBUG_ENTER("add_fields %s", type->name().c_str());
+    DEBUG_ENTER("add_fields %s", type->name().c_str(), l->scope);
 
     // Create the fields that we will add, observing
     // shadowing rules
@@ -562,7 +593,9 @@ void TaskBuildAsyncScopeGroup::add_fields(
 
     // Add fields depth-first
     if (l->upper) {
+        DEBUG_ENTER("upper");
         add_fields(type, l->upper, names, shadow_id);
+        DEBUG_LEAVE("upper");
     }
 
     // Finally, add our fields to the type
@@ -573,6 +606,42 @@ void TaskBuildAsyncScopeGroup::add_fields(
     }
 
     DEBUG_LEAVE("add_fields %s", type->name().c_str());
+}
+
+void TaskBuildAsyncScopeGroup::init_var(vsc::dm::ITypeVar *v, int32_t idx) {
+    arl::dm::ITypeProcStmtVarDecl *f;
+    DEBUG_ENTER("init_var %s", v->name().c_str());
+
+    if ((f=dynamic_cast<arl::dm::ITypeProcStmtVarDecl *>(v))) {
+        DEBUG("Is var-decl");
+        vsc::dm::ITypeExpr *init = 0;
+        bool init_owned = true;
+
+        if (f->getInit()) {
+            DEBUG("Has an initial value");
+            init_owned = false;
+            init = f->getInit();
+        } else {
+            // TODO: Must create an initializer based on the type
+            DEBUG("No initial value");
+            init = m_ctxt->ctxt()->mkTypeExprVal(
+                m_ctxt->ctxt()->mkValRefInt(0, true, 32)
+            );
+        }
+
+        arl::dm::ITypeProcStmtAssign *stmt = m_ctxt->ctxt()->mkTypeProcStmtAssign(
+            m_ctxt->ctxt()->mkTypeExprRefBottomUp(0, idx),
+            arl::dm::TypeProcStmtAssignOp::Eq,
+            init,
+            true, // lhs_owned
+            init_owned // rhs_owned
+        );
+        stmt->setAssociatedData(
+            new ScopeLocalsAssociatedData(m_locals_type_l.back().get(), m_scope_s));
+        currentScope()->addStatement(stmt);
+    }
+
+    DEBUG_LEAVE("init_var %s", v->name().c_str());
 }
 
 dmgr::IDebug *TaskBuildAsyncScopeGroup::m_dbg = 0;

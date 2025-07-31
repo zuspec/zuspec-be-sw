@@ -34,8 +34,10 @@ class ScopeLocalsAssociatedData :
 public:
     ScopeLocalsAssociatedData(
         vsc::dm::IDataTypeStruct                    *type,
-        const std::vector<vsc::dm::ITypeVarScope *> &scopes) : 
-        m_type(type), m_scopes(scopes.begin(), scopes.end())  { }
+        const std::vector<vsc::dm::ITypeVarScope *> &scopes,
+        bool                                        new_scope=false) : 
+        m_type(type), m_scopes(scopes.begin(), scopes.end()),
+        m_new_scope(new_scope)  { }
 
     virtual ~ScopeLocalsAssociatedData() { }
 
@@ -43,9 +45,12 @@ public:
 
     const std::vector<vsc::dm::ITypeVarScope *> &scopes() const { return m_scopes; }
 
+    bool new_scope() const { return m_new_scope; }
+
 private:
     vsc::dm::IDataTypeStruct                *m_type;
     std::vector<vsc::dm::ITypeVarScope *>   m_scopes;
+    bool                                    m_new_scope;
 
 };
 

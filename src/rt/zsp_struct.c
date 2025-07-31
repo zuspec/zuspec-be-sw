@@ -45,3 +45,49 @@ void zsp_struct_init(
 
 }
 
+void zsp_struct_apply_init(struct zsp_struct_s *this_p, va_list *init) {
+    zsp_apply_f apply;
+
+    if (!init) return;
+
+    while ((apply=va_arg(*init, zsp_apply_f))) {
+        apply(this_p, init);
+    }
+}
+
+void zsp_struct_apply_int8(struct zsp_struct_s *this_p, va_list *init) {
+    uint32_t offset = va_arg(*init, uint32_t);
+    *((uint8_t *)(((uintptr_t)this_p)+offset)) = va_arg(*init, uint8_t);
+}
+
+void zsp_struct_apply_int16(struct zsp_struct_s *this_p, va_list *init) {
+    uint32_t offset = va_arg(*init, uint32_t);
+    *((uint16_t *)(((uintptr_t)this_p)+offset)) = va_arg(*init, uint16_t);
+}
+
+void zsp_struct_apply_int32(struct zsp_struct_s *this_p, va_list *init) {
+    uint32_t offset = va_arg(*init, uint32_t);
+    *((uint32_t *)(((uintptr_t)this_p)+offset)) = va_arg(*init, uint32_t);
+}
+
+void zsp_struct_apply_int64(struct zsp_struct_s *this_p, va_list *init) {
+    uint32_t offset = va_arg(*init, uint32_t);
+    *((uint64_t *)(((uintptr_t)this_p)+offset)) = va_arg(*init, uint64_t);
+}
+
+void zsp_struct_apply_ptr(struct zsp_struct_s *this_p, va_list *init) {
+    uint32_t offset = va_arg(*init, uint32_t);
+    *((uintptr_t *)(((uintptr_t)this_p)+offset)) = va_arg(*init, uintptr_t);
+}
+
+void zsp_struct_apply_ref(struct zsp_struct_s *this_p, va_list *init) {
+
+}
+
+void zsp_struct_apply(struct zsp_struct_s *this_p, ...) {
+    va_list ap;
+    va_start(ap, this_p);
+    zsp_struct_apply_init(this_p, &ap);
+    va_end(ap);
+}
+

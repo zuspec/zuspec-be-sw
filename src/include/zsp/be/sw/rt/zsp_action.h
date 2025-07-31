@@ -18,11 +18,25 @@ typedef struct zsp_action_type_s {
 
 } zsp_action_type_t;
 
+#define zsp_action_type_begin(name) \
+name ## _type_t *name ## __type() { \
+    static name ## _type_t __type; \
+    static int32_t __init = 0; \
+    if (!__init) { \
+        __init = 1; \
+        \
+        // Provide sensible defaults \
+
+
+#define zsp_action_type_end \
+    } \
+    return &__type; \
+}
+
 #define zsp_action_type(obj) ((zsp_action_type_t *)(((zsp_object_t *)(obj))->type))
 
 typedef struct zsp_action_s {
     zsp_struct_t           base;
-
 } zsp_action_t;
 
 zsp_action_type_t *zsp_action__type(void);

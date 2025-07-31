@@ -241,7 +241,7 @@ void TestBase::compile(const std::vector<std::string> &args) {
 void TestBase::run(std::vector<std::string> &output) {
     char cwd[1024];
 
-    getcwd(cwd, sizeof(cwd));
+    ASSERT_TRUE(getcwd(cwd, sizeof(cwd)));
 
     const char *argv[] = {
         "./test.exe",
@@ -257,18 +257,18 @@ void TestBase::run(std::vector<std::string> &output) {
     posix_spawn_file_actions_adddup2(&action, STDOUT_FILENO, STDERR_FILENO);
 
     pid_t pid;
-    chdir(m_testdir.c_str());
+    ASSERT_FALSE(chdir(m_testdir.c_str()));
     int status = posix_spawnp(&pid, argv[0], &action, 0, (char *const *)argv, environ);
 
     ASSERT_EQ(status, 0);
     ASSERT_NE(waitpid(pid, &status, 0), -1);
-    chdir(cwd);
+    ASSERT_FALSE(chdir(cwd));
     ASSERT_EQ(status, 0);
 
     FILE *fp = fopen(outfile.c_str(), "r");
     ASSERT_TRUE(fp);
     while (!feof(fp)) {
-        fgets(cwd, sizeof(cwd), fp);
+        ASSERT_TRUE(fgets(cwd, sizeof(cwd), fp));
         output.push_back(cwd);
     }
     fclose(fp);

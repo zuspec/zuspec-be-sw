@@ -3,10 +3,37 @@
 #include <stdio.h>
 #include "zsp/be/sw/rt/zsp_thread.h"
 
+
+void zsp_thread_queue_init(zsp_thread_queue_t *q) {
+    q->head = 0;
+    q->tail = 0;
+}
+
+void zsp_thread_queue_add(zsp_thread_queue_t *q, zsp_thread_t *t) {
+    t->next = 0;
+    if (q->head) {
+        q->tail->next = t;
+        q->tail = t;
+    } else {
+        q->head = t;
+        q->tail = t;
+    }
+}
+
+zsp_thread_t *zsp_thread_queue_pop(zsp_thread_queue_t *q) {
+    zsp_thread_t *ret = q->head;
+    if (q->head) {
+        q->head = q->head->next;
+        if (!q->head) {
+            q->tail = 0;
+        }
+    }
+    return ret;
+}
+
 void zsp_scheduler_init(zsp_scheduler_t *sched, zsp_alloc_t *alloc) {
     sched->alloc = alloc;
-    sched->next = 0;
-    sched->tail = 0;
+    zsp_thread_queue_init(&sched->queue);
     sched->active = 0;
 }
 
@@ -21,14 +48,7 @@ void zsp_thread_schedule(zsp_scheduler_t *sched, zsp_thread_t *thread) {
 //    fprintf(stdout, "[sched] Scheduling thread: %p (%d)\n", thread, sched->active);
 //    fflush(stdout);
     thread->flags &= ~ZSP_THREAD_FLAGS_BLOCKED;
-    thread->next = 0;
-    if (sched->next) {
-        sched->tail->next = thread;
-        sched->tail = thread;
-    } else {
-        sched->next = thread;
-        sched->tail = thread;
-    }
+    zsp_thread_queue_add(&sched->queue, thread);
 }
 
 void zsp_scheduler_init_threadv(
@@ -95,13 +115,7 @@ void zsp_scheduler_init_threadv(
 int zsp_scheduler_run(zsp_scheduler_t *sched) {
     // TODO: Mutex this
     jmp_buf env;
-    zsp_thread_t *thread = sched->next;
-    if (sched->next) {
-        sched->next = sched->next->next;
-        if (!sched->next) {
-            sched->tail = 0;
-        }
-    }
+    zsp_thread_t *thread = zsp_thread_queue_pop(&sched->queue);
 
     if (thread) {
         sched->active--;
@@ -253,19 +267,20 @@ zsp_thread_t *zsp_thread_create(
     thread->block = 0;
     thread->leaf = 0;
     thread->sched = sched;
+    thread->exit_f = 0;
     thread->flags = (flags | ZSP_THREAD_FLAGS_INITIAL);
     zsp_frame_t *ret;
 
     ret = func(thread, 0, &args);
     va_end(args);
 
-    // Clean up automatically, so the thread doesn't need to do this
-    zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
-
     thread->leaf = ret;
     thread->flags &= ~ZSP_THREAD_FLAGS_INITIAL;
 
     if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
+        // Clean up automatically, so the thread doesn't need to do this
+        zsp_thread_clear_flags(thread, ZSP_THREAD_FLAGS_SUSPEND);
+
         // Schedule the thread
         zsp_thread_schedule(sched, thread);
     }

@@ -60,6 +60,8 @@ public:
 
     virtual void visitTypeProcStmt(arl::dm::ITypeProcStmt *s) override;
 
+    virtual void visitTypeProcStmtAssign(arl::dm::ITypeProcStmtAssign *s) override;
+
     virtual void visitTypeProcStmtExpr(arl::dm::ITypeProcStmtExpr *s) override;
 
 	virtual void visitTypeProcStmtRepeat(arl::dm::ITypeProcStmtRepeat *s) override;
@@ -71,6 +73,9 @@ public:
 	virtual void visitTypeProcStmtWhile(arl::dm::ITypeProcStmtWhile *s) override;
 
 	virtual void visitTypeProcStmtYield(arl::dm::ITypeProcStmtYield *s) override;
+
+protected:
+    void add_to_scope(vsc::dm::IAccept *s, bool owned=true);
 
 private:
     struct Locals {
@@ -121,6 +126,8 @@ private:
         Locals                      *l,
         std::set<std::string>       &names,
         int32_t                     &shadow_id);
+
+    void init_var(vsc::dm::ITypeVar *v, int32_t idx);
 
 private:
     static dmgr::IDebug                         *m_dbg;

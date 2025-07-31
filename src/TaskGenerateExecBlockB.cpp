@@ -225,8 +225,10 @@ void TaskGenerateExecBlockB::generate_locals(vsc::dm::IDataTypeStruct *locals_t)
 }
 
 void TaskGenerateExecBlockB::generate_init_locals() {
+    DEBUG_ENTER("generate_init_locals");
     m_out->println("__locals->__exec_b = va_arg(*args, zsp_executor_t *);");
     m_out->println("__locals->__api = (model_api_t *)__locals->__exec_b->api;");
+    DEBUG_LEAVE("generate_init_locals");
 }
 
 

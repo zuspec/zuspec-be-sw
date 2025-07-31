@@ -58,10 +58,13 @@ def generate_model(rundir, pss_src, actions=None, debug=False):
     status = 0
 
     for m in marker_c.markers():
-        print("Marker")
+        print("Marker", flush=True)
 
     if status == 0:
         linked_root = ast_linker.link(marker_c, ast_l)
+
+    for m in marker_c.markers():
+        print("Marker %s" % m.msg(), flush=True)
 
     if status == 0:
         import zsp_fe_parser.core as fe_parser

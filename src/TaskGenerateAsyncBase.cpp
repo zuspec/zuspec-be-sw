@@ -77,8 +77,11 @@ void TaskGenerateAsyncBase::visitTypeProcStmtAsyncScope(TypeProcStmtAsyncScope *
         m_out->println("__locals = zsp_frame_locals(ret, %s_t);",
             m_ctxt->nameMap()->getName(scope->type()).c_str());
         generate_init_locals();
+        DEBUG("async new_scope=%d", scope->new_scope());
+        init_locals(scope->type(), 0);
     } else {
         if (scope) {
+            DEBUG("async new_scope=%d", scope->new_scope());
             for (std::vector<vsc::dm::ITypeVarScope *>::const_iterator
                 it=scope->scopes().begin();
                 it!=scope->scopes().end(); it++) {
@@ -175,6 +178,7 @@ void TaskGenerateAsyncBase::enter_stmt(arl::dm::ITypeProcStmt *s) {
     DEBUG_ENTER("enter_stmt (%p %d)", data, data?data->scopes().size():-1);
     
     if (data) {
+        DEBUG("new_scope=%d", data->new_scope());
         if (data->scopes().size() > m_scope_s.size()) {
             DEBUG("PUSH: ");
             for (uint32_t i=m_scope_s.size(); i<data->scopes().size(); i++) {
@@ -185,8 +189,10 @@ void TaskGenerateAsyncBase::enter_stmt(arl::dm::ITypeProcStmt *s) {
                 m_out->println("%s_t *__locals = zsp_frame_locals(ret, %s_t);",
                     data->type()->name().c_str(),
                     data->type()->name().c_str());
-                
-                // TODO: initialize fields
+            }
+
+            if (data->new_scope()) {
+                DEBUG("TODO: initialize fields");
             }
         } else if (data->scopes().size() < m_scope_s.size()) {
             DEBUG("POP: ");
@@ -233,6 +239,16 @@ void TaskGenerateAsyncBase::enter_stmt(arl::dm::ITypeProcStmt *s) {
     }
 
     DEBUG_LEAVE("enter_stmt");
+}
+
+void TaskGenerateAsyncBase::init_locals(vsc::dm::IDataTypeStruct *t, int32_t start) {
+    DEBUG_ENTER("init_locals %s start=%d", t->name().c_str(), start);
+
+    for (uint32_t i=start; i<t->getFields().size(); i++) {
+        DEBUG("Field: %s", t->getField(i)->name().c_str());
+    }
+
+    DEBUG_LEAVE("init_locals %s start=%d", t->name().c_str(), start);
 }
 
 }

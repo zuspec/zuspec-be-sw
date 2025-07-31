@@ -33,9 +33,7 @@ class Scheduler(object):
             self.hndl = api._zsp_scheduler_create(self.alloc)
 
     def add_actor(self, actor):
-        print("--> add_actor", flush=True)
         self.actors.append(actor)
-        print("<-- add_actor", flush=True)
 
     def init_loop(self, loop):
         self.loop = loop
@@ -45,7 +43,7 @@ class Scheduler(object):
         api = Api.inst()
         sched = ctypes.cast( self.hndl, ctypes.POINTER(zsp_scheduler_t))
 
-        print("active: %d" % sched.contents.active, flush=True)
+#        print("active: %d" % sched.contents.active, flush=True)
         while sched.contents.active > 0:
             if api._zsp_scheduler_run(self.hndl) == 0:
                 break

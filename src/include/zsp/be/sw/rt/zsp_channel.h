@@ -8,6 +8,9 @@ struct zsp_thread_s;
 
 typedef struct zsp_channel_s {
     zsp_component_t     base;
+    zsp_mutex_t         mut;
+    zsp_cond_t          put_cond;
+    zsp_cond_t          get_cond;
     int32_t             put_idx;
     int32_t             get_idx;
 } zsp_channel_t;

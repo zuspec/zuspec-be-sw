@@ -54,7 +54,7 @@ class ImportLinkerScope(ImportLinker):
             if nargs and code.co_varnames[0] == "self":
                 nargs -= 1
 
-            print("ptypes: %d (%s) nargs: %d" % (len(sig.ptypes), str(sig.ptypes), nargs), flush=True)
+#            print("ptypes: %d (%s) nargs: %d" % (len(sig.ptypes), str(sig.ptypes), nargs), flush=True)
             if (len(sig.ptypes)-1) != nargs:
                 raise Exception("Expecting %s to accept %d parameters, but accepts %d instead" % (
                     sig.name, len(sig.ptypes)-1, nargs))

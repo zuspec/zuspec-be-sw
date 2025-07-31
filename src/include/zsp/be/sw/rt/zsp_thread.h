@@ -98,8 +98,20 @@ typedef struct zsp_thread_s {
     zsp_thread_flags_e          flags;
 } zsp_thread_t;
 
+typedef struct zsp_thread_queue_s {
+    zsp_thread_t        *head;
+    zsp_thread_t        *tail;
+} zsp_thread_queue_t;
+
+void zsp_thread_queue_init(zsp_thread_queue_t *q);
+
+void zsp_thread_queue_add(zsp_thread_queue_t *q, zsp_thread_t *t);
+
+zsp_thread_t *zsp_thread_queue_pop(zsp_thread_queue_t *q);
+
 typedef struct zsp_scheduler_s {
     zsp_alloc_t        *alloc;
+    zsp_thread_queue_t queue;
     zsp_thread_t       *next;
     zsp_thread_t       *tail;
     int32_t            active;
@@ -181,6 +193,44 @@ uintptr_t zsp_thread_va_arg(va_list *args, size_t sz);
 // zsp_frame_t *zsp_thread_run(zsp_thread_t *thread);
 void zsp_thread_free(zsp_thread_t *thread);
 
+typedef struct zsp_mutex_s {
+    zsp_thread_t            *owner;
+    zsp_thread_queue_t      waiters;
+} zsp_mutex_t;
+
+void zsp_mutex_init(zsp_mutex_t *mut);
+
+void zsp_mutex_lock(zsp_mutex_t *mut, zsp_thread_t *thread);
+
+void zsp_mutex_unlock(zsp_mutex_t *mut, zsp_thread_t *thread);
+
+typedef struct zsp_cond_s {
+    zsp_mutex_t             *mut;
+    zsp_thread_queue_t      waiters;
+} zsp_cond_t;
+
+void zsp_cond_init(zsp_cond_t *cond);
+
+void zsp_cond_wait(zsp_cond_t *cond, zsp_mutex_t *mut);
+
+void zsp_cond_notify(zsp_cond_t *cond);
+
+#define _EXPAND(args) args
+#define READ1(a) read(a);
+#define READ2(a,b) read(a); read(b);
+#define READ3(a,b,c) read(a); read(b); read(c);
+#define GETREAD(_1,_2,_3, READN,...) READN
+#define READ(...) _EXPAND(GETREAD(__VA_ARGS__, READ3, READ2, READ1)(__VA_ARGS__))
+
+#define zsp_task_head_begin(name) \
+    zsp_frame_t *ret = thread->leaf; \
+    zsp_task_func func = &name; \
+    struct __locals_s { \
+
+#define zsp_task_head_end \
+    } *__locals = zsp_frame_locals(ret, struct __locals_s); 
+
+#define zsp_task_yield zsp_thread_yield(thread); break 
 
 
 #ifdef __cplusplus

@@ -82,11 +82,44 @@ component pss_top {
 
     action Entry {
         exec body {
-            repeat (i : 2) {
-                int x = 5;
-//                repeat (j : 5) {
-                    doit(i, x);
-//                }
+            int y = 5;
+            y = 25;
+            repeat (i : 4) {
+                repeat (j : 5) {
+                    doit(i, j);
+                }
+            }
+        }
+    }
+}
+"""
+    generate_model(tmpdir, pss_top, "pss_top::Entry", debug=True)
+    model = Model.load(os.path.join(tmpdir, "model", "libmodel.so"))
+
+    async def doit(i, j):
+        print("doit %d,%d" % (i,j), flush=True)
+        pass
+
+    async def doit1(i, j):
+        print("doit1 %d,%d" % (i,j), flush=True)
+        pass
+
+    actor = model.mk_actor("pss_top::Entry")
+    asyncio.run(actor.run())
+
+def test_nested_seq_scope_var(tmpdir):
+    pss_top = """
+import target function void doit1(int i, int j);
+import target function void doit(int i, int j);
+
+component pss_top {
+    action Entry {
+        exec body {
+            int y = 5;
+            {
+                int x = 6;
+
+                doit(x, y);
             }
         }
     }

@@ -1,66 +1,19 @@
 
 package:
-  name: libarl-be-sw
+  name: zuspec-be-sw
 
-  setup-deps:
-  - ninja
-  - cython
+  setup-deps: []
 
   dep-sets:
-  - name: default
-    deps:
-    - name: zuspec-arl-dm
-      url: https://github.com/zuspec/zuspec-arl-dm.git
-    - name: zuspec-arl-eval
-      url: https://github.com/zuspec/zuspec-arl-eval.git
-    - name: zuspec-parser
-      url: https://github.com/zuspec/zuspec-parser.git
-    - name: zuspec-fe-parser
-      url: https://github.com/zuspec/zuspec-fe-parser.git
-    - name: debug-mgr
-      url: https://github.com/mballance-utils/debug-mgr.git
-    - name: ciostream
-      url: https://github.com/mballance-utils/ciostream.git
-
   - name: default-dev
     deps:
-    - name: zuspec-arl-dm
-      src: pypi
-    - name: zuspec-arl-eval
-      src: pypi
-    - name: zuspec-parser
-      src: pypi
-    - name: zuspec-fe-parser
-      src: pypi
-    - name: debug-mgr
-      url: https://github.com/mballance-utils/debug-mgr.git
-    - name: ciostream
-      src: pypi
-    - name: ninja
-      src: pypi
-    - name: cython
+    - name: zuspec-dataclasses
+      url: https://github.com/zuspec/zuspec-dataclasses.git
+      branch: mballance/simplify
+    - name: pytest-dfm
+      url: https://github.com/dv-flow/pytest-dfm.git
+    - name: pytest
       src: pypi
 
-  - name: default-dev-src
-    default-dep-set: default-dev
-    deps:
-    - name: zuspec-arl-dm
-      url: https://github.com/zuspec/zuspec-arl-dm.git
-    - name: zuspec-arl-eval
-      url: https://github.com/zuspec/zuspec-arl-eval.git
-    - name: zuspec-parser
-      url: https://github.com/zuspec/zuspec-parser.git
-    - name: zuspec-fe-parser
-      url: https://github.com/zuspec/zuspec-fe-parser.git
-    - name: debug-mgr
-      url: https://github.com/mballance-utils/debug-mgr.git
-    - name: ciostream
-      url: https://github.com/mballance-utils/ciostream.git
-    - name: ninja
-      src: pypi
-    - name: cython
-      src: pypi
-    - name: vte
-      src: pypi
 
 

@@ -1,3 +1,0 @@
-BASE="0.1.0"
-SUFFIX=""
-VERSION="%s%s" % (BASE, SUFFIX)

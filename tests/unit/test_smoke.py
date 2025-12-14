@@ -20,20 +20,20 @@ from pathlib import Path
 from zuspec.be.sw import CGenerator, CValidator, CCompiler, TestRunner
 
 
+# Define component at module level so inspect.getsource() can find it
+@zdc.dataclass
+class SmokeTestMyC(zdc.Component):
+    def hello(self):
+        print("Hello")
+
+
 def test_smoke(tmpdir):
-
-    @zdc.dataclass
-    class MyC(zdc.Component):
-
-        def hello(self):
-            print("Hello")
-
-    # 1. Transform MyC to datamodel representation
-    dm_ctxt = zdc.DataModelFactory().build(MyC)
+    # 1. Transform SmokeTestMyC to datamodel representation
+    dm_ctxt = zdc.DataModelFactory().build(SmokeTestMyC)
     # The key uses __qualname__ which includes the function name for local classes
     myc_dm = list(dm_ctxt.type_m.values())[0]
     assert myc_dm is not None
-    assert myc_dm.name == 'MyC' or myc_dm.name.endswith('.MyC')
+    assert 'SmokeTestMyC' in myc_dm.name
 
     # 2. Validate that dm representation can be mapped to C
     validator = CValidator()

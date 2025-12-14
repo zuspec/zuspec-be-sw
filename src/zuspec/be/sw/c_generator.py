@@ -28,6 +28,8 @@ from zuspec.dataclasses import dm
 from .type_mapper import TypeMapper
 from .expr_generator import ExprGenerator
 from .stmt_generator import StmtGenerator
+from .async_generator import AsyncMethodGenerator
+from .dm_async_generator import DmAsyncMethodGenerator
 from .output import OutputManager
 
 
@@ -56,31 +58,122 @@ class CGenerator:
 
     def generate(self, ctxt: dm.Context) -> List[Path]:
         """Generate C code for all types in context."""
+        # First pass: generate protocol/API types
+        for name, dtype in ctxt.type_m.items():
+            if isinstance(dtype, dm.DataTypeProtocol):
+                self._generate_protocol(dtype, ctxt)
+        
+        # Second pass: generate components
         for name, dtype in ctxt.type_m.items():
             if isinstance(dtype, dm.DataTypeComponent):
-                self._generate_component(dtype)
+                self._generate_component(dtype, ctxt)
         
         # Generate test harness
         self._generate_main(ctxt)
         
         return self.output.write_all()
 
-    def _generate_component(self, comp: dm.DataTypeComponent):
+    def _generate_protocol(self, proto: dm.DataTypeProtocol, ctxt: dm.Context):
+        """Generate C code for a Protocol (API interface)."""
+        name = sanitize_c_name(proto.name)
+        
+        # Generate header with API struct
+        header = self._generate_protocol_header(proto, name)
+        self.output.add_header(name.lower(), header)
+
+    def _generate_protocol_header(self, proto: dm.DataTypeProtocol, name: str) -> str:
+        """Generate protocol/API header file."""
+        guard = f"INCLUDED_{name.upper()}_H"
+        
+        lines = [
+            f"#ifndef {guard}",
+            f"#define {guard}",
+            "",
+            "#include <stdint.h>",
+            "",
+            f"/* {name} API interface */",
+            f"typedef struct {name}_s {{",
+            f"    void *self;  /* Context/this pointer */",
+        ]
+        
+        # Add function pointers for each method
+        for func in proto.methods:
+            ret_type = self.type_mapper.map_type(func.returns) if func.returns else "void"
+            params = self._generate_func_params(func)
+            lines.append(f"    {ret_type} (*{func.name})({params});")
+        
+        lines.extend([
+            f"}} {name}_t;",
+            "",
+            f"#endif /* {guard} */",
+        ])
+        
+        return "\n".join(lines)
+
+    def _generate_func_params(self, func: dm.Function) -> str:
+        """Generate C function parameter list from function datamodel."""
+        params = ["void *self"]
+        
+        if func.args and func.args.args:
+            for arg in func.args.args:
+                # Get type from annotation
+                arg_type = "int32_t"  # Default type
+                if arg.annotation and hasattr(arg.annotation, 'value'):
+                    ann_val = arg.annotation.value
+                    if hasattr(ann_val, '__name__'):
+                        type_name = ann_val.__name__
+                        if 'uint32' in type_name:
+                            arg_type = "uint32_t"
+                        elif 'int32' in type_name:
+                            arg_type = "int32_t"
+                        elif 'uint64' in type_name:
+                            arg_type = "uint64_t"
+                        elif 'int64' in type_name:
+                            arg_type = "int64_t"
+                params.append(f"{arg_type} {arg.arg}")
+        
+        return ", ".join(params)
+
+    def _generate_component(self, comp: dm.DataTypeComponent, ctxt: dm.Context):
         """Generate C code for a component."""
         name = sanitize_c_name(comp.name)
         
         # Generate header
-        header = self._generate_component_header(comp, name)
+        header = self._generate_component_header(comp, name, ctxt)
         self.output.add_header(name.lower(), header)
         
         # Generate implementation
-        impl = self._generate_component_impl(comp, name)
+        impl = self._generate_component_impl(comp, name, ctxt)
         self.output.add_source(name.lower(), impl)
 
 
-    def _generate_component_header(self, comp: dm.DataTypeComponent, name: str) -> str:
+    def _generate_component_header(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> str:
         """Generate component header file."""
         guard = f"INCLUDED_{name.upper()}_H"
+        
+        # Check if we have any async methods
+        has_async = any(getattr(f, 'is_async', False) 
+                       for f in comp.functions 
+                       if self._should_generate_method(f))
+        
+        # Check if we have ports/exports that need protocol headers
+        protocol_includes = set()
+        component_includes = set()
+        has_ports_or_exports = False
+        for field in comp.fields:
+            if field.kind == dm.FieldKind.Port or field.kind == dm.FieldKind.Export:
+                has_ports_or_exports = True
+                if isinstance(field.datatype, dm.DataTypeRef):
+                    protocol_includes.add(field.datatype.ref_name.lower())
+                elif isinstance(field.datatype, dm.DataTypeProtocol):
+                    protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
+            # Check for sub-component fields
+            elif isinstance(field.datatype, dm.DataTypeComponent):
+                component_includes.add(sanitize_c_name(field.datatype.name).lower())
+            elif isinstance(field.datatype, dm.DataTypeRef):
+                ref_type = ctxt.type_m.get(field.datatype.ref_name)
+                if isinstance(ref_type, dm.DataTypeComponent):
+                    component_includes.add(sanitize_c_name(field.datatype.ref_name).lower())
         
         lines = [
             f"#ifndef {guard}",
@@ -90,6 +183,20 @@ class CGenerator:
             "#include <stdint.h>",
             '#include "zsp_component.h"',
             '#include "zsp_init_ctxt.h"',
+        ]
+        
+        if has_async:
+            lines.append('#include "zsp_timebase.h"')
+        
+        # Include protocol headers
+        for proto_name in sorted(protocol_includes):
+            lines.append(f'#include "{proto_name}.h"')
+        
+        # Include component headers for sub-components
+        for comp_name in sorted(component_includes):
+            lines.append(f'#include "{comp_name}.h"')
+        
+        lines.extend([
             "",
             f"/* Forward declaration */",
             f"struct {name};",
@@ -97,11 +204,22 @@ class CGenerator:
             f"/* {name} type definition */",
             f"typedef struct {name} {{",
             f"    zsp_component_t base;",
-        ]
+        ])
         
-        # Add fields
+        # Add fields - handle ports, exports, and sub-components specially
         for field in comp.fields:
-            c_type = self.type_mapper.map_type(field.dtype)
+            is_port = field.kind == dm.FieldKind.Port
+            is_export = field.kind == dm.FieldKind.Export
+            # Check if this is a sub-component field
+            is_subcomp = False
+            if isinstance(field.datatype, dm.DataTypeComponent):
+                is_subcomp = True
+            elif isinstance(field.datatype, dm.DataTypeRef):
+                ref_type = ctxt.type_m.get(field.datatype.ref_name)
+                if isinstance(ref_type, dm.DataTypeComponent):
+                    is_subcomp = True
+            c_type = self.type_mapper.map_type(field.datatype, is_port=is_port, is_export=is_export, 
+                                               is_subcomponent=is_subcomp)
             lines.append(f"    {c_type} {field.name};")
         
         lines.append(f"}} {name};")
@@ -116,39 +234,71 @@ class CGenerator:
         lines.append(f"    zsp_component_t *parent);")
         lines.append("")
         
+        # Generate bind function declaration if component has bindings
+        if comp.bind_map or has_ports_or_exports:
+            lines.append(f"/* Bind ports and exports */")
+            lines.append(f"void {name}__bind({name} *self);")
+            lines.append("")
+        
         # Method declarations
         for func in comp.functions:
             if self._should_generate_method(func):
-                lines.append(f"void {name}_{func.name}({name} *self);")
+                params = self._generate_method_params(func, name)
+                if getattr(func, 'is_async', False):
+                    # Async methods take a timebase parameter
+                    lines.append(f"void {name}_{func.name}({params}, zsp_timebase_t *tb);")
+                else:
+                    lines.append(f"void {name}_{func.name}({params});")
         
         lines.append("")
         lines.append(f"#endif /* {guard} */")
         
         return "\n".join(lines)
 
-    def _generate_component_impl(self, comp: dm.DataTypeComponent, name: str) -> str:
+    def _generate_component_impl(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> str:
         """Generate component implementation file."""
         
-        lines = [
-            f'#include "{name.lower()}.h"',
-            '#include "zsp_init_ctxt.h"',
-            "",
-        ]
+        # Collect required includes
+        includes = [f'#include "{name.lower()}.h"', '#include "zsp_init_ctxt.h"']
+        
+        # Check for field types that need includes
+        for field in comp.fields:
+            if isinstance(field.datatype, dm.DataTypeComponent):
+                field_name = sanitize_c_name(field.datatype.name)
+                includes.append(f'#include "{field_name.lower()}.h"')
+            elif isinstance(field.datatype, dm.DataTypeRef):
+                # Check if this is a component reference
+                ref_type = ctxt.type_m.get(field.datatype.ref_name)
+                if isinstance(ref_type, dm.DataTypeComponent):
+                    field_name = sanitize_c_name(field.datatype.ref_name)
+                    includes.append(f'#include "{field_name.lower()}.h"')
+        
+        lines = list(dict.fromkeys(includes))  # Remove duplicates while preserving order
+        lines.append("")
         
         # Generate init function
-        lines.extend(self._generate_init_function(comp, name))
+        lines.extend(self._generate_init_function(comp, name, ctxt))
         lines.append("")
+        
+        # Generate bind function if needed
+        has_ports_or_exports = any(
+            field.kind == dm.FieldKind.Port or field.kind == dm.FieldKind.Export
+            for field in comp.fields
+        )
+        if comp.bind_map or has_ports_or_exports:
+            lines.extend(self._generate_bind_function(comp, name, ctxt))
+            lines.append("")
         
         # Generate methods
         for func in comp.functions:
             if self._should_generate_method(func):
-                method_code = self._generate_method(comp, func, name)
+                method_code = self._generate_method(comp, func, name, ctxt)
                 lines.extend(method_code)
                 lines.append("")
         
         return "\n".join(lines)
 
-    def _generate_init_function(self, comp: dm.DataTypeComponent, name: str) -> List[str]:
+    def _generate_init_function(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> List[str]:
         """Generate component initialization function."""
         
         lines = [
@@ -162,22 +312,238 @@ class CGenerator:
         
         # Initialize fields
         for field in comp.fields:
-            default = self.type_mapper.get_default_value(field.dtype)
-            if default:
-                lines.append(f"    self->{field.name} = {default};")
+            if field.kind == dm.FieldKind.Port:
+                # Ports are pointers, initialize to NULL
+                lines.append(f"    self->{field.name} = NULL;")
+            elif field.kind == dm.FieldKind.Export:
+                # Exports are embedded structs, zero-initialize self pointer
+                lines.append(f"    self->{field.name}.self = NULL;")
+            elif isinstance(field.datatype, dm.DataTypeComponent) or \
+                 (isinstance(field.datatype, dm.DataTypeRef) and 
+                  isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):
+                # Sub-component: call its init function
+                if isinstance(field.datatype, dm.DataTypeRef):
+                    field_type_name = sanitize_c_name(field.datatype.ref_name)
+                else:
+                    field_type_name = sanitize_c_name(field.datatype.name)
+                lines.append(f'    {field_type_name}_init(ctxt, &self->{field.name}, "{field.name}", &self->base);')
+            else:
+                default = self.type_mapper.get_default_value(field.datatype)
+                if default:
+                    lines.append(f"    self->{field.name} = {default};")
         
         lines.append("}")
         return lines
 
-    def _generate_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str) -> List[str]:
-        """Generate a component method."""
+    def _generate_bind_function(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> List[str]:
+        """Generate component bind function for connecting ports and exports."""
         
         lines = [
-            f"void {name}_{func.name}({name} *self) {{",
+            f"void {name}__bind({name} *self) {{",
         ]
         
-        # Get the method body from Python source
-        body_code = self._get_method_body(comp, func)
+        # First, call bind on sub-components
+        for field in comp.fields:
+            if isinstance(field.datatype, dm.DataTypeComponent) or \
+               (isinstance(field.datatype, dm.DataTypeRef) and 
+                isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):
+                if isinstance(field.datatype, dm.DataTypeRef):
+                    field_type_name = sanitize_c_name(field.datatype.ref_name)
+                else:
+                    field_type_name = sanitize_c_name(field.datatype.name)
+                # Check if the sub-component has ports/exports
+                sub_comp = ctxt.type_m.get(field.datatype.ref_name if isinstance(field.datatype, dm.DataTypeRef) else field.datatype.name)
+                if sub_comp and isinstance(sub_comp, dm.DataTypeComponent):
+                    has_sub_binds = any(f.kind in (dm.FieldKind.Port, dm.FieldKind.Export) for f in sub_comp.fields)
+                    if has_sub_binds or sub_comp.bind_map:
+                        lines.append(f"    {field_type_name}__bind(&self->{field.name});")
+        
+        # Process bind_map to generate port-to-export connections
+        for bind in comp.bind_map:
+            bind_code = self._generate_bind_statement(bind, comp, name, ctxt)
+            if bind_code:
+                for line in bind_code:
+                    lines.append(f"    {line}")
+        
+        lines.append("}")
+        return lines
+
+    def _generate_bind_statement(self, bind: dm.Bind, comp: dm.DataTypeComponent, comp_name: str, ctxt: dm.Context) -> List[str]:
+        """Generate C statements for a single bind operation."""
+        lhs = bind.lhs
+        rhs = bind.rhs
+        
+        # Check if this is a method binding (ExprRefPy at top level)
+        if isinstance(lhs, dm.ExprRefPy):
+            # Method binding: self.exp.method : self.method
+            # Generates: self->exp.method = (func_ptr)CompType_method;
+            return self._generate_method_bind(lhs, rhs, comp, comp_name, ctxt)
+        
+        # Otherwise it's a port-to-export binding
+        lhs_code = self._expr_to_c(lhs, comp, "self", ctxt)
+        rhs_code = self._expr_to_c(rhs, comp, "self", ctxt)
+        
+        if lhs_code and rhs_code:
+            return [f"{lhs_code} = &{rhs_code};"]
+        
+        return []
+
+    def _generate_method_bind(self, lhs: dm.ExprRefPy, rhs, comp: dm.DataTypeComponent, 
+                              comp_name: str, ctxt: dm.Context) -> List[str]:
+        """Generate method binding code."""
+        # lhs: ExprRefPy(base=ExprRefField(...export...), ref="method_name")
+        # rhs: ExprRefPy(base=TypeExprRefSelf, ref="method_name") or similar
+        
+        method_name = lhs.ref
+        export_code = self._expr_to_c(lhs.base, comp, "self", ctxt)
+        
+        # Get the target method name
+        if isinstance(rhs, dm.ExprRefPy) and isinstance(rhs.base, dm.TypeExprRefSelf):
+            # Binding to self.method -> use ComponentType_method
+            target_method = f"{comp_name}_{rhs.ref}"
+        else:
+            target_method = self._expr_to_c(rhs, comp, "self", ctxt)
+        
+        lines = []
+        # Set the method function pointer
+        lines.append(f"{export_code}.{method_name} = (void *){target_method};")
+        # Also set the self pointer if not already done
+        lines.append(f"{export_code}.self = self;")
+        
+        return lines
+
+    def _expr_to_c(self, expr, comp: dm.DataTypeComponent, self_name: str, ctxt: dm.Context) -> str:
+        """Convert a datamodel expression to C code.
+        
+        Args:
+            expr: The expression to convert
+            comp: The component context for field name lookup
+            self_name: The name to use for self references
+            ctxt: The datamodel context for type lookups
+        """
+        if isinstance(expr, dm.ExprRefField):
+            # Build field path recursively
+            base = expr.base
+            field_idx = expr.index
+            
+            if isinstance(base, dm.TypeExprRefSelf):
+                # Direct field access on self: self->field_name
+                if field_idx < len(comp.fields):
+                    field_name = comp.fields[field_idx].name
+                    return f"{self_name}->{field_name}"
+                return f"{self_name}->field_{field_idx}"
+            elif isinstance(base, dm.ExprRefField):
+                # Nested field access: self->subcomp.field
+                base_code = self._expr_to_c(base, comp, self_name, ctxt)
+                
+                # Get the type of the base to look up field names
+                base_type = self._get_expr_type(base, comp, ctxt)
+                if base_type and isinstance(base_type, dm.DataTypeComponent):
+                    if field_idx < len(base_type.fields):
+                        field_name = base_type.fields[field_idx].name
+                        return f"{base_code}.{field_name}"
+                return f"{base_code}.field_{field_idx}"
+            
+            return ""
+            
+        elif isinstance(expr, dm.TypeExprRefSelf):
+            return self_name
+            
+        elif isinstance(expr, dm.ExprRefPy):
+            base = self._expr_to_c(expr.base, comp, self_name, ctxt)
+            return f"{base}.{expr.ref}" if base else expr.ref
+            
+        elif isinstance(expr, dm.ExprAttribute):
+            value = self._expr_to_c(expr.value, comp, self_name, ctxt)
+            if value == self_name:
+                return f"{self_name}->{expr.attr}"
+            else:
+                return f"{value}.{expr.attr}"
+                
+        elif isinstance(expr, dm.ExprConstant):
+            if expr.value == "self":
+                return self_name
+            return str(expr.value)
+        
+        return ""
+
+    def _get_expr_type(self, expr, comp: dm.DataTypeComponent, ctxt: dm.Context) -> Optional[dm.DataType]:
+        """Get the data type of an expression for field lookup."""
+        if isinstance(expr, dm.ExprRefField):
+            base = expr.base
+            field_idx = expr.index
+            
+            if isinstance(base, dm.TypeExprRefSelf):
+                # Get field type from component
+                if field_idx < len(comp.fields):
+                    field = comp.fields[field_idx]
+                    dtype = field.datatype
+                    # Resolve references
+                    if isinstance(dtype, dm.DataTypeRef):
+                        return ctxt.type_m.get(dtype.ref_name)
+                    return dtype
+            elif isinstance(base, dm.ExprRefField):
+                # Get type of nested field
+                base_type = self._get_expr_type(base, comp, ctxt)
+                if base_type and isinstance(base_type, dm.DataTypeComponent):
+                    if field_idx < len(base_type.fields):
+                        field = base_type.fields[field_idx]
+                        dtype = field.datatype
+                        if isinstance(dtype, dm.DataTypeRef):
+                            return ctxt.type_m.get(dtype.ref_name)
+                        return dtype
+        
+        return None
+
+    def _generate_method_params(self, func: dm.Function, comp_name: str) -> str:
+        """Generate method parameter list for C function."""
+        params = [f"{comp_name} *self"]
+        
+        if func.args and func.args.args:
+            for arg in func.args.args:
+                c_type = self._get_c_type_for_arg(arg)
+                params.append(f"{c_type} {arg.arg}")
+        
+        return ", ".join(params)
+
+    def _get_c_type_for_arg(self, arg) -> str:
+        """Get C type for a function argument."""
+        if arg.annotation and hasattr(arg.annotation, 'value'):
+            ann_val = arg.annotation.value
+            if hasattr(ann_val, '__name__'):
+                type_name = ann_val.__name__
+                if 'uint32' in type_name:
+                    return "uint32_t"
+                elif 'int32' in type_name:
+                    return "int32_t"
+                elif 'uint64' in type_name:
+                    return "uint64_t"
+                elif 'int64' in type_name:
+                    return "int64_t"
+                elif 'uint16' in type_name:
+                    return "uint16_t"
+                elif 'int16' in type_name:
+                    return "int16_t"
+                elif 'uint8' in type_name:
+                    return "uint8_t"
+                elif 'int8' in type_name:
+                    return "int8_t"
+        return "int32_t"  # Default
+
+    def _generate_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+        """Generate a component method."""
+        
+        # Check if this is an async method
+        if getattr(func, 'is_async', False):
+            return self._generate_async_method(comp, func, name, ctxt)
+        
+        params = self._generate_method_params(func, name)
+        lines = [
+            f"void {name}_{func.name}({params}) {{",
+        ]
+        
+        # Get the method body from datamodel
+        body_code = self._get_method_body(comp, func, ctxt)
         if body_code:
             # Indent the body
             for line in body_code.split("\n"):
@@ -187,33 +553,33 @@ class CGenerator:
         lines.append("}")
         return lines
 
-    def _get_method_body(self, comp: dm.DataTypeComponent, func: dm.Function) -> str:
-        """Extract and convert method body from Python source."""
-        py_type = comp.py_type
-        if py_type is None:
+    def _generate_async_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+        """Generate a component async method as a C coroutine."""
+        
+        # Use the datamodel body - it must be populated by the DataModelFactory
+        if func.body:
+            dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
+            code = dm_gen.generate(func)
+            return code.split("\n")
+        
+        # If body is empty, we cannot generate - datamodel must be complete
+        return [f"/* async method {func.name} - no body in datamodel */"]
+
+    def _get_method_body(self, comp: dm.DataTypeComponent, func: dm.Function, ctxt: dm.Context) -> str:
+        """Generate method body from datamodel."""
+        # Use the datamodel body - it must be populated by the DataModelFactory
+        if not func.body:
             return ""
         
-        # Try to get the method
-        method = getattr(py_type, func.name, None)
-        if method is None:
-            return ""
-        
-        try:
-            # Get source code
-            source = inspect.getsource(method)
-            # Parse to AST
-            tree = ast.parse(textwrap.dedent(source))
-            
-            if tree.body and isinstance(tree.body[0], ast.FunctionDef):
-                func_def = tree.body[0]
-                # Generate C code for the body
-                self.stmt_gen.indent_level = 0
-                return self.stmt_gen.generate(func_def.body)
-        except (OSError, TypeError):
-            # Source not available (e.g., built-in or dynamically defined)
-            pass
-        
-        return ""
+        # Create a stmt generator with component context for field resolution
+        stmt_gen = StmtGenerator(component=comp, ctxt=ctxt)
+        stmt_gen.indent_level = 0
+        lines = []
+        for stmt in func.body:
+            code = stmt_gen._gen_dm_stmt(stmt)
+            if code:
+                lines.append(code)
+        return "\n".join(lines)
 
     def _should_generate_method(self, func: dm.Function) -> bool:
         """Check if a method should be generated."""

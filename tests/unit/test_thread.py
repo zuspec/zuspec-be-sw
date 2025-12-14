@@ -277,35 +277,35 @@ def compile_and_run(tmpdir: str, test_code: str, test_name: str) -> tuple[int, s
 class TestThread:
     """Test thread/coroutine creation and execution."""
 
-    def test_simple_task(self):
+    def test_simple_task(self, tmpdir):
         """Test a simple task that returns immediately."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_SIMPLE_TASK, "test_simple")
-            print(f"stdout: {stdout}")
-            print(f"stderr: {stderr}")
-            assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
-            assert "RESULT:42" in stdout
+        tmpdir = str(tmpdir)
+        rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_SIMPLE_TASK, "test_simple")
+        print(f"stdout: {stdout}")
+        print(f"stderr: {stderr}")
+        assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
+        assert "RESULT:42" in stdout
 
-    def test_multi_block_task(self):
+    def test_multi_block_task(self, tmpdir):
         """Test a task with multiple blocks that yields between them."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_MULTI_BLOCK_TASK, "test_multi_block")
-            print(f"stdout: {stdout}")
-            print(f"stderr: {stderr}")
-            assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
-            assert "BLOCK:0" in stdout
-            assert "BLOCK:1" in stdout
-            assert "BLOCK:2" in stdout
-            assert "RESULT:2" in stdout
+        tmpdir = str(tmpdir)
+        rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_MULTI_BLOCK_TASK, "test_multi_block")
+        print(f"stdout: {stdout}")
+        print(f"stderr: {stderr}")
+        assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
+        assert "BLOCK:0" in stdout
+        assert "BLOCK:1" in stdout
+        assert "BLOCK:2" in stdout
+        assert "RESULT:2" in stdout
 
-    def test_nested_call(self):
+    def test_nested_call(self, tmpdir):
         """Test nested coroutine calls."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_NESTED_CALL, "test_nested")
-            print(f"stdout: {stdout}")
-            print(f"stderr: {stderr}")
-            assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
-            assert "RESULT:30" in stdout
+        tmpdir = str(tmpdir)
+        rc, stdout, stderr = compile_and_run(tmpdir, TEST_CODE_NESTED_CALL, "test_nested")
+        print(f"stdout: {stdout}")
+        print(f"stderr: {stderr}")
+        assert rc == 0, f"Test failed with rc={rc}\nstdout: {stdout}\nstderr: {stderr}"
+        assert "RESULT:30" in stdout
 
 
 if __name__ == "__main__":

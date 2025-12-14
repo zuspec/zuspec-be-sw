@@ -4,7 +4,7 @@
 #include "zsp_alloc.h"
 #include "zsp_map.h"
 #include "zsp_struct.h"
-#include "zsp_thread.h"
+#include "zsp_timebase.h"
 
 #ifdef _cplusplus
 extern "C" {

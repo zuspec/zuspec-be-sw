@@ -16,8 +16,19 @@
 """
 Type mapping utilities for converting datamodel types to C types.
 """
+import re
 from typing import Optional
 from zuspec.dataclasses import dm
+
+
+def sanitize_protocol_name(name: str) -> str:
+    """Sanitize a protocol name to be a valid C identifier."""
+    if '.' in name:
+        name = name.split('.')[-1]
+    name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+    if name and name[0].isdigit():
+        name = '_' + name
+    return name
 
 
 class TypeMapper:
@@ -35,8 +46,16 @@ class TypeMapper:
         (64, False): "uint64_t",
     }
 
-    def map_type(self, dtype: dm.DataType) -> str:
-        """Map a datamodel type to its C representation."""
+    def map_type(self, dtype: dm.DataType, is_port: bool = False, is_export: bool = False, 
+                 is_subcomponent: bool = False) -> str:
+        """Map a datamodel type to its C representation.
+        
+        Args:
+            dtype: The data type to map
+            is_port: If True, this is a port field (pointer to API)
+            is_export: If True, this is an export field (embedded API struct)
+            is_subcomponent: If True, this is a sub-component (embedded struct)
+        """
         if dtype is None:
             return "void"
         
@@ -44,13 +63,31 @@ class TypeMapper:
             return self._map_int_type(dtype)
         elif isinstance(dtype, dm.DataTypeString):
             return "const char*"
+        elif isinstance(dtype, dm.DataTypeProtocol):
+            # Protocol types: ports are pointers, exports are embedded
+            name = sanitize_protocol_name(dtype.name)
+            if is_port:
+                return f"{name}_t *"
+            else:  # export or general reference
+                return f"{name}_t"
         elif isinstance(dtype, dm.DataTypeComponent):
-            return f"struct {dtype.name}*"
+            name = sanitize_protocol_name(dtype.name)
+            if is_subcomponent:
+                return name  # Embedded struct
+            return f"{name} *"  # Pointer to component
         elif isinstance(dtype, dm.DataTypeStruct):
             return f"struct {dtype.name}*"
         elif isinstance(dtype, dm.DataTypeRef):
-            # Reference to another type
-            return f"struct {dtype.ref_name}*"
+            # Reference to another type - check if it's a protocol reference
+            name = dtype.ref_name
+            if is_port:
+                return f"{name}_t *"
+            elif is_export:
+                return f"{name}_t"
+            elif is_subcomponent:
+                return sanitize_protocol_name(name)  # Embedded struct
+            else:
+                return f"struct {dtype.ref_name}*"
         else:
             return "void*"
 

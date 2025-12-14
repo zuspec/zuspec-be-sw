@@ -41,21 +41,33 @@ class ExprGenerator:
             return self._gen_unaryop(expr)
         elif isinstance(expr, ast.Subscript):
             return self._gen_subscript(expr)
+        elif isinstance(expr, ast.Await):
+            return self._gen_await(expr)
         else:
             return f"/* unsupported expr: {type(expr).__name__} */"
+
+    def _gen_await(self, expr: ast.Await) -> str:
+        """Generate C code for an await expression.
+        
+        Note: This generates a placeholder comment. Actual await handling
+        requires coroutine transformation done by AsyncMethodGenerator.
+        """
+        awaited = self.generate(expr.value)
+        return f"/* await {awaited} */"
 
     def _gen_call(self, expr: ast.Call) -> str:
         """Generate C code for a function call."""
         func_name = self._get_func_name(expr.func)
-        args = [self.generate(arg) for arg in expr.args]
 
         # Handle special builtins
         if func_name == "print":
-            return self._gen_print_call(args)
+            return self._gen_print_call(expr.args)
         elif func_name == "range":
             # Range is handled specially in for loops
+            args = [self.generate(arg) for arg in expr.args]
             return f"range({', '.join(args)})"
         else:
+            args = [self.generate(arg) for arg in expr.args]
             return f"{func_name}({', '.join(args)})"
 
     def _get_func_name(self, func: ast.expr) -> str:
@@ -67,21 +79,69 @@ class ExprGenerator:
             return f"{value}->{func.attr}"
         return "unknown_func"
 
-    def _gen_print_call(self, args: List[str]) -> str:
-        """Generate C printf call from print arguments."""
+    def _gen_print_call(self, args: List[ast.expr]) -> str:
+        """Generate C fprintf call from print arguments."""
         if not args:
             return 'fprintf(stdout, "\\n")'
         
-        # For now, assume single string argument
-        # Format string needs to be extracted and newline added
         arg = args[0]
-        if arg.startswith('"') and arg.endswith('"'):
+        
+        # Check for format string: print("format %s" % value)
+        if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Mod):
+            # This is a % format expression
+            return self._gen_print_format(arg)
+        
+        # Simple argument
+        arg_code = self.generate(arg)
+        if arg_code.startswith('"') and arg_code.endswith('"'):
             # String literal - add newline
-            format_str = arg[:-1] + '\\n"'
+            format_str = arg_code[:-1] + '\\n"'
             return f"fprintf(stdout, {format_str})"
         else:
             # Variable - use %s format
-            return f'fprintf(stdout, "%s\\n", {arg})'
+            return f'fprintf(stdout, "%s\\n", {arg_code})'
+
+    def _gen_print_format(self, binop: ast.BinOp) -> str:
+        """Generate fprintf for print("format %s" % value) pattern."""
+        format_expr = binop.left
+        value_expr = binop.right
+        
+        # Get format string
+        if isinstance(format_expr, ast.Constant) and isinstance(format_expr.value, str):
+            format_str = format_expr.value
+        else:
+            # Not a constant format string - fall back to runtime
+            format_code = self.generate(format_expr)
+            value_code = self.generate(value_expr)
+            return f'fprintf(stdout, "%s\\n", /* format */ {format_code}, {value_code})'
+        
+        # Parse format string and map Python format specifiers to C
+        c_format = self._convert_format_string(format_str)
+        
+        # Get the value(s) - could be tuple or single value
+        if isinstance(value_expr, ast.Tuple):
+            values = [self.generate(e) for e in value_expr.elts]
+        else:
+            values = [self.generate(value_expr)]
+        
+        # Add newline to format
+        c_format_str = f'"{c_format}\\n"'
+        
+        if values:
+            return f'fprintf(stdout, {c_format_str}, {", ".join(values)})'
+        else:
+            return f'fprintf(stdout, {c_format_str})'
+
+    def _convert_format_string(self, py_format: str) -> str:
+        """Convert Python format string to C printf format."""
+        # Escape for C string and handle format specifiers
+        result = py_format.replace('\\', '\\\\').replace('"', '\\"')
+        
+        # Python %s -> C %s (works the same for most cases)
+        # Python %d -> C %d (same)
+        # Python %f -> C %f (same)
+        # For now, just return as-is since basic specifiers match
+        return result
 
     def _gen_constant(self, expr: ast.Constant) -> str:
         """Generate C code for a constant value."""

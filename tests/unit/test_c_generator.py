@@ -53,95 +53,86 @@ class TestSanitizeCName:
         assert sanitize_c_name("") == ""
 
 
+# Define components at module level so inspect.getsource() can find them
+@zdc.dataclass
+class GenTestComp(zdc.Component):
+    def test_method(self):
+        pass
+
+
+@zdc.dataclass
+class GenHeaderTestComp(zdc.Component):
+    pass
+
+
+@zdc.dataclass
+class GenPrintTestComp(zdc.Component):
+    def say_hello(self):
+        print("Hello World")
+
+
 class TestCGenerator:
     """Tests for CGenerator class."""
 
-    def test_generate_creates_files(self):
+    def test_generate_creates_files(self, tmpdir):
         """Test that generate creates output files."""
-        @zdc.dataclass
-        class TestComp(zdc.Component):
-            def test_method(self):
-                pass
+        dm_ctxt = zdc.DataModelFactory().build(GenTestComp)
+        generator = CGenerator(output_dir=str(tmpdir))
+        sources = generator.generate(dm_ctxt)
+        
+        assert len(sources) > 0
+        # Check that files were created
+        for src in sources:
+            assert src.exists()
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dm_ctxt = zdc.DataModelFactory().build(TestComp)
-            generator = CGenerator(output_dir=tmpdir)
-            sources = generator.generate(dm_ctxt)
-            
-            assert len(sources) > 0
-            # Check that files were created
-            for src in sources:
-                assert src.exists()
-
-    def test_generate_header_includes_guard(self):
+    def test_generate_header_includes_guard(self, tmpdir):
         """Test that generated header has include guard."""
-        @zdc.dataclass
-        class TestComp(zdc.Component):
-            pass
+        dm_ctxt = zdc.DataModelFactory().build(GenHeaderTestComp)
+        generator = CGenerator(output_dir=str(tmpdir))
+        sources = generator.generate(dm_ctxt)
+        
+        # Find header file
+        header_files = [s for s in sources if s.suffix == '.h']
+        assert len(header_files) > 0
+        
+        header = header_files[0].read_text()
+        assert '#ifndef' in header
+        assert '#define' in header
+        assert '#endif' in header
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dm_ctxt = zdc.DataModelFactory().build(TestComp)
-            generator = CGenerator(output_dir=tmpdir)
-            sources = generator.generate(dm_ctxt)
-            
-            # Find header file
-            header_files = [s for s in sources if s.suffix == '.h']
-            assert len(header_files) > 0
-            
-            header = header_files[0].read_text()
-            assert '#ifndef' in header
-            assert '#define' in header
-            assert '#endif' in header
-
-    def test_generate_includes_zsp_component(self):
+    def test_generate_includes_zsp_component(self, tmpdir):
         """Test that generated header includes zsp_component.h."""
-        @zdc.dataclass
-        class TestComp(zdc.Component):
-            pass
+        dm_ctxt = zdc.DataModelFactory().build(GenHeaderTestComp)
+        generator = CGenerator(output_dir=str(tmpdir))
+        sources = generator.generate(dm_ctxt)
+        
+        # Find header file
+        header_files = [s for s in sources if s.suffix == '.h']
+        header = header_files[0].read_text()
+        assert '#include "zsp_component.h"' in header
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dm_ctxt = zdc.DataModelFactory().build(TestComp)
-            generator = CGenerator(output_dir=tmpdir)
-            sources = generator.generate(dm_ctxt)
-            
-            # Find header file
-            header_files = [s for s in sources if s.suffix == '.h']
-            header = header_files[0].read_text()
-            assert '#include "zsp_component.h"' in header
-
-    def test_generate_creates_main(self):
+    def test_generate_creates_main(self, tmpdir):
         """Test that generate creates main.c."""
-        @zdc.dataclass
-        class TestComp(zdc.Component):
-            pass
+        dm_ctxt = zdc.DataModelFactory().build(GenHeaderTestComp)
+        generator = CGenerator(output_dir=str(tmpdir))
+        sources = generator.generate(dm_ctxt)
+        
+        main_files = [s for s in sources if s.name == 'main.c']
+        assert len(main_files) == 1
+        
+        main = main_files[0].read_text()
+        assert 'int main(' in main
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dm_ctxt = zdc.DataModelFactory().build(TestComp)
-            generator = CGenerator(output_dir=tmpdir)
-            sources = generator.generate(dm_ctxt)
-            
-            main_files = [s for s in sources if s.name == 'main.c']
-            assert len(main_files) == 1
-            
-            main = main_files[0].read_text()
-            assert 'int main(' in main
-
-    def test_generate_method_with_print(self):
+    def test_generate_method_with_print(self, tmpdir):
         """Test that print statement is converted to fprintf."""
-        @zdc.dataclass
-        class TestComp(zdc.Component):
-            def say_hello(self):
-                print("Hello World")
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dm_ctxt = zdc.DataModelFactory().build(TestComp)
-            generator = CGenerator(output_dir=tmpdir)
-            sources = generator.generate(dm_ctxt)
-            
-            # Find source file (not main.c)
-            src_files = [s for s in sources if s.suffix == '.c' and s.name != 'main.c']
-            assert len(src_files) > 0
-            
-            src = src_files[0].read_text()
-            assert 'fprintf' in src
-            assert 'Hello World' in src
+        dm_ctxt = zdc.DataModelFactory().build(GenPrintTestComp)
+        generator = CGenerator(output_dir=str(tmpdir))
+        sources = generator.generate(dm_ctxt)
+        
+        # Find source file (not main.c)
+        src_files = [s for s in sources if s.suffix == '.c' and s.name != 'main.c']
+        assert len(src_files) > 0
+        
+        src = src_files[0].read_text()
+        assert 'fprintf' in src
+        assert 'Hello World' in src

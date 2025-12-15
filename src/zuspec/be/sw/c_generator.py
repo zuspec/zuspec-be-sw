@@ -21,7 +21,7 @@ import inspect
 import re
 import textwrap
 from pathlib import Path
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Any
 
 from zuspec.dataclasses import dm
 
@@ -55,9 +55,20 @@ class CGenerator:
         self.expr_gen = ExprGenerator()
         self.stmt_gen = StmtGenerator()
         self.output = OutputManager(output_dir)
+        self.py_classes: Dict[str, Type] = {}  # Map from type name to Python class
 
-    def generate(self, ctxt: dm.Context) -> List[Path]:
-        """Generate C code for all types in context."""
+    def generate(self, ctxt: dm.Context, py_classes: List[Type] = None) -> List[Path]:
+        """Generate C code for all types in context.
+        
+        Args:
+            ctxt: The datamodel context
+            py_classes: Optional list of original Python classes for source introspection
+        """
+        # Build map of Python classes by name
+        if py_classes:
+            for cls in py_classes:
+                self.py_classes[cls.__name__] = cls
+        
         # First pass: generate protocol/API types
         for name, dtype in ctxt.type_m.items():
             if isinstance(dtype, dm.DataTypeProtocol):
@@ -160,6 +171,9 @@ class CGenerator:
         protocol_includes = set()
         component_includes = set()
         has_ports_or_exports = False
+        has_channels = False
+        has_tlm_interfaces = False
+        
         for field in comp.fields:
             if field.kind == dm.FieldKind.Port or field.kind == dm.FieldKind.Export:
                 has_ports_or_exports = True
@@ -167,6 +181,11 @@ class CGenerator:
                     protocol_includes.add(field.datatype.ref_name.lower())
                 elif isinstance(field.datatype, dm.DataTypeProtocol):
                     protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
+                elif isinstance(field.datatype, (dm.DataTypeGetIF, dm.DataTypePutIF)):
+                    has_tlm_interfaces = True
+            # Check for channel fields
+            if isinstance(field.datatype, dm.DataTypeChannel):
+                has_channels = True
             # Check for sub-component fields
             elif isinstance(field.datatype, dm.DataTypeComponent):
                 component_includes.add(sanitize_c_name(field.datatype.name).lower())
@@ -187,6 +206,9 @@ class CGenerator:
         
         if has_async:
             lines.append('#include "zsp_timebase.h"')
+        
+        if has_channels or has_tlm_interfaces:
+            lines.append('#include "zsp_channel.h"')
         
         # Include protocol headers
         for proto_name in sorted(protocol_includes):
@@ -318,6 +340,10 @@ class CGenerator:
             elif field.kind == dm.FieldKind.Export:
                 # Exports are embedded structs, zero-initialize self pointer
                 lines.append(f"    self->{field.name}.self = NULL;")
+            elif isinstance(field.datatype, dm.DataTypeChannel):
+                # Channel: call channel init with element size
+                elem_size = self.type_mapper.get_element_size(field.datatype.element_type)
+                lines.append(f'    zsp_channel_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {elem_size});')
             elif isinstance(field.datatype, dm.DataTypeComponent) or \
                  (isinstance(field.datatype, dm.DataTypeRef) and 
                   isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):
@@ -379,6 +405,13 @@ class CGenerator:
             # Generates: self->exp.method = (func_ptr)CompType_method;
             return self._generate_method_bind(lhs, rhs, comp, comp_name, ctxt)
         
+        # Check if RHS is a channel interface binding (self.ch.put or self.ch.get)
+        if isinstance(rhs, dm.ExprRefPy):
+            rhs_attr = rhs.ref
+            if rhs_attr in ("put", "get"):
+                # This is a channel binding: self.subcomp.port : self.ch.put/get
+                return self._generate_channel_bind(lhs, rhs, comp, comp_name, ctxt)
+        
         # Otherwise it's a port-to-export binding
         lhs_code = self._expr_to_c(lhs, comp, "self", ctxt)
         rhs_code = self._expr_to_c(rhs, comp, "self", ctxt)
@@ -387,6 +420,32 @@ class CGenerator:
             return [f"{lhs_code} = &{rhs_code};"]
         
         return []
+
+    def _generate_channel_bind(self, lhs, rhs: dm.ExprRefPy, comp: dm.DataTypeComponent, 
+                               comp_name: str, ctxt: dm.Context) -> List[str]:
+        """Generate channel binding code for port-to-channel interface connections.
+        
+        Handles bindings like: self.subcomp.port : self.ch.put (or .get)
+        """
+        lines = []
+        
+        # Get the LHS port path (e.g., self->p.p or self->c.c)
+        lhs_code = self._expr_to_c(lhs, comp, "self", ctxt)
+        
+        # Get the channel path (e.g., self->ch)
+        channel_code = self._expr_to_c(rhs.base, comp, "self", ctxt)
+        
+        # Determine if this is put or get
+        interface_type = rhs.ref  # "put" or "get"
+        
+        # Generate the binding: port points to the channel's interface
+        # e.g., self->p.p = (zsp_put_if_t *)&self->ch;
+        if interface_type == "put":
+            lines.append(f"{lhs_code} = (zsp_put_if_t *)&{channel_code};")
+        else:  # get
+            lines.append(f"{lhs_code} = (zsp_get_if_t *)&{channel_code};")
+        
+        return lines
 
     def _generate_method_bind(self, lhs: dm.ExprRefPy, rhs, comp: dm.DataTypeComponent, 
                               comp_name: str, ctxt: dm.Context) -> List[str]:
@@ -554,16 +613,53 @@ class CGenerator:
         return lines
 
     def _generate_async_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
-        """Generate a component async method as a C coroutine."""
+        """Generate a component async method as a C coroutine.
         
-        # Use the datamodel body - it must be populated by the DataModelFactory
+        Raises:
+            RuntimeError: If async method body is not available in datamodel and cannot be retrieved from source.
+        """
+        
+        # First, try to use the datamodel body if populated
         if func.body:
             dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
             code = dm_gen.generate(func)
             return code.split("\n")
         
-        # If body is empty, we cannot generate - datamodel must be complete
-        return [f"/* async method {func.name} - no body in datamodel */"]
+        # If datamodel body is empty, try to get Python source via inspect (AST fallback)
+        py_class = self.py_classes.get(comp.name)
+        if py_class:
+            try:
+                py_method = getattr(py_class, func.name, None)
+                if py_method:
+                    source = inspect.getsource(py_method)
+                    source = textwrap.dedent(source)
+                    tree = ast.parse(source)
+                    func_def = tree.body[0]
+                    if isinstance(func_def, ast.AsyncFunctionDef):
+                        ast_gen = AsyncMethodGenerator(name, func.name)
+                        code = ast_gen.generate(func_def)
+                        return code.split("\n")
+            except OSError as e:
+                # Source not available - fail with clear error
+                raise RuntimeError(
+                    f"Cannot generate async method '{func.name}' for component '{comp.name}': "
+                    f"method body is not in datamodel and source code is not available. "
+                    f"This typically happens when classes are defined in string literals passed to exec() "
+                    f"or in interactive sessions. Define your classes in a proper .py module file instead."
+                ) from e
+            except (TypeError, SyntaxError) as e:
+                # Parsing or analysis failed
+                raise RuntimeError(
+                    f"Cannot generate async method '{func.name}' for component '{comp.name}': "
+                    f"failed to parse source code: {e}"
+                ) from e
+        
+        # No body in datamodel and no Python class - this should not happen in normal usage
+        raise RuntimeError(
+            f"Cannot generate async method '{func.name}' for component '{comp.name}': "
+            f"method body is not available in datamodel and no Python class was provided. "
+            f"Ensure DataModelFactory.build() is called with proper component classes."
+        )
 
     def _get_method_body(self, comp: dm.DataTypeComponent, func: dm.Function, ctxt: dm.Context) -> str:
         """Generate method body from datamodel."""
@@ -581,8 +677,11 @@ class CGenerator:
                 lines.append(code)
         return "\n".join(lines)
 
-    def _should_generate_method(self, func: dm.Function) -> bool:
+    def _should_generate_method(self, func) -> bool:
         """Check if a method should be generated."""
+        # Skip Process types - they're background processes, not callable methods
+        if isinstance(func, dm.Process):
+            return False
         # Skip internal/inherited methods
         if func.name.startswith("__"):
             return False

@@ -136,8 +136,10 @@ async def doit(self):
 
     def test_locals_struct_generated(self):
         """Test that locals struct is generated with self pointer."""
+        # Use non-trivial case that requires locals struct
         code = '''
 async def doit(self):
+    print("hello")
     await self.wait(1)
 '''
         func_def = self._parse_async_method(code)

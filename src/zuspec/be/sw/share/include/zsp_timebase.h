@@ -148,6 +148,10 @@ typedef struct zsp_timebase_s {
     uint32_t                event_count;    /* Number of events in queue */
     uint32_t                event_capacity; /* Allocated capacity */
     uint32_t                event_seq;      /* Sequence counter for stable sort */
+
+    /* Stack-block caches to reduce alloc/free churn (4096/8192 payload blocks) */
+    zsp_stack_block_t       *free_4k;
+    zsp_stack_block_t       *free_8k;
     
     int32_t                 active;         /* Number of active threads */
     int                     running;        /* Non-zero if simulation running */

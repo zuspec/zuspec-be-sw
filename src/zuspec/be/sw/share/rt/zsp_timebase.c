@@ -95,6 +95,7 @@ static zsp_timebase_event_t heap_pop(zsp_timebase_t *tb) {
  *============================================================================*/
 
 static void ready_queue_add(zsp_timebase_t *tb, zsp_thread_t *thread) {
+    thread->flags &= ~ZSP_THREAD_FLAGS_BLOCKED;
     thread->next = NULL;
     if (tb->ready_tail) {
         tb->ready_tail->next = thread;
@@ -162,6 +163,41 @@ uint64_t zsp_timebase_current_ticks(zsp_timebase_t *tb) {
  * Timebase Lifecycle
  *============================================================================*/
 
+static inline uintptr_t zsp_stack_block_base0(zsp_stack_block_t *block) {
+    return (uintptr_t)&block->base + sizeof(uintptr_t);
+}
+
+static zsp_stack_block_t *zsp_timebase_stack_block_alloc(
+    zsp_timebase_t *tb,
+    uint32_t block_sz) {
+
+    zsp_stack_block_t **free_list = (block_sz == 4096) ? &tb->free_4k : &tb->free_8k;
+
+    if (*free_list) {
+        zsp_stack_block_t *block = *free_list;
+        *free_list = block->prev;
+        block->prev = NULL;
+        block->base = zsp_stack_block_base0(block);
+        return block;
+    }
+
+    zsp_stack_block_t *block = (zsp_stack_block_t *)
+        tb->alloc->alloc(tb->alloc, sizeof(zsp_stack_block_t) + block_sz);
+    block->base = zsp_stack_block_base0(block);
+    block->limit = block->base + block_sz - 1;
+    block->prev = NULL;
+
+    return block;
+}
+
+static void zsp_timebase_stack_block_free(zsp_timebase_t *tb, zsp_stack_block_t *block) {
+    uint32_t block_sz = (uint32_t)(block->limit - zsp_stack_block_base0(block) + 1);
+    zsp_stack_block_t **free_list = (block_sz == 4096) ? &tb->free_4k : &tb->free_8k;
+
+    block->prev = *free_list;
+    *free_list = block;
+}
+
 void zsp_timebase_init(
     zsp_timebase_t      *tb,
     zsp_alloc_t         *alloc,
@@ -173,6 +209,9 @@ void zsp_timebase_init(
     
     tb->ready_head = NULL;
     tb->ready_tail = NULL;
+
+    tb->free_4k = NULL;
+    tb->free_8k = NULL;
     
     /* Pre-allocate event heap */
     tb->event_capacity = INITIAL_EVENT_CAPACITY;
@@ -199,6 +238,19 @@ zsp_timebase_t *zsp_timebase_create(
 void zsp_timebase_destroy(zsp_timebase_t *tb) {
     if (tb->events) {
         tb->alloc->free(tb->alloc, tb->events);
+        tb->events = NULL;
+    }
+
+    while (tb->free_4k) {
+        zsp_stack_block_t *n = tb->free_4k->prev;
+        tb->alloc->free(tb->alloc, tb->free_4k);
+        tb->free_4k = n;
+    }
+
+    while (tb->free_8k) {
+        zsp_stack_block_t *n = tb->free_8k->prev;
+        tb->alloc->free(tb->alloc, tb->free_8k);
+        tb->free_8k = n;
     }
 }
 
@@ -245,15 +297,28 @@ static zsp_thread_t *thread_init_va(
     
     /* Call task to initialize its frame */
     zsp_frame_t *ret = func(thread, 0, args);
-    thread->leaf = ret;
+    
+    /* Only update leaf if the task returned a frame.
+     * If ret is NULL but thread->leaf is not NULL, then a sub-task completed
+     * during initialization but the parent frame is still valid. */
+    if (ret != NULL) {
+        thread->leaf = ret;
+    }
     thread->flags &= ~ZSP_THREAD_FLAGS_INITIAL;
     
-    if (ret && (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) != 0) {
-        /* Thread yielded - schedule it */
-        thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-        zsp_timebase_schedule(tb, thread);
+    if (thread->leaf) {
+        if ((thread->flags & ZSP_THREAD_FLAGS_BLOCKED) == 0) {
+            /* Thread is runnable - schedule it */
+            if (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) {
+                thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+            }
+            zsp_timebase_schedule(tb, thread);
+        } else {
+            /* Thread blocked */
+            thread->next = NULL;
+        }
     } else {
-        /* Thread blocked or completed */
+        /* Thread completed */
         thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
         thread->next = NULL;
     }
@@ -294,6 +359,7 @@ zsp_thread_t *zsp_timebase_thread_init(
 }
 
 void zsp_timebase_schedule(zsp_timebase_t *tb, zsp_thread_t *thread) {
+    // printf("DEBUG: Schedule thread %p\n", (void*)thread);
     tb->active++;
     thread->flags &= ~ZSP_THREAD_FLAGS_BLOCKED;
     ready_queue_add(tb, thread);
@@ -308,7 +374,7 @@ void zsp_timebase_schedule_at(
     uint64_t wake_time = tb->current_time + delay_ticks;
     
     tb->active++;
-    thread->flags &= ~ZSP_THREAD_FLAGS_BLOCKED;
+    /* Do NOT clear BLOCKED flag - thread is waiting for time */
     
     zsp_timebase_event_t event;
     event.wake_time = wake_time;
@@ -324,7 +390,7 @@ void zsp_timebase_thread_free(zsp_thread_t *thread) {
     /* Free stack blocks */
     while (thread->block) {
         zsp_stack_block_t *prev = thread->block->prev;
-        tb->alloc->free(tb->alloc, thread->block);
+        zsp_timebase_stack_block_free(tb, thread->block);
         thread->block = prev;
     }
     
@@ -362,13 +428,14 @@ int zsp_timebase_run(zsp_timebase_t *tb) {
     }
     
     if (thread->leaf) {
-        if (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) {
-            /* Thread yielded - reschedule at current time */
-            thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+        if ((thread->flags & ZSP_THREAD_FLAGS_BLOCKED) == 0) {
+            /* Thread is runnable - reschedule */
+            if (thread->flags & ZSP_THREAD_FLAGS_SUSPEND) {
+                thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
+            }
             zsp_timebase_schedule(tb, thread);
         } else {
             /* Thread blocked */
-            thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
             thread->next = NULL;
         }
     } else {
@@ -447,16 +514,11 @@ zsp_frame_t *zsp_timebase_alloc_frame(
     zsp_timebase_t *tb = thread->timebase;
     zsp_frame_t *ret;
     
-    sz = sz ? sz : sizeof(uintptr_t);
     uint32_t total_sz = sizeof(zsp_frame_t) + sz;
     
     /* Allocate new block if needed */
     if (!thread->block || (thread->block->base + total_sz) >= thread->block->limit) {
-        uint32_t block_sz = 8192;
-        zsp_stack_block_t *block = (zsp_stack_block_t *)
-            tb->alloc->alloc(tb->alloc, sizeof(zsp_stack_block_t) + block_sz);
-        block->base = (uintptr_t)&block->base + sizeof(uintptr_t);
-        block->limit = block->base + block_sz - 1;
+        zsp_stack_block_t *block = zsp_timebase_stack_block_alloc(tb, 8192);
         block->prev = thread->block;
         thread->block = block;
     }
@@ -479,11 +541,7 @@ void *zsp_timebase_alloca(zsp_thread_t *thread, size_t sz) {
     uint32_t total_sz = (uint32_t)sz;
     
     if (!thread->block || (thread->block->base + total_sz) >= thread->block->limit) {
-        uint32_t block_sz = 4096;
-        zsp_stack_block_t *block = (zsp_stack_block_t *)
-            tb->alloc->alloc(tb->alloc, sizeof(zsp_stack_block_t) + block_sz);
-        block->base = (uintptr_t)&block->base + sizeof(uintptr_t);
-        block->limit = block->base + block_sz - 1;
+        zsp_stack_block_t *block = zsp_timebase_stack_block_alloc(tb, 4096);
         block->prev = thread->block;
         thread->block = block;
     }
@@ -521,7 +579,7 @@ zsp_frame_t *zsp_timebase_return(zsp_thread_t *thread, uintptr_t rval) {
             break;
         } else {
             zsp_stack_block_t *prev = thread->block->prev;
-            tb->alloc->free(tb->alloc, thread->block);
+            zsp_timebase_stack_block_free(tb, thread->block);
             thread->block = prev;
         }
     }

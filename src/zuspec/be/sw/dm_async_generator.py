@@ -39,9 +39,36 @@ class DmAsyncMethodGenerator:
         self.indent_str = "    "
 
     def generate(self, func: dm.Function) -> str:
-        """Generate C coroutine function from datamodel Function."""
+        """Generate C coroutine function from datamodel Function.
+        
+        Args:
+            func: Function datamodel with populated body
+            
+        Raises:
+            ValueError: If function body is empty or invalid
+        """
+        if not func.body:
+            raise ValueError(
+                f"Cannot generate async method '{self.method_name}': function body is empty. "
+                f"Ensure the datamodel was built with proper source code available."
+            )
+        
+        if self._is_trivial_wait_only(func):
+            return self._generate_trivial_wait_only(func)
+
         # Analyze the method to find await points
         blocks = self._split_at_awaits(func.body)
+        
+        if not blocks:
+            raise ValueError(
+                f"Cannot generate async method '{self.method_name}': no executable blocks found. "
+                f"Async methods must contain at least one statement."
+            )
+        
+        # Get function parameters (excluding 'self')
+        params = []
+        if func.args and func.args.args:
+            params = [arg for arg in func.args.args if arg.arg != 'self']
         
         # Generate the coroutine function
         lines = []
@@ -53,13 +80,17 @@ class DmAsyncMethodGenerator:
         lines.append(f"        int idx,")
         lines.append(f"        va_list *args) {{")
         lines.append(f"    zsp_frame_t *ret = thread->leaf;")
-        lines.append(f"    zsp_timebase_t *tb = zsp_thread_timebase(thread);")
-        lines.append(f"    (void)tb;  /* May be unused */")
+        if self._needs_timebase(func):
+            lines.append(f"    zsp_timebase_t *tb = zsp_thread_timebase(thread);")
+            lines.append(f"    (void)tb;  /* May be unused */")
         lines.append(f"")
         
         # Generate locals struct
+        local_vars = self._extract_local_vars(func.body, func.args)
         lines.append(f"    typedef struct {{")
         lines.append(f"        {self.component_name} *self;")
+        for var_name, var_type in local_vars:
+            lines.append(f"        {var_type} {var_name};")
         lines.append(f"    }} locals_t;")
         lines.append(f"")
         
@@ -76,12 +107,26 @@ class DmAsyncMethodGenerator:
                 lines.append(f"            locals_t *locals = zsp_frame_locals(ret, locals_t);")
                 lines.append(f"            if (args) {{")
                 lines.append(f"                locals->self = ({self.component_name} *)va_arg(*args, void *);")
+                # Extract additional parameters
+                for param in params:
+                    c_type = self._get_param_c_type(param)
+                    va_type = self._get_va_arg_type(c_type)
+                    lines.append(f"                locals->{param.arg} = ({c_type})va_arg(*args, {va_type});")
                 lines.append(f"            }}")
             else:
                 lines.append(f"            locals_t *locals = zsp_frame_locals(ret, locals_t);")
+                
+                # If previous block had an await with a return value, handle it now
+                if i > 0:
+                    prev_block = blocks[i-1]
+                    prev_await_stmt = prev_block[2]  # The statement containing the await
+                    if prev_await_stmt and isinstance(prev_await_stmt, dm.StmtAssign):
+                        # Previous await was an assignment, get the value from thread->rval
+                        target = self._gen_expr(prev_await_stmt.targets[0])
+                        lines.append(f"            {target} = (int)thread->rval;  /* Result from previous await */")
             
             # Generate statements in this block
-            block_stmts, await_expr = block
+            block_stmts, await_expr, await_stmt = block
             for stmt in block_stmts:
                 stmt_code = self._gen_stmt(stmt)
                 for line in stmt_code.split('\n'):
@@ -92,7 +137,7 @@ class DmAsyncMethodGenerator:
             if await_expr is not None:
                 # Set next index and yield
                 lines.append(f"            ret->idx = {i + 1};")
-                await_code = self._gen_await_code(await_expr)
+                await_code = self._gen_await_code(await_expr, await_stmt)
                 lines.append(f"            {await_code}")
                 lines.append(f"            break;")
             else:
@@ -108,20 +153,102 @@ class DmAsyncMethodGenerator:
         lines.append(f"")
         
         # Generate wrapper function that starts the coroutine
-        lines.append(f"void {func_name}({self.component_name} *self, zsp_timebase_t *tb) {{")
+        # Header uses: (self, params..., tb) so we must match
+        wrapper_params = [f"{self.component_name} *self"]
+        for param in params:
+            c_type = self._get_param_c_type(param)
+            wrapper_params.append(f"{c_type} {param.arg}")
+        wrapper_params.append("zsp_timebase_t *tb")
+        
+        lines.append(f"void {func_name}({', '.join(wrapper_params)}) {{")
+        
+        # Build thread create call with all parameters
+        create_args = ["self"]
+        for param in params:
+            create_args.append(param.arg)
+        
         lines.append(f"    zsp_thread_t *thread = zsp_timebase_thread_create(")
-        lines.append(f"        tb, &{func_name}_task, ZSP_THREAD_FLAGS_NONE, self);")
-        lines.append(f"    (void)thread;  /* Thread is managed by timebase */")
+        lines.append(f"        tb, &{func_name}_task, ZSP_THREAD_FLAGS_NONE, {', '.join(create_args)});")
+        lines.append(f"    thread->exit_f = (zsp_thread_exit_f)&zsp_timebase_thread_free;")
         lines.append(f"}}")
         
         return "\n".join(lines)
+    
+    def _get_param_c_type(self, arg: dm.Arg) -> str:
+        """Get C type for a function parameter from its annotation."""
+        if arg.annotation:
+            # Check for DataTypeInt or similar
+            ann = arg.annotation
+            if hasattr(ann, 'value'):
+                val = ann.value
+                if hasattr(val, '__name__'):
+                    type_name = val.__name__
+                    if type_name == 'int':
+                        return 'int32_t'
+                    elif type_name == 'float':
+                        return 'float'
+                    elif type_name == 'bool':
+                        return 'int'
+        return 'int32_t'  # Default
+    
+    def _get_va_arg_type(self, c_type: str) -> str:
+        """Get the appropriate va_arg type for a C type."""
+        if c_type in ('int8_t', 'int16_t', 'int32_t', 'int'):
+            return 'int'
+        elif c_type in ('uint8_t', 'uint16_t', 'uint32_t', 'unsigned'):
+            return 'unsigned int'
+        elif c_type == 'int64_t':
+            return 'int64_t'
+        elif c_type == 'uint64_t':
+            return 'uint64_t'
+        elif c_type == 'float':
+            return 'double'
+        elif c_type == 'double':
+            return 'double'
+        return 'int'
 
-    def _split_at_awaits(self, stmts: List[dm.Stmt]) -> List[Tuple[List[dm.Stmt], Optional[dm.ExprAwait]]]:
+    def _extract_local_vars(self, stmts: List[dm.Stmt], args: dm.Arguments) -> List[Tuple[str, str]]:
+        """
+        Extract local variable declarations from function body.
+        Returns list of (var_name, var_type) tuples.
+        """
+        local_vars = []
+        seen_vars = set()
+        
+        # Add function parameters (if args exists)
+        if args and args.args:
+            for arg in args.args:
+                if arg.arg != 'self' and arg.arg not in seen_vars:
+                    # Determine type from annotation
+                    var_type = self._get_param_c_type(arg)
+                    local_vars.append((arg.arg, var_type))
+                    seen_vars.add(arg.arg)
+        
+        # Walk statements to find assignments
+        def extract_from_stmt(stmt):
+            if isinstance(stmt, dm.StmtAssign):
+                for target in stmt.targets:
+                    if isinstance(target, dm.ExprRefLocal):
+                        var_name = target.name
+                        if var_name not in seen_vars:
+                            # Determine type - for now assume int32_t
+                            var_type = "int32_t"
+                            local_vars.append((var_name, var_type))
+                            seen_vars.add(var_name)
+        
+        for stmt in stmts:
+            extract_from_stmt(stmt)
+        
+        return local_vars
+
+    def _split_at_awaits(self, stmts: List[dm.Stmt]) -> List[Tuple[List[dm.Stmt], Optional[dm.ExprAwait], Optional[dm.Stmt]]]:
         """
         Split statement list into blocks separated by await points.
         
-        Returns list of (statements, await_expr) tuples. The await_expr is None
-        for the final block if there's no trailing await.
+        Returns list of (statements, await_expr, await_stmt) tuples. 
+        - statements: list of statements before the await
+        - await_expr: the await expression (None for final block)
+        - await_stmt: the full statement containing the await (for handling return values)
         """
         blocks = []
         current_block = []
@@ -131,21 +258,21 @@ class DmAsyncMethodGenerator:
             await_expr = self._find_await(stmt)
             
             if await_expr:
-                # Add current block with this await
-                blocks.append((current_block.copy(), await_expr))
+                # Add current block with this await (don't include the await statement in current_block)
+                blocks.append((current_block.copy(), await_expr, stmt))
                 current_block = []
             else:
                 current_block.append(stmt)
         
         # Add final block (no await)
         if current_block:
-            blocks.append((current_block, None))
+            blocks.append((current_block, None, None))
         elif not blocks:
             # Empty method
-            blocks.append(([], None))
+            blocks.append(([], None, None))
         elif blocks[-1][1] is not None:
             # Method ends with await, add empty final block
-            blocks.append(([], None))
+            blocks.append(([], None, None))
             
         return blocks
 
@@ -154,6 +281,14 @@ class DmAsyncMethodGenerator:
         if isinstance(stmt, dm.StmtExpr):
             if isinstance(stmt.expr, dm.ExprAwait):
                 return stmt.expr
+        elif isinstance(stmt, dm.StmtAssign):
+            # Check if the value being assigned contains an await
+            if isinstance(stmt.value, dm.ExprAwait):
+                return stmt.value
+        elif isinstance(stmt, dm.StmtReturn):
+            # Check if the return value contains an await
+            if stmt.value and isinstance(stmt.value, dm.ExprAwait):
+                return stmt.value
         return None
 
     def _gen_stmt(self, stmt: dm.Stmt) -> str:
@@ -174,7 +309,12 @@ class DmAsyncMethodGenerator:
         elif isinstance(stmt, dm.StmtFor):
             return self._gen_for_stmt(stmt)
         else:
-            return f"/* unsupported stmt: {type(stmt).__name__} */"
+            # Unsupported statement type - fail with clear error
+            raise ValueError(
+                f"Unsupported statement type in '{self.method_name}': {type(stmt).__name__}. "
+                f"Supported statements: assignments, expressions, return, pass, for loops. "
+                f"Add support for additional statement types if needed."
+            )
 
     def _gen_for_stmt(self, stmt: dm.StmtFor) -> str:
         """Generate C code for a for loop."""
@@ -193,8 +333,12 @@ class DmAsyncMethodGenerator:
             if isinstance(func, dm.ExprRefUnresolved) and func.name == "range":
                 return self._gen_range_for(loop_var, iter_expr.args, stmt.body)
         
-        # Fallback - generate as comment
-        return f"/* unsupported for loop over {type(iter_expr).__name__} */"
+        # Unsupported iteration type
+        raise ValueError(
+            f"Unsupported for loop in '{self.method_name}': iterating over {type(iter_expr).__name__}. "
+            f"Currently only 'for x in range(...)' loops are supported. "
+            f"Use range() for numeric iteration or implement support for other iterables."
+        )
 
     def _gen_range_for(self, loop_var: str, args: list, body: list) -> str:
         """Generate C for loop from range() call."""
@@ -233,9 +377,9 @@ class DmAsyncMethodGenerator:
         elif isinstance(expr, dm.TypeExprRefSelf):
             return "locals->self"
         elif isinstance(expr, dm.ExprRefParam):
-            return expr.name
+            return f"locals->{expr.name}"
         elif isinstance(expr, dm.ExprRefLocal):
-            return expr.name
+            return f"locals->{expr.name}"
         elif isinstance(expr, dm.ExprRefUnresolved):
             return expr.name
         elif isinstance(expr, dm.ExprRefField):
@@ -428,7 +572,7 @@ class DmAsyncMethodGenerator:
         }
         return op_map.get(op, "?")
 
-    def _gen_await_code(self, await_expr: dm.ExprAwait) -> str:
+    def _gen_await_code(self, await_expr: dm.ExprAwait, await_stmt: Optional[dm.Stmt] = None) -> str:
         """Generate C code for an await expression."""
         awaited = await_expr.value
         
@@ -436,7 +580,7 @@ class DmAsyncMethodGenerator:
         if isinstance(awaited, dm.ExprCall):
             func = awaited.func
             if isinstance(func, dm.ExprAttribute):
-                # Check for self.wait()
+                # Check for self.method() calls
                 is_self = (isinstance(func.value, dm.TypeExprRefSelf) or
                            (isinstance(func.value, dm.ExprConstant) and func.value.value == "self"))
                 if is_self:
@@ -446,9 +590,142 @@ class DmAsyncMethodGenerator:
                         if args:
                             time_arg = self._gen_time_expr(args[0])
                             return f"zsp_timebase_wait(thread, {time_arg});"
+                    else:
+                        # await self.other_async_method() -> call to generated task function
+                        method_name = func.attr
+                        task_func = f"{self.component_name}_{method_name}_task"
+                        # Build argument list for the call
+                        arg_list = ["locals->self"]
+                        for arg in awaited.args:
+                            arg_code = self._gen_expr(arg)
+                            arg_list.append(arg_code)
+                        args_str = ", ".join(arg_list)
+                        return f"ret = zsp_timebase_call(thread, &{task_func}, {args_str});"
+                
+                # Check for port.put() or port.get() - TLM channel operations
+                if isinstance(func.value, dm.ExprRefField):
+                    # Get field info
+                    field_idx = func.value.index
+                    if self.component and field_idx < len(self.component.fields):
+                        field = self.component.fields[field_idx]
+                        if field.kind == dm.FieldKind.Port:
+                            if func.attr == "put":
+                                # await self.port.put(data) -> channel put via call
+                                port_code = self._gen_field_ref(func.value)
+                                args = awaited.args
+                                if args:
+                                    data_arg = self._gen_expr(args[0])
+                                    return f"ret = zsp_timebase_call(thread, &zsp_channel_put_task, (zsp_channel_t *){port_code}, (uintptr_t){data_arg});"
+                            elif func.attr == "get":
+                                # await self.port.get() -> channel get via call
+                                port_code = self._gen_field_ref(func.value)
+                                return f"ret = zsp_timebase_call(thread, &zsp_channel_get_task, (zsp_channel_t *){port_code});"
         
-        # Generic await - treat as yield
-        return "zsp_timebase_yield(thread);"
+        # Unsupported await expression - provide helpful error
+        awaited_type = type(awaited).__name__
+        if isinstance(awaited, dm.ExprCall):
+            if isinstance(awaited.func, dm.ExprAttribute):
+                method_info = f"{awaited.func.attr}()"
+            else:
+                method_info = f"{awaited_type}"
+            raise ValueError(
+                f"Unsupported await expression in '{self.method_name}': await {method_info}. "
+                f"Supported: await self.wait(time), await port.put(data), await port.get(). "
+                f"For other async operations, ensure they are TLM channel operations on ports."
+            )
+        
+        raise ValueError(
+            f"Unsupported await expression in '{self.method_name}': {awaited_type}. "
+            f"Await must be used with self.wait(), port.put(), or port.get()."
+        )
+
+    def _is_channel_port(self, expr) -> bool:
+        """Check if expression refers to a channel port (PutIF or GetIF)."""
+        if isinstance(expr, dm.ExprRefField):
+            if self.component and expr.index < len(self.component.fields):
+                field = self.component.fields[expr.index]
+                dtype = field.datatype
+                return isinstance(dtype, (dm.DataTypePutIF, dm.DataTypeGetIF))
+        return False
+
+    def _needs_timebase(self, func: dm.Function) -> bool:
+        def walk_expr(e):
+            if isinstance(e, dm.ExprCall) and isinstance(e.func, dm.ExprAttribute):
+                is_self = (isinstance(e.func.value, dm.TypeExprRefSelf) or
+                           (isinstance(e.func.value, dm.ExprConstant) and e.func.value.value == "self"))
+                if is_self and e.func.attr == "time":
+                    return True
+            for v in getattr(e, '__dict__', {}).values():
+                if isinstance(v, dm.Expr) and walk_expr(v):
+                    return True
+                if isinstance(v, list):
+                    for i in v:
+                        if isinstance(i, dm.Expr) and walk_expr(i):
+                            return True
+            return False
+
+        for s in func.body:
+            e = getattr(s, 'expr', None)
+            if isinstance(e, dm.Expr) and walk_expr(e):
+                return True
+            v = getattr(s, 'value', None)
+            if isinstance(v, dm.Expr) and walk_expr(v):
+                return True
+        return False
+
+    def _is_trivial_wait_only(self, func: dm.Function) -> bool:
+        if len(func.body) != 1:
+            return False
+        s = func.body[0]
+        if not isinstance(s, dm.StmtExpr):
+            return False
+        if not isinstance(s.expr, dm.ExprAwait):
+            return False
+        awaited = s.expr.value
+        if not (isinstance(awaited, dm.ExprCall) and isinstance(awaited.func, dm.ExprAttribute)):
+            return False
+        is_self = (isinstance(awaited.func.value, dm.TypeExprRefSelf) or
+                   (isinstance(awaited.func.value, dm.ExprConstant) and awaited.func.value.value == "self"))
+        if not is_self or awaited.func.attr != "wait":
+            return False
+        return len(awaited.args) == 1
+
+    def _generate_trivial_wait_only(self, func: dm.Function) -> str:
+        func_name = f"{self.component_name}_{self.method_name}"
+        awaited = func.body[0].expr.value
+        time_arg = self._gen_time_expr(awaited.args[0])
+
+        lines = []
+        lines.append(f"static zsp_frame_t *{func_name}_task(")
+        lines.append(f"        zsp_thread_t *thread,")
+        lines.append(f"        int idx,")
+        lines.append(f"        va_list *args) {{")
+        lines.append(f"    zsp_frame_t *ret = thread->leaf;")
+        lines.append(f"    (void)args;")
+        lines.append(f"")
+        lines.append(f"    switch (idx) {{")
+        lines.append(f"        case 0: {{")
+        lines.append(f"            ret = zsp_timebase_alloc_frame(thread, 0, &{func_name}_task);")
+        lines.append(f"            ret->idx = 1;")
+        lines.append(f"            zsp_timebase_wait(thread, {time_arg});")
+        lines.append(f"            break;")
+        lines.append(f"        }}")
+        lines.append(f"        case 1: {{")
+        lines.append(f"            ret = zsp_timebase_return(thread, 0);")
+        lines.append(f"            break;")
+        lines.append(f"        }}")
+        lines.append(f"    }}")
+        lines.append(f"    return ret;")
+        lines.append(f"}}")
+        lines.append(f"")
+
+        lines.append(f"void {func_name}({self.component_name} *self, zsp_timebase_t *tb) {{")
+        lines.append(f"    zsp_thread_t *thread = zsp_timebase_thread_create(")
+        lines.append(f"        tb, &{func_name}_task, ZSP_THREAD_FLAGS_NONE, self);")
+        lines.append(f"    thread->exit_f = (zsp_thread_exit_f)&zsp_timebase_thread_free;")
+        lines.append(f"}}")
+
+        return "\n".join(lines)
 
     def _gen_time_expr(self, expr: dm.Expr) -> str:
         """Generate C code for a time expression (e.g., zdc.Time.ns(1))."""

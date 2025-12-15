@@ -63,6 +63,19 @@ class TypeMapper:
             return self._map_int_type(dtype)
         elif isinstance(dtype, dm.DataTypeString):
             return "const char*"
+        elif isinstance(dtype, dm.DataTypeChannel):
+            # Channel is always embedded in the component
+            return "zsp_channel_t"
+        elif isinstance(dtype, dm.DataTypeGetIF):
+            # GetIF - ports are pointers, exports embedded
+            if is_port:
+                return "zsp_get_if_t *"
+            return "zsp_get_if_t"
+        elif isinstance(dtype, dm.DataTypePutIF):
+            # PutIF - ports are pointers, exports embedded
+            if is_port:
+                return "zsp_put_if_t *"
+            return "zsp_put_if_t"
         elif isinstance(dtype, dm.DataTypeProtocol):
             # Protocol types: ports are pointers, exports are embedded
             name = sanitize_protocol_name(dtype.name)
@@ -91,27 +104,71 @@ class TypeMapper:
         else:
             return "void*"
 
+    def map_element_type(self, dtype: dm.DataType) -> str:
+        """Map the element type for channels and interfaces.
+        
+        Returns C type string for the channel element type.
+        For structs, returns pointer type. For primitives, returns value type.
+        """
+        if dtype is None:
+            return "uintptr_t"
+        
+        if isinstance(dtype, dm.DataTypeInt):
+            return self._map_int_type(dtype)
+        elif isinstance(dtype, dm.DataTypeString):
+            return "const char*"
+        elif isinstance(dtype, (dm.DataTypeStruct, dm.DataTypeComponent, dm.DataTypeRef)):
+            # Struct types are passed by pointer through channels
+            if isinstance(dtype, dm.DataTypeRef):
+                return f"{sanitize_protocol_name(dtype.ref_name)} *"
+            return f"{sanitize_protocol_name(dtype.name)} *"
+        else:
+            return "uintptr_t"
+
+    def get_element_size(self, dtype: dm.DataType) -> str:
+        """Get the element size expression for channel initialization.
+        
+        Returns C expression for sizeof the element type.
+        """
+        if dtype is None:
+            return "0"  # uintptr_t - use default
+        
+        if isinstance(dtype, dm.DataTypeInt):
+            c_type = self._map_int_type(dtype)
+            return f"sizeof({c_type})"
+        elif isinstance(dtype, (dm.DataTypeStruct, dm.DataTypeComponent, dm.DataTypeRef)):
+            # Structs passed by pointer
+            return "sizeof(void *)"
+        else:
+            return "0"  # uintptr_t default
+
     def _map_int_type(self, dtype: dm.DataTypeInt) -> str:
         """Map an integer datamodel type to C type."""
         key = (dtype.bits, dtype.signed)
         if key in self.INT_TYPE_MAP:
             return self.INT_TYPE_MAP[key]
+        
+        # Handle unspecified bits (-1) as default int32_t
+        bits = dtype.bits
+        if bits < 0:
+            bits = 32
+        
         # Default to closest larger type
         if dtype.signed:
-            if dtype.bits <= 8:
+            if bits <= 8:
                 return "int8_t"
-            elif dtype.bits <= 16:
+            elif bits <= 16:
                 return "int16_t"
-            elif dtype.bits <= 32:
+            elif bits <= 32:
                 return "int32_t"
             else:
                 return "int64_t"
         else:
-            if dtype.bits <= 8:
+            if bits <= 8:
                 return "uint8_t"
-            elif dtype.bits <= 16:
+            elif bits <= 16:
                 return "uint16_t"
-            elif dtype.bits <= 32:
+            elif bits <= 32:
                 return "uint32_t"
             else:
                 return "uint64_t"

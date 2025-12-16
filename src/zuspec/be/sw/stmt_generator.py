@@ -376,15 +376,24 @@ class StmtGenerator:
                 # self.method() -> method call (handled by vtable or direct)
                 return f"/* self.{func.attr}({', '.join(args)}) - direct method call */"
             
-            # Check for self.field.method() - could be port call
+            # Check for self.field.method() - could be port call or memory access
             if isinstance(func.value, dm.ExprRefField):
-                # This is a call through a field - check if it's a port
+                # This is a call through a field - check if it's a port or memory
                 field_type = self._get_field_type(func.value)
                 base_code = self._gen_dm_expr(func.value)
                 
                 if self._is_port_type(func.value):
                     # Port call: self->port->method(self->port->self, args)
                     return f"{base_code}->{func.attr}({base_code}->self, {', '.join(args)})"
+                elif self._is_memory_type(func.value):
+                    # Memory read/write: zsp_memory_read(&self->mem, addr) or zsp_memory_write(&self->mem, addr, data)
+                    if func.attr == "read":
+                        return f"zsp_memory_read(&{base_code}, {', '.join(args)})"
+                    elif func.attr == "write":
+                        return f"zsp_memory_write(&{base_code}, {', '.join(args)})"
+                    else:
+                        # Unknown memory method
+                        return f"{base_code}.{func.attr}({', '.join(args)})"
                 else:
                     # Regular field method call
                     return f"{base_code}.{func.attr}({', '.join(args)})"
@@ -405,6 +414,15 @@ class StmtGenerator:
                 # Direct field of component
                 if self.component and expr.index < len(self.component.fields):
                     return self.component.fields[expr.index].kind == dm.FieldKind.Port
+        return False
+
+    def _is_memory_type(self, expr) -> bool:
+        """Check if an expression refers to a memory field."""
+        from zuspec.dataclasses import dm
+        
+        if isinstance(expr, dm.ExprRefField):
+            field_type = self._get_field_type(expr)
+            return isinstance(field_type, dm.DataTypeMemory)
         return False
 
     def _gen_dm_print(self, args) -> str:

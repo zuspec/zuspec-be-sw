@@ -30,6 +30,8 @@ from .expr_generator import ExprGenerator
 from .stmt_generator import StmtGenerator
 from .async_generator import AsyncMethodGenerator
 from .dm_async_generator import DmAsyncMethodGenerator
+from .sync_generator import SyncMethodGenerator
+from .async_analyzer import AsyncAnalyzer
 from .output import OutputManager
 
 
@@ -56,6 +58,7 @@ class CGenerator:
         self.stmt_gen = StmtGenerator()
         self.output = OutputManager(output_dir)
         self.py_classes: Dict[str, Type] = {}  # Map from type name to Python class
+        self.async_analyzer: Optional[AsyncAnalyzer] = None  # Async-to-sync analyzer
 
     def generate(self, ctxt: dm.Context, py_classes: List[Type] = None) -> List[Path]:
         """Generate C code for all types in context.
@@ -68,6 +71,15 @@ class CGenerator:
         if py_classes:
             for cls in py_classes:
                 self.py_classes[cls.__name__] = cls
+        
+        # Analyze async functions for sync conversion opportunity
+        self.async_analyzer = AsyncAnalyzer(ctxt)
+        self.async_analyzer.analyze()
+        
+        # Print analysis report if there are convertible functions
+        report = self.async_analyzer.get_report()
+        if report:
+            print("\n" + report + "\n")
         
         # First pass: generate protocol/API types
         for name, dtype in ctxt.type_m.items():
@@ -172,6 +184,7 @@ class CGenerator:
         component_includes = set()
         has_ports_or_exports = False
         has_channels = False
+        has_memories = False
         has_tlm_interfaces = False
         
         for field in comp.fields:
@@ -183,8 +196,11 @@ class CGenerator:
                     protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
                 elif isinstance(field.datatype, (dm.DataTypeGetIF, dm.DataTypePutIF)):
                     has_tlm_interfaces = True
+            # Check for memory fields
+            if isinstance(field.datatype, dm.DataTypeMemory):
+                has_memories = True
             # Check for channel fields
-            if isinstance(field.datatype, dm.DataTypeChannel):
+            elif isinstance(field.datatype, dm.DataTypeChannel):
                 has_channels = True
             # Check for sub-component fields
             elif isinstance(field.datatype, dm.DataTypeComponent):
@@ -206,6 +222,9 @@ class CGenerator:
         
         if has_async:
             lines.append('#include "zsp_timebase.h"')
+        
+        if has_memories:
+            lines.append('#include "zsp_memory.h"')
         
         if has_channels or has_tlm_interfaces:
             lines.append('#include "zsp_channel.h"')
@@ -267,7 +286,19 @@ class CGenerator:
             if self._should_generate_method(func):
                 params = self._generate_method_params(func, name)
                 if getattr(func, 'is_async', False):
-                    # Async methods take a timebase parameter
+                    # Check if this function can be converted to sync
+                    can_be_sync = False
+                    if self.async_analyzer:
+                        can_be_sync = self.async_analyzer.is_sync_convertible(name, func.name)
+                    
+                    if can_be_sync:
+                        # Declare synchronous variant (inline, in header)
+                        ret_type = self._get_func_return_type(func)
+                        lines.append(f"/* Synchronous variant (optimized) */")
+                        lines.append(f"static inline {ret_type} {name}_{func.name}_sync({params});")
+                    
+                    # Async methods take a timebase parameter (always declare for compatibility)
+                    lines.append(f"/* Asynchronous variant */")
                     lines.append(f"void {name}_{func.name}({params}, zsp_timebase_t *tb);")
                 else:
                     lines.append(f"void {name}_{func.name}({params});")
@@ -340,6 +371,15 @@ class CGenerator:
             elif field.kind == dm.FieldKind.Export:
                 # Exports are embedded structs, zero-initialize self pointer
                 lines.append(f"    self->{field.name}.self = NULL;")
+            elif isinstance(field.datatype, dm.DataTypeMemory):
+                # Memory: call memory init with size and element width
+                size = field.datatype.size
+                elem_type = field.datatype.element_type
+                if isinstance(elem_type, dm.DataTypeInt):
+                    width = elem_type.bits
+                else:
+                    width = 32  # Default
+                lines.append(f'    zsp_memory_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {size}, {width});')
             elif isinstance(field.datatype, dm.DataTypeChannel):
                 # Channel: call channel init with element size
                 elem_size = self.type_mapper.get_element_size(field.datatype.element_type)
@@ -588,6 +628,34 @@ class CGenerator:
                 elif 'int8' in type_name:
                     return "int8_t"
         return "int32_t"  # Default
+    
+    def _get_func_return_type(self, func: dm.Function) -> str:
+        """Get C return type for a function."""
+        if not func.returns:
+            return "void"
+        
+        ret_type = func.returns
+        if isinstance(ret_type, dm.DataTypeInt):
+            if ret_type.signed:
+                if ret_type.bits <= 8:
+                    return "int8_t"
+                elif ret_type.bits <= 16:
+                    return "int16_t"
+                elif ret_type.bits <= 32:
+                    return "int32_t"
+                else:
+                    return "int64_t"
+            else:
+                if ret_type.bits <= 8:
+                    return "uint8_t"
+                elif ret_type.bits <= 16:
+                    return "uint16_t"
+                elif ret_type.bits <= 32:
+                    return "uint32_t"
+                else:
+                    return "uint64_t"
+        
+        return "int32_t"  # Default
 
     def _generate_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
         """Generate a component method."""
@@ -615,15 +683,32 @@ class CGenerator:
     def _generate_async_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
         """Generate a component async method as a C coroutine.
         
+        If the analyzer determines this can be sync, generates both sync and async variants.
+        
         Raises:
             RuntimeError: If async method body is not available in datamodel and cannot be retrieved from source.
         """
+        lines = []
+        
+        # Check if this function can be converted to sync
+        can_be_sync = False
+        if self.async_analyzer:
+            can_be_sync = self.async_analyzer.is_sync_convertible(comp.name, func.name)
         
         # First, try to use the datamodel body if populated
         if func.body:
+            # Generate sync variant if applicable
+            if can_be_sync:
+                sync_gen = SyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
+                sync_code = sync_gen.generate(func)
+                lines.extend(sync_code.split("\n"))
+                lines.append("")
+            
+            # Always generate async variant for backward compatibility
             dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
             code = dm_gen.generate(func)
-            return code.split("\n")
+            lines.extend(code.split("\n"))
+            return lines
         
         # If datamodel body is empty, try to get Python source via inspect (AST fallback)
         py_class = self.py_classes.get(comp.name)

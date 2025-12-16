@@ -63,6 +63,9 @@ class TypeMapper:
             return self._map_int_type(dtype)
         elif isinstance(dtype, dm.DataTypeString):
             return "const char*"
+        elif isinstance(dtype, dm.DataTypeMemory):
+            # Memory is always embedded in the component
+            return "zsp_memory_t"
         elif isinstance(dtype, dm.DataTypeChannel):
             # Channel is always embedded in the component
             return "zsp_channel_t"

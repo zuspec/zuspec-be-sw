@@ -15,9 +15,11 @@
 #****************************************************************************
 """
 Type mapping utilities for converting datamodel types to C types.
+Supports type specialization for direct C code generation (Phase 1-3 of optimization plan).
 """
 import re
-from typing import Optional
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 from zuspec.dataclasses import dm
 
 
@@ -31,8 +33,18 @@ def sanitize_protocol_name(name: str) -> str:
     return name
 
 
+@dataclass
+class TypeInfo:
+    """Type information for specialized code generation."""
+    c_type: str  # C type string (e.g., "uint32_t")
+    element_type: Optional[str] = None  # For arrays/channels
+    size: Optional[int] = None  # For fixed-size arrays
+    capacity: Optional[int] = None  # For channels
+    is_direct_array: bool = False  # True if direct C array (not wrapper)
+
+
 class TypeMapper:
-    """Maps datamodel types to C type strings."""
+    """Maps datamodel types to C type strings with specialization support."""
 
     # Mapping of int bit widths to C types
     INT_TYPE_MAP = {
@@ -45,6 +57,14 @@ class TypeMapper:
         (64, True): "int64_t",
         (64, False): "uint64_t",
     }
+
+    def __init__(self, enable_specialization: bool = False):
+        """Initialize TypeMapper.
+        
+        Args:
+            enable_specialization: If True, generate specialized direct C types instead of generic wrappers
+        """
+        self.enable_specialization = enable_specialization
 
     def map_type(self, dtype: dm.DataType, is_port: bool = False, is_export: bool = False, 
                  is_subcomponent: bool = False) -> str:
@@ -64,10 +84,16 @@ class TypeMapper:
         elif isinstance(dtype, dm.DataTypeString):
             return "const char*"
         elif isinstance(dtype, dm.DataTypeMemory):
-            # Memory is always embedded in the component
+            # With specialization, we don't generate a type here - memory becomes direct array fields
+            # The caller should use get_type_info() for detailed field generation
+            if self.enable_specialization:
+                return None  # Signal to generate specialized fields
             return "zsp_memory_t"
         elif isinstance(dtype, dm.DataTypeChannel):
-            # Channel is always embedded in the component
+            # With specialization, we don't generate a type here - channel becomes direct ring buffer
+            # The caller should use get_type_info() for detailed field generation
+            if self.enable_specialization:
+                return None  # Signal to generate specialized fields
             return "zsp_channel_t"
         elif isinstance(dtype, dm.DataTypeGetIF):
             # GetIF - ports are pointers, exports embedded
@@ -186,3 +212,79 @@ class TypeMapper:
             return "NULL"
         else:
             return "NULL"
+
+    def get_type_info(self, dtype: dm.DataType) -> TypeInfo:
+        """Get detailed type information for specialized code generation.
+        
+        This is used for Phase 1-2 of type specialization to generate
+        direct C arrays and ring buffers instead of generic wrappers.
+        
+        Args:
+            dtype: The data type to analyze
+            
+        Returns:
+            TypeInfo with details for code generation
+        """
+        if isinstance(dtype, dm.DataTypeMemory):
+            # Memory: Generate as direct C array
+            elem_type = self.map_type(dtype.element_type) if hasattr(dtype, 'element_type') else "uint8_t"
+            size = dtype.size if hasattr(dtype, 'size') else 65536
+            return TypeInfo(
+                c_type=elem_type,
+                element_type=elem_type,
+                size=size,
+                is_direct_array=True
+            )
+        elif isinstance(dtype, dm.DataTypeChannel):
+            # Channel: Generate as ring buffer with head/tail/count
+            elem_type = self.map_element_type(dtype.element_type) if hasattr(dtype, 'element_type') else "uint32_t"
+            capacity = dtype.capacity if hasattr(dtype, 'capacity') else 16
+            return TypeInfo(
+                c_type=elem_type,
+                element_type=elem_type,
+                capacity=capacity,
+                is_direct_array=False
+            )
+        else:
+            # Regular type - just return the C type
+            c_type = self.map_type(dtype)
+            return TypeInfo(c_type=c_type)
+
+    def get_memory_element_type(self, mem_dtype: dm.DataTypeMemory) -> str:
+        """Get the element type for a memory.
+        
+        Args:
+            mem_dtype: Memory data type
+            
+        Returns:
+            C type string for memory elements (e.g., "uint8_t")
+        """
+        if hasattr(mem_dtype, 'element_type') and mem_dtype.element_type:
+            return self.map_type(mem_dtype.element_type)
+        return "uint8_t"  # Default to byte array
+
+    def get_memory_size(self, mem_dtype: dm.DataTypeMemory) -> int:
+        """Get the size of a memory array.
+        
+        Args:
+            mem_dtype: Memory data type
+            
+        Returns:
+            Number of elements in the memory
+        """
+        if hasattr(mem_dtype, 'size'):
+            return mem_dtype.size
+        return 65536  # Default size
+
+    def get_channel_capacity(self, ch_dtype: dm.DataTypeChannel) -> int:
+        """Get the capacity of a channel.
+        
+        Args:
+            ch_dtype: Channel data type
+            
+        Returns:
+            Maximum number of elements the channel can hold
+        """
+        if hasattr(ch_dtype, 'capacity'):
+            return ch_dtype.capacity
+        return 16  # Default capacity

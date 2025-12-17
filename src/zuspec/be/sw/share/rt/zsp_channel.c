@@ -193,11 +193,13 @@ void zsp_channel_notify_put_waiters(zsp_channel_t *channel)
  *   1: Resumed after block - retry put
  */
 zsp_frame_t *zsp_channel_put_task(
+    zsp_timebase_t  *tb,
     zsp_thread_t    *thread,
     int             idx,
     va_list         *args)
 {
     zsp_frame_t *ret = thread->leaf;
+    (void)tb;  /* Not used in channel operations */
     
     typedef struct {
         zsp_channel_t   *channel;
@@ -252,11 +254,13 @@ zsp_frame_t *zsp_channel_put_task(
  * Returns data via thread->rval
  */
 zsp_frame_t *zsp_channel_get_task(
+    zsp_timebase_t  *tb,
     zsp_thread_t    *thread,
     int             idx,
     va_list         *args)
 {
     zsp_frame_t *ret = thread->leaf;
+    (void)tb;  /* Not used in channel operations */
     
     typedef struct {
         zsp_channel_t   *channel;

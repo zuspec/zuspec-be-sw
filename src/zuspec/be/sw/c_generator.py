@@ -51,14 +51,15 @@ def sanitize_c_name(name: str) -> str:
 class CGenerator:
     """Main C code generator from datamodel."""
 
-    def __init__(self, output_dir: Path):
+    def __init__(self, output_dir: Path, enable_specialization: bool = False):
         self.output_dir = Path(output_dir)
-        self.type_mapper = TypeMapper()
+        self.type_mapper = TypeMapper(enable_specialization=enable_specialization)
         self.expr_gen = ExprGenerator()
         self.stmt_gen = StmtGenerator()
         self.output = OutputManager(output_dir)
         self.py_classes: Dict[str, Type] = {}  # Map from type name to Python class
         self.async_analyzer: Optional[AsyncAnalyzer] = None  # Async-to-sync analyzer
+        self.enable_specialization = enable_specialization
 
     def generate(self, ctxt: dm.Context, py_classes: List[Type] = None) -> List[Path]:
         """Generate C code for all types in context.
@@ -216,6 +217,7 @@ class CGenerator:
             "",
             "#include <stdio.h>",
             "#include <stdint.h>",
+            "#include <string.h>",
             '#include "zsp_component.h"',
             '#include "zsp_init_ctxt.h"',
         ]
@@ -259,12 +261,37 @@ class CGenerator:
                 ref_type = ctxt.type_m.get(field.datatype.ref_name)
                 if isinstance(ref_type, dm.DataTypeComponent):
                     is_subcomp = True
-            c_type = self.type_mapper.map_type(field.datatype, is_port=is_port, is_export=is_export, 
-                                               is_subcomponent=is_subcomp)
-            lines.append(f"    {c_type} {field.name};")
+            
+            # Handle specialized types (Phase 1-2: Direct memory/channel)
+            if self.enable_specialization and isinstance(field.datatype, dm.DataTypeMemory):
+                # Generate direct C array for memory
+                type_info = self.type_mapper.get_type_info(field.datatype)
+                lines.append(f"    {type_info.element_type} {field.name}_data[{type_info.size}];")
+            elif self.enable_specialization and isinstance(field.datatype, dm.DataTypeChannel):
+                # Generate ring buffer fields for channel
+                type_info = self.type_mapper.get_type_info(field.datatype)
+                lines.append(f"    {type_info.element_type} {field.name}_buffer[{type_info.capacity}];")
+                lines.append(f"    uint32_t {field.name}_head;")
+                lines.append(f"    uint32_t {field.name}_tail;")
+                lines.append(f"    uint32_t {field.name}_count;")
+            else:
+                c_type = self.type_mapper.map_type(field.datatype, is_port=is_port, is_export=is_export, 
+                                                   is_subcomponent=is_subcomp)
+                if c_type:  # Only add if not None (None signals specialized handling)
+                    lines.append(f"    {c_type} {field.name};")
         
         lines.append(f"}} {name};")
         lines.append("")
+        
+        # Generate inline accessors for specialized fields (Phase 3)
+        if self.enable_specialization:
+            for field in comp.fields:
+                if isinstance(field.datatype, dm.DataTypeMemory):
+                    lines.extend(self._generate_memory_accessors(name, field, field.datatype))
+                    lines.append("")
+                elif isinstance(field.datatype, dm.DataTypeChannel):
+                    lines.extend(self._generate_channel_accessors(name, field, field.datatype))
+                    lines.append("")
         
         # Function declarations
         lines.append(f"/* Initialize {name} */")
@@ -307,6 +334,86 @@ class CGenerator:
         lines.append(f"#endif /* {guard} */")
         
         return "\n".join(lines)
+
+    def _generate_memory_accessors(self, comp_name: str, field: dm.Field, mem_dtype: dm.DataTypeMemory) -> List[str]:
+        """Generate inline memory accessor functions (Phase 3)."""
+        lines = [f"/* Inline accessors for {field.name} memory */"]
+        
+        # Generate read accessors for different widths
+        for width in [8, 16, 32, 64]:
+            c_type = f"uint{width}_t"
+            lines.extend([
+                f"static inline {c_type} {comp_name}_{field.name}_read{width}(",
+                f"    {comp_name} *self, uint64_t addr) {{",
+                f"    return *({c_type} *)(self->{field.name}_data + addr);",
+                f"}}",
+                ""
+            ])
+        
+        # Generate write accessors for different widths
+        for width in [8, 16, 32, 64]:
+            c_type = f"uint{width}_t"
+            lines.extend([
+                f"static inline void {comp_name}_{field.name}_write{width}(",
+                f"    {comp_name} *self, uint64_t addr, {c_type} value) {{",
+                f"    *({c_type} *)(self->{field.name}_data + addr) = value;",
+                f"}}",
+                ""
+            ])
+        
+        return lines
+
+    def _generate_channel_accessors(self, comp_name: str, field: dm.Field, ch_dtype: dm.DataTypeChannel) -> List[str]:
+        """Generate inline channel accessor functions (Phase 3)."""
+        type_info = self.type_mapper.get_type_info(ch_dtype)
+        elem_type = type_info.element_type
+        capacity = type_info.capacity
+        mask = capacity - 1  # For power-of-2 modulo optimization
+        
+        lines = [f"/* Inline accessors for {field.name} channel */"]
+        
+        # Put operation
+        lines.extend([
+            f"static inline void {comp_name}_{field.name}_put(",
+            f"    {comp_name} *self, {elem_type} value) {{",
+            f"    self->{field.name}_buffer[self->{field.name}_tail] = value;",
+            f"    self->{field.name}_tail = (self->{field.name}_tail + 1) & {mask};",
+            f"    self->{field.name}_count++;",
+            f"}}",
+            ""
+        ])
+        
+        # Get operation
+        lines.extend([
+            f"static inline {elem_type} {comp_name}_{field.name}_get(",
+            f"    {comp_name} *self) {{",
+            f"    {elem_type} value = self->{field.name}_buffer[self->{field.name}_head];",
+            f"    self->{field.name}_head = (self->{field.name}_head + 1) & {mask};",
+            f"    self->{field.name}_count--;",
+            f"    return value;",
+            f"}}",
+            ""
+        ])
+        
+        # Check if empty
+        lines.extend([
+            f"static inline int {comp_name}_{field.name}_empty(",
+            f"    {comp_name} *self) {{",
+            f"    return self->{field.name}_count == 0;",
+            f"}}",
+            ""
+        ])
+        
+        # Check if full
+        lines.extend([
+            f"static inline int {comp_name}_{field.name}_full(",
+            f"    {comp_name} *self) {{",
+            f"    return self->{field.name}_count >= {capacity};",
+            f"}}",
+            ""
+        ])
+        
+        return lines
 
     def _generate_component_impl(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> str:
         """Generate component implementation file."""
@@ -372,18 +479,29 @@ class CGenerator:
                 # Exports are embedded structs, zero-initialize self pointer
                 lines.append(f"    self->{field.name}.self = NULL;")
             elif isinstance(field.datatype, dm.DataTypeMemory):
-                # Memory: call memory init with size and element width
-                size = field.datatype.size
-                elem_type = field.datatype.element_type
-                if isinstance(elem_type, dm.DataTypeInt):
-                    width = elem_type.bits
+                if self.enable_specialization:
+                    # Specialized: Initialize direct C array with memset
+                    type_info = self.type_mapper.get_type_info(field.datatype)
+                    lines.append(f'    memset(self->{field.name}_data, 0, sizeof(self->{field.name}_data));')
                 else:
-                    width = 32  # Default
-                lines.append(f'    zsp_memory_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {size}, {width});')
+                    # Generic: call memory init with size and element width
+                    size = field.datatype.size
+                    elem_type = field.datatype.element_type
+                    if isinstance(elem_type, dm.DataTypeInt):
+                        width = elem_type.bits
+                    else:
+                        width = 32  # Default
+                    lines.append(f'    zsp_memory_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {size}, {width});')
             elif isinstance(field.datatype, dm.DataTypeChannel):
-                # Channel: call channel init with element size
-                elem_size = self.type_mapper.get_element_size(field.datatype.element_type)
-                lines.append(f'    zsp_channel_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {elem_size});')
+                if self.enable_specialization:
+                    # Specialized: Initialize ring buffer indices
+                    lines.append(f'    self->{field.name}_head = 0;')
+                    lines.append(f'    self->{field.name}_tail = 0;')
+                    lines.append(f'    self->{field.name}_count = 0;')
+                else:
+                    # Generic: call channel init with element size
+                    elem_size = self.type_mapper.get_element_size(field.datatype.element_type)
+                    lines.append(f'    zsp_channel_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {elem_size});')
             elif isinstance(field.datatype, dm.DataTypeComponent) or \
                  (isinstance(field.datatype, dm.DataTypeRef) and 
                   isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):

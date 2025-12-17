@@ -68,12 +68,12 @@ class AsyncMethodGenerator:
         
         # Function signature (coroutine task function)
         lines.append(f"static zsp_frame_t *{func_name}_task(")
+        lines.append(f"        zsp_timebase_t *tb,")
         lines.append(f"        zsp_thread_t *thread,")
         lines.append(f"        int idx,")
         lines.append(f"        va_list *args) {{")
         lines.append(f"    zsp_frame_t *ret = thread->leaf;")
-        if self._needs_timebase(func_def):
-            lines.append(f"    zsp_timebase_t *tb = zsp_thread_timebase(thread);")
+        lines.append(f"    (void)tb;  /* Timebase passed directly */")
         lines.append(f"")
         
         # Generate locals struct if needed
@@ -125,11 +125,20 @@ class AsyncMethodGenerator:
             
             # Handle the await or end of function
             if await_expr is not None:
-                # Set next index and yield
-                lines.append(f"            ret->idx = {i + 1};")
                 await_code = self._gen_await_code(await_expr)
-                lines.append(f"            {await_code}")
-                lines.append(f"            break;")
+                
+                # Check if this is a wait() call that can be optimized
+                if self._is_wait_call(await_expr):
+                    lines.append(f"            if ({await_code}) {{")
+                    lines.append(f"                ret->idx = {i + 1};")
+                    lines.append(f"                break;  /* Suspended */")
+                    lines.append(f"            }}")
+                    lines.append(f"            /* Fall through - time advanced without suspension */")
+                else:
+                    # Other awaits always suspend
+                    lines.append(f"            ret->idx = {i + 1};")
+                    lines.append(f"            {await_code}")
+                    lines.append(f"            break;")
             else:
                 # End of function - return
                 lines.append(f"            ret = zsp_timebase_return(thread, 0);")
@@ -395,6 +404,7 @@ class AsyncMethodGenerator:
 
         lines = []
         lines.append(f"static zsp_frame_t *{func_name}_task(")
+        lines.append(f"        zsp_timebase_t *tb,")
         lines.append(f"        zsp_thread_t *thread,")
         lines.append(f"        int idx,")
         lines.append(f"        va_list *args) {{")
@@ -403,6 +413,17 @@ class AsyncMethodGenerator:
         lines.append(f"")
         lines.append(f"    switch (idx) {{")
         lines.append(f"        case 0: {{")
+        lines.append(f"            /* Try fast path first - check if we can advance time without suspending */")
+        lines.append(f"            uint64_t delay_ticks = zsp_timebase_to_ticks(tb, {time_arg});")
+        lines.append(f"            uint64_t target_time = tb->current_time + delay_ticks;")
+        lines.append(f"            int has_ready = (tb->ready_head != NULL);")
+        lines.append(f"            int has_earlier_events = (tb->event_count > 0 && tb->events[0].wake_time <= target_time);")
+        lines.append(f"            if (!has_ready && !has_earlier_events) {{")
+        lines.append(f"                /* Fast path: advance time and return immediately without frame allocation */")
+        lines.append(f"                tb->current_time = target_time;")
+        lines.append(f"                return thread->leaf;  /* No state change needed */")
+        lines.append(f"            }}")
+        lines.append(f"            /* Slow path: must suspend, allocate frame */")
         lines.append(f"            ret = zsp_timebase_alloc_frame(thread, 0, &{func_name}_task);")
         lines.append(f"            ret->idx = 1;")
         lines.append(f"            zsp_timebase_wait(thread, {time_arg});")
@@ -438,10 +459,11 @@ class AsyncMethodGenerator:
                 if isinstance(func.value, ast.Name) and func.value.id == "self":
                     if func.attr == "wait":
                         # await self.wait(time) -> zsp_timebase_wait(thread, time)
+                        # Returns expression (not statement) for optimization check
                         args = awaited.args
                         if args:
                             time_arg = self._gen_time_expr(args[0])
-                            return f"zsp_timebase_wait(thread, {time_arg});"
+                            return f"zsp_timebase_wait(thread, {time_arg})"
                 
                 # Check for self.port.put(data) or self.port.get()
                 if isinstance(func.value, ast.Attribute):
@@ -461,6 +483,16 @@ class AsyncMethodGenerator:
         
         # Generic await - treat as yield
         return "zsp_timebase_yield(thread);"
+
+    def _is_wait_call(self, await_expr: ast.Await) -> bool:
+        """Check if await expression is a wait() call."""
+        awaited = await_expr.value
+        if isinstance(awaited, ast.Call):
+            func = awaited.func
+            if isinstance(func, ast.Attribute):
+                if isinstance(func.value, ast.Name) and func.value.id == "self":
+                    return func.attr == "wait"
+        return False
 
     def _gen_time_expr(self, expr: ast.expr) -> str:
         """Generate C code for a time expression (e.g., zdc.Time.ns(1))."""

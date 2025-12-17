@@ -122,8 +122,9 @@ static void run_to_idle(zsp_timebase_t *tb) {
     }
 }
 
-static zsp_frame_t *driver_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *driver_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
+    (void)tb;  /* Not used directly but required for signature */
 
     typedef struct {
         AsyncCounterPerf *self;

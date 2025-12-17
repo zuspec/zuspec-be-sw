@@ -296,7 +296,7 @@ static zsp_thread_t *thread_init_va(
     thread_init_common(thread, tb, flags | ZSP_THREAD_FLAGS_INITIAL);
     
     /* Call task to initialize its frame */
-    zsp_frame_t *ret = func(thread, 0, args);
+    zsp_frame_t *ret = func(tb, thread, 0, args);
     
     /* Only update leaf if the task returned a frame.
      * If ret is NULL but thread->leaf is not NULL, then a sub-task completed
@@ -421,6 +421,7 @@ int zsp_timebase_run(zsp_timebase_t *tb) {
         } else {
             tb->env_p = &env;
             thread->leaf = thread->leaf->func(
+                tb,
                 thread,
                 thread->leaf->idx,
                 NULL);
@@ -556,15 +557,29 @@ void zsp_timebase_yield(zsp_thread_t *thread) {
     thread->flags |= ZSP_THREAD_FLAGS_SUSPEND;
 }
 
-void zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay) {
+int zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay) {
     zsp_timebase_t *tb = thread->timebase;
+    uint64_t delay_ticks = zsp_timebase_to_ticks(tb, delay);
+    uint64_t target_time = tb->current_time + delay_ticks;
     
-    /* Block the thread */
+    /* Optimization: If no other threads are pending in [now..target_time],
+     * we can simply advance time without suspending */
+    int has_ready = (tb->ready_head != NULL);
+    int has_earlier_events = (tb->event_count > 0 && tb->events[0].wake_time <= target_time);
+    
+    if (!has_ready && !has_earlier_events) {
+        /* Fast path: advance time directly without suspension.
+         * Set SUSPEND flag to prevent recursive continuation in zsp_timebase_return */
+        tb->current_time = target_time;
+        thread->flags |= ZSP_THREAD_FLAGS_SUSPEND;
+        return 0;  /* No suspension needed */
+    }
+    
+    /* Slow path: other threads pending, must suspend and schedule */
     thread->flags |= ZSP_THREAD_FLAGS_BLOCKED;
     thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-    
-    /* Schedule wake-up */
     zsp_timebase_schedule_at(tb, thread, delay);
+    return 1;  /* Thread suspended */
 }
 
 zsp_frame_t *zsp_timebase_return(zsp_thread_t *thread, uintptr_t rval) {
@@ -598,7 +613,7 @@ zsp_frame_t *zsp_timebase_return(zsp_thread_t *thread, uintptr_t rval) {
             ret = NULL;
         } else if (prev && !(thread->flags & ZSP_THREAD_FLAGS_BLOCKED)) {
             thread->flags &= ~ZSP_THREAD_FLAGS_SUSPEND;
-            ret = prev->func(thread, prev->idx, NULL);
+            ret = prev->func(tb, thread, prev->idx, NULL);
             thread->leaf = ret;
         }
     }
@@ -610,7 +625,8 @@ zsp_frame_t *zsp_timebase_call(zsp_thread_t *thread, zsp_task_func func, ...) {
     va_list args;
     va_start(args, func);
     
-    zsp_frame_t *ret = func(thread, 0, &args);
+    zsp_timebase_t *tb = thread->timebase;
+    zsp_frame_t *ret = func(tb, thread, 0, &args);
     
     va_end(args);
     return ret;

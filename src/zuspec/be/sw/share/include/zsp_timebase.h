@@ -54,6 +54,7 @@ struct zsp_thread_s;
 struct zsp_timebase_s;
 
 typedef struct zsp_frame_s *(*zsp_task_func)(
+    struct zsp_timebase_s *,  /* timebase - direct parameter to avoid pointer chase */
     struct zsp_thread_s *, 
     int idx, 
     va_list *args);
@@ -286,8 +287,9 @@ void zsp_timebase_yield(zsp_thread_t *thread);
 
 /**
  * Wait for specified delay (reschedule at future time).
+ * Returns 1 if thread was suspended (needs yield), 0 if time was advanced inline.
  */
-void zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay);
+int zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay);
 
 /**
  * Return from current frame.

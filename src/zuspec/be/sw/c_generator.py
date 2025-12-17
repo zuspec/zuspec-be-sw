@@ -324,6 +324,20 @@ class CGenerator:
                     ret_type = self._get_method_return_type(func)
                     lines.append(f"{ret_type} {name}_{func.name}({params});")
         
+        # Comb process declarations
+        if hasattr(comp, 'comb_processes') and comp.comb_processes:
+            lines.append("")
+            lines.append("/* Combinational processes */")
+            for comb_func in comp.comb_processes:
+                lines.append(f"void {name}_{comb_func.name}({name} *self);")
+        
+        # Sync process declarations
+        if hasattr(comp, 'sync_processes') and comp.sync_processes:
+            lines.append("")
+            lines.append("/* Synchronous processes */")
+            for sync_func in comp.sync_processes:
+                lines.append(f"void {name}_{sync_func.name}({name} *self);")
+        
         lines.append("")
         lines.append(f"#endif /* {guard} */")
         
@@ -447,6 +461,20 @@ class CGenerator:
         for func in comp.functions:
             if self._should_generate_method(func):
                 method_code = self._generate_method(comp, func, name, ctxt)
+                lines.extend(method_code)
+                lines.append("")
+        
+        # Generate comb processes
+        if hasattr(comp, 'comb_processes') and comp.comb_processes:
+            for comb_func in comp.comb_processes:
+                method_code = self._generate_comb_process(comp, comb_func, name, ctxt)
+                lines.extend(method_code)
+                lines.append("")
+        
+        # Generate sync processes
+        if hasattr(comp, 'sync_processes') and comp.sync_processes:
+            for sync_func in comp.sync_processes:
+                method_code = self._generate_sync_process(comp, sync_func, name, ctxt)
                 lines.extend(method_code)
                 lines.append("")
         
@@ -923,6 +951,75 @@ class CGenerator:
         if func.name in ("shutdown", "time", "wait", "__bind__"):
             return False
         return True
+
+    def _generate_comb_process(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+        """Generate a combinational process as a C function.
+        
+        Comb processes are simple C functions that immediately update outputs based on inputs.
+        They don't use coroutines or async machinery.
+        """
+        lines = [
+            f"/* Combinational process: {func.name} */",
+        ]
+        
+        # Add sensitivity list as a comment
+        sensitivity = func.metadata.get('sensitivity', [])
+        if sensitivity:
+            sens_names = []
+            for sens_expr in sensitivity:
+                if isinstance(sens_expr, dm.ExprRefField) and hasattr(sens_expr, 'index'):
+                    if sens_expr.index < len(comp.fields):
+                        sens_names.append(comp.fields[sens_expr.index].name)
+            if sens_names:
+                lines.append(f"/* Sensitive to: {', '.join(sens_names)} */")
+        
+        # Function signature
+        lines.append(f"void {name}_{func.name}({name} *self) {{")
+        
+        # Generate function body using statement generator
+        if func.body:
+            stmt_gen = StmtGenerator(comp, ctxt)
+            stmt_gen.indent_level = 1
+            for stmt in func.body:
+                body_line = stmt_gen._gen_dm_stmt(stmt)
+                if body_line:  # Skip empty lines from docstrings
+                    lines.append(body_line)
+        
+        lines.append("}")
+        
+        return lines
+    
+    def _generate_sync_process(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+        """Generate a synchronous process as a C function.
+        
+        Sync processes are triggered on clock edges and update state accordingly.
+        For now, we generate them as simple functions similar to comb processes.
+        """
+        lines = [
+            f"/* Synchronous process: {func.name} */",
+        ]
+        
+        # Add clock/reset info from metadata if available
+        if 'clock' in func.metadata:
+            lines.append(f"/* Triggered on clock edge */")
+        if 'reset' in func.metadata:
+            lines.append(f"/* Uses reset signal */")
+        
+        # Function signature
+        lines.append(f"void {name}_{func.name}({name} *self) {{")
+        
+        # Generate function body using statement generator
+        if func.body:
+            stmt_gen = StmtGenerator(comp, ctxt)
+            stmt_gen.indent_level = 1
+            for stmt in func.body:
+                body_line = stmt_gen._gen_dm_stmt(stmt)
+                if body_line:  # Skip empty lines from docstrings
+                    lines.append(body_line)
+        
+        lines.append("}")
+        
+        return lines
 
     def _generate_main(self, ctxt: dm.Context):
         """Generate main test harness."""

@@ -468,7 +468,7 @@ int zsp_timebase_advance(zsp_timebase_t *tb) {
 }
 
 void zsp_timebase_run_until(zsp_timebase_t *tb, zsp_time_t end_time) {
-    uint64_t end_ticks = tb->current_time + zsp_timebase_to_ticks(tb, end_time);
+    uint64_t end_ticks = zsp_timebase_to_ticks(tb, end_time);
     tb->running = 1;
     
     while (tb->running) {
@@ -491,7 +491,10 @@ void zsp_timebase_run_until(zsp_timebase_t *tb, zsp_time_t end_time) {
         zsp_timebase_advance(tb);
     }
     
-    tb->current_time = end_ticks;
+    /* Always advance to end time */
+    if (tb->current_time < end_ticks) {
+        tb->current_time = end_ticks;
+    }
     tb->running = 0;
 }
 
@@ -563,11 +566,13 @@ int zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay) {
     uint64_t target_time = tb->current_time + delay_ticks;
     
     /* Optimization: If no other threads are pending in [now..target_time],
-     * we can simply advance time without suspending */
+     * we can simply advance time without suspending.
+     * Never use fast-path during initialization or when simulation is running. */
+    int is_initializing = (thread->flags & ZSP_THREAD_FLAGS_INITIAL) != 0;
     int has_ready = (tb->ready_head != NULL);
     int has_earlier_events = (tb->event_count > 0 && tb->events[0].wake_time <= target_time);
     
-    if (!has_ready && !has_earlier_events) {
+    if (!is_initializing && !tb->running && !has_ready && !has_earlier_events) {
         /* Fast path: advance time directly without suspension.
          * Set SUSPEND flag to prevent recursive continuation in zsp_timebase_return */
         tb->current_time = target_time;

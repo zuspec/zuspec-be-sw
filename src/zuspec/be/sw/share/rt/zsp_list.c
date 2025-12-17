@@ -1,3 +1,4 @@
+#include <string.h>
 #include "zsp_list.h"
 
 static void zsp_obj_list_dtor(zsp_obj_list_t *list) {
@@ -21,7 +22,7 @@ static void zsp_obj_list_reset(zsp_obj_list_t *list) {
 }
 
 zsp_list_type_t *zsp_obj_list__type() {
-    static initialized = 0;
+    static int initialized = 0;
     static zsp_list_type_t type;
     if (!initialized) {
         type.base.super = zsp_object__type();

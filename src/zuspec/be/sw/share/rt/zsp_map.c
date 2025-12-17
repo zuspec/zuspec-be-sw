@@ -1,7 +1,8 @@
 
+#include <string.h>
 #include "zsp_map.h"
 
-static zsp_int_obj_map_dtor(zsp_int_obj_map_t *map) {
+static void zsp_int_obj_map_dtor(zsp_int_obj_map_t *map) {
 
 }
 

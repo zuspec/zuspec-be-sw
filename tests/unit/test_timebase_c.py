@@ -119,8 +119,9 @@ TEST_TIMEBASE_SIMPLE_TASK = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *simple_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *simple_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
+    (void)tb;  /* Not used in this task */
 
     switch (idx) {
         case 0: {
@@ -165,9 +166,8 @@ TEST_TIMEBASE_WAIT = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *wait_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *wait_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
-    zsp_timebase_t *tb = zsp_thread_timebase(thread);
 
     switch (idx) {
         case 0: {
@@ -225,9 +225,8 @@ typedef struct {
     uint64_t wait_time;
 } task_args_t;
 
-static zsp_frame_t *wait_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *wait_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
-    zsp_timebase_t *tb = zsp_thread_timebase(thread);
 
     typedef struct {
         int id;
@@ -301,9 +300,8 @@ TEST_TIMEBASE_YIELD = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *yield_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *yield_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
-    zsp_timebase_t *tb = zsp_thread_timebase(thread);
 
     typedef struct {
         int counter;
@@ -403,9 +401,8 @@ TEST_NESTED_CALL = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *multi_wait_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *multi_wait_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
-    zsp_timebase_t *tb = zsp_thread_timebase(thread);
 
     typedef struct {
         int value;
@@ -468,9 +465,8 @@ TEST_SAME_TIME_ORDER = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *wait_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *wait_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
-    zsp_timebase_t *tb = zsp_thread_timebase(thread);
 
     typedef struct {
         int id;
@@ -527,7 +523,7 @@ TEST_STOP_SIMULATION = r'''
 #include "zsp_timebase.h"
 #include "zsp_alloc.h"
 
-static zsp_frame_t *long_wait_task(zsp_thread_t *thread, int idx, va_list *args) {
+static zsp_frame_t *long_wait_task(zsp_timebase_t *tb, zsp_thread_t *thread, int idx, va_list *args) {
     zsp_frame_t *ret = thread->leaf;
 
     switch (idx) {

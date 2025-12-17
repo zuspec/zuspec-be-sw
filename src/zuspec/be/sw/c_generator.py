@@ -16,19 +16,14 @@
 """
 C code generator for transforming datamodel to C source code.
 """
-import ast
-import inspect
 import re
-import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Type, Any
 
 from zuspec.dataclasses import dm
 
 from .type_mapper import TypeMapper
-from .expr_generator import ExprGenerator
 from .stmt_generator import StmtGenerator
-from .async_generator import AsyncMethodGenerator
 from .dm_async_generator import DmAsyncMethodGenerator
 from .sync_generator import SyncMethodGenerator
 from .async_analyzer import AsyncAnalyzer
@@ -54,8 +49,6 @@ class CGenerator:
     def __init__(self, output_dir: Path, enable_specialization: bool = False):
         self.output_dir = Path(output_dir)
         self.type_mapper = TypeMapper(enable_specialization=enable_specialization)
-        self.expr_gen = ExprGenerator()
-        self.stmt_gen = StmtGenerator()
         self.output = OutputManager(output_dir)
         self.py_classes: Dict[str, Type] = {}  # Map from type name to Python class
         self.async_analyzer: Optional[AsyncAnalyzer] = None  # Async-to-sync analyzer
@@ -328,7 +321,8 @@ class CGenerator:
                     lines.append(f"/* Asynchronous variant */")
                     lines.append(f"void {name}_{func.name}({params}, zsp_timebase_t *tb);")
                 else:
-                    lines.append(f"void {name}_{func.name}({params});")
+                    ret_type = self._get_method_return_type(func)
+                    lines.append(f"{ret_type} {name}_{func.name}({params});")
         
         lines.append("")
         lines.append(f"#endif /* {guard} */")
@@ -782,10 +776,21 @@ class CGenerator:
         if getattr(func, 'is_async', False):
             return self._generate_async_method(comp, func, name, ctxt)
         
+        # Get return type
+        ret_type = self._get_method_return_type(func)
+        
         params = self._generate_method_params(func, name)
         lines = [
-            f"void {name}_{func.name}({params}) {{",
+            f"{ret_type} {name}_{func.name}({params}) {{",
         ]
+        
+        # Extract local variables from function body
+        if func.body:
+            local_vars = self._extract_method_local_vars(func.body, func.args)
+            for var_name, var_type in local_vars:
+                lines.append(f"    {var_type} {var_name};")
+            if local_vars:
+                lines.append("")
         
         # Get the method body from datamodel
         body_code = self._get_method_body(comp, func, ctxt)
@@ -813,56 +818,27 @@ class CGenerator:
         if self.async_analyzer:
             can_be_sync = self.async_analyzer.is_sync_convertible(comp.name, func.name)
         
-        # First, try to use the datamodel body if populated
-        if func.body:
-            # Generate sync variant if applicable
-            if can_be_sync:
-                sync_gen = SyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
-                sync_code = sync_gen.generate(func)
-                lines.extend(sync_code.split("\n"))
-                lines.append("")
-            
-            # Always generate async variant for backward compatibility
-            dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
-            code = dm_gen.generate(func)
-            lines.extend(code.split("\n"))
-            return lines
+        # Use the datamodel body - it must be populated by the DataModelFactory
+        if not func.body:
+            raise RuntimeError(
+                f"Cannot generate async method '{func.name}' for component '{comp.name}': "
+                f"method body is not available in datamodel. "
+                f"Ensure DataModelFactory.build() is called with proper component classes "
+                f"and that the source code is accessible."
+            )
         
-        # If datamodel body is empty, try to get Python source via inspect (AST fallback)
-        py_class = self.py_classes.get(comp.name)
-        if py_class:
-            try:
-                py_method = getattr(py_class, func.name, None)
-                if py_method:
-                    source = inspect.getsource(py_method)
-                    source = textwrap.dedent(source)
-                    tree = ast.parse(source)
-                    func_def = tree.body[0]
-                    if isinstance(func_def, ast.AsyncFunctionDef):
-                        ast_gen = AsyncMethodGenerator(name, func.name)
-                        code = ast_gen.generate(func_def)
-                        return code.split("\n")
-            except OSError as e:
-                # Source not available - fail with clear error
-                raise RuntimeError(
-                    f"Cannot generate async method '{func.name}' for component '{comp.name}': "
-                    f"method body is not in datamodel and source code is not available. "
-                    f"This typically happens when classes are defined in string literals passed to exec() "
-                    f"or in interactive sessions. Define your classes in a proper .py module file instead."
-                ) from e
-            except (TypeError, SyntaxError) as e:
-                # Parsing or analysis failed
-                raise RuntimeError(
-                    f"Cannot generate async method '{func.name}' for component '{comp.name}': "
-                    f"failed to parse source code: {e}"
-                ) from e
+        # Generate sync variant if applicable
+        if can_be_sync:
+            sync_gen = SyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
+            sync_code = sync_gen.generate(func)
+            lines.extend(sync_code.split("\n"))
+            lines.append("")
         
-        # No body in datamodel and no Python class - this should not happen in normal usage
-        raise RuntimeError(
-            f"Cannot generate async method '{func.name}' for component '{comp.name}': "
-            f"method body is not available in datamodel and no Python class was provided. "
-            f"Ensure DataModelFactory.build() is called with proper component classes."
-        )
+        # Always generate async variant for backward compatibility
+        dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
+        code = dm_gen.generate(func)
+        lines.extend(code.split("\n"))
+        return lines
 
     def _get_method_body(self, comp: dm.DataTypeComponent, func: dm.Function, ctxt: dm.Context) -> str:
         """Generate method body from datamodel."""
@@ -879,6 +855,62 @@ class CGenerator:
             if code:
                 lines.append(code)
         return "\n".join(lines)
+    
+    def _get_method_return_type(self, func: dm.Function) -> str:
+        """Get C return type for a method."""
+        if not func.returns:
+            return "void"
+        
+        return self.type_mapper.map_type(func.returns)
+    
+    def _extract_method_local_vars(self, stmts: List[dm.Stmt], args: dm.Arguments) -> List:
+        """Extract local variable declarations from function body."""
+        local_vars = []
+        seen_vars = set()
+        
+        # Add function parameters to seen_vars
+        if args and args.args:
+            for arg in args.args:
+                if arg.arg != 'self':
+                    seen_vars.add(arg.arg)
+        
+        # Walk statements to find assignments
+        def extract_from_stmt(stmt):
+            if isinstance(stmt, dm.StmtAssign):
+                for target in stmt.targets:
+                    if isinstance(target, dm.ExprRefLocal):
+                        var_name = target.name
+                        if var_name not in seen_vars:
+                            # Try to infer type from annotation or default to int32_t
+                            var_type = "int32_t"
+                            if hasattr(target, 'type') and target.type:
+                                var_type = self.type_mapper.map_type(target.type)
+                            local_vars.append((var_name, var_type))
+                            seen_vars.add(var_name)
+            elif isinstance(stmt, dm.StmtFor):
+                # Mark for loop variable as seen (it's declared in the for statement)
+                if hasattr(stmt, 'target') and isinstance(stmt.target, dm.ExprRefLocal):
+                    seen_vars.add(stmt.target.name)
+                # Handle variables in for loop body
+                if hasattr(stmt, 'body'):
+                    for s in stmt.body:
+                        extract_from_stmt(s)
+            elif isinstance(stmt, dm.StmtIf):
+                if hasattr(stmt, 'body'):
+                    for s in stmt.body:
+                        extract_from_stmt(s)
+                if hasattr(stmt, 'orelse'):
+                    for s in stmt.orelse:
+                        extract_from_stmt(s)
+            elif isinstance(stmt, dm.StmtWhile):
+                if hasattr(stmt, 'body'):
+                    for s in stmt.body:
+                        extract_from_stmt(s)
+        
+        for stmt in stmts:
+            extract_from_stmt(stmt)
+        
+        return local_vars
 
     def _should_generate_method(self, func) -> bool:
         """Check if a method should be generated."""

@@ -16,7 +16,6 @@
 """
 Validator for checking that datamodel representation can be mapped to C.
 """
-import ast
 from typing import List, Optional
 from zuspec.dataclasses import dm
 
@@ -35,32 +34,6 @@ class ValidationError:
 
 class CValidator:
     """Validates that a datamodel can be mapped to C."""
-
-    # Supported AST node types for expressions
-    SUPPORTED_EXPR_TYPES = {
-        ast.Call,
-        ast.Constant,
-        ast.Name,
-        ast.BinOp,
-        ast.Compare,
-        ast.Attribute,
-        ast.UnaryOp,
-        ast.Subscript,
-    }
-
-    # Supported AST node types for statements
-    SUPPORTED_STMT_TYPES = {
-        ast.Expr,
-        ast.Assign,
-        ast.AugAssign,
-        ast.If,
-        ast.For,
-        ast.While,
-        ast.Return,
-        ast.Pass,
-        ast.Break,
-        ast.Continue,
-    }
 
     def __init__(self):
         self.errors: List[ValidationError] = []
@@ -133,77 +106,3 @@ class CValidator:
                     self.warnings.append(
                         f"{location}: Argument '{arg.arg}' missing type annotation"
                     )
-
-    def validate_ast(self, tree: ast.AST, location: str = "") -> bool:
-        """Validate that a Python AST can be mapped to C."""
-        if isinstance(tree, ast.Module):
-            for stmt in tree.body:
-                self._validate_ast_stmt(stmt, location)
-        elif isinstance(tree, ast.FunctionDef):
-            for stmt in tree.body:
-                self._validate_ast_stmt(stmt, f"{location}.{tree.name}")
-        return self.is_valid()
-
-    def _validate_ast_stmt(self, stmt: ast.stmt, location: str):
-        """Validate a statement AST node."""
-        if type(stmt) not in self.SUPPORTED_STMT_TYPES:
-            self.errors.append(ValidationError(
-                f"Unsupported statement type: {type(stmt).__name__}",
-                location
-            ))
-            return
-
-        # Validate contained expressions
-        if isinstance(stmt, ast.Expr):
-            self._validate_ast_expr(stmt.value, location)
-        elif isinstance(stmt, ast.Assign):
-            self._validate_ast_expr(stmt.value, location)
-            for target in stmt.targets:
-                self._validate_ast_expr(target, location)
-        elif isinstance(stmt, ast.If):
-            self._validate_ast_expr(stmt.test, location)
-            for s in stmt.body:
-                self._validate_ast_stmt(s, location)
-            for s in stmt.orelse:
-                self._validate_ast_stmt(s, location)
-        elif isinstance(stmt, ast.For):
-            self._validate_ast_expr(stmt.target, location)
-            self._validate_ast_expr(stmt.iter, location)
-            for s in stmt.body:
-                self._validate_ast_stmt(s, location)
-        elif isinstance(stmt, ast.While):
-            self._validate_ast_expr(stmt.test, location)
-            for s in stmt.body:
-                self._validate_ast_stmt(s, location)
-        elif isinstance(stmt, ast.Return):
-            if stmt.value:
-                self._validate_ast_expr(stmt.value, location)
-
-    def _validate_ast_expr(self, expr: ast.expr, location: str):
-        """Validate an expression AST node."""
-        if type(expr) not in self.SUPPORTED_EXPR_TYPES:
-            self.errors.append(ValidationError(
-                f"Unsupported expression type: {type(expr).__name__}",
-                location
-            ))
-            return
-
-        # Recursively validate sub-expressions
-        if isinstance(expr, ast.Call):
-            self._validate_ast_expr(expr.func, location)
-            for arg in expr.args:
-                self._validate_ast_expr(arg, location)
-        elif isinstance(expr, ast.BinOp):
-            self._validate_ast_expr(expr.left, location)
-            self._validate_ast_expr(expr.right, location)
-        elif isinstance(expr, ast.Compare):
-            self._validate_ast_expr(expr.left, location)
-            for comp in expr.comparators:
-                self._validate_ast_expr(comp, location)
-        elif isinstance(expr, ast.Attribute):
-            self._validate_ast_expr(expr.value, location)
-        elif isinstance(expr, ast.UnaryOp):
-            self._validate_ast_expr(expr.operand, location)
-        elif isinstance(expr, ast.Subscript):
-            self._validate_ast_expr(expr.value, location)
-            self._validate_ast_expr(expr.slice, location)

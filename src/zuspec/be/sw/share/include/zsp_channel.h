@@ -155,6 +155,7 @@ uint32_t zsp_channel_size(zsp_channel_t *channel);
  * The data value should be passed via va_args.
  */
 struct zsp_frame_s *zsp_channel_put_task(
+    struct zsp_timebase_s   *tb,
     struct zsp_thread_s     *thread,
     int                     idx,
     va_list                 *args);
@@ -166,6 +167,7 @@ struct zsp_frame_s *zsp_channel_put_task(
  * Returns data via thread->rval.
  */
 struct zsp_frame_s *zsp_channel_get_task(
+    struct zsp_timebase_s   *tb,
     struct zsp_thread_s     *thread,
     int                     idx,
     va_list                 *args);

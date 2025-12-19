@@ -37,6 +37,7 @@ class CCompiler:
     # Runtime source files needed for compilation
     RT_SOURCES = [
         "zsp_alloc.c",
+        "zsp_timebase.c",
         "zsp_thread.c",
         "zsp_list.c",
         "zsp_object.c",
@@ -105,6 +106,55 @@ class CCompiler:
             cwd=str(self.output_dir)
         )
 
+        return CompileResult(
+            success=(result.returncode == 0),
+            stdout=result.stdout,
+            stderr=result.stderr
+        )
+
+    def compile_shared(self, sources: List[Path], output: Path,
+                      extra_includes: Optional[List[Path]] = None) -> CompileResult:
+        """Compile C sources to shared library.
+        
+        Args:
+            sources: List of C source files to compile
+            output: Output .so file path
+            extra_includes: Additional include directories
+            
+        Returns:
+            CompileResult with success status and output
+        """
+        cc = self._find_compiler()
+        if cc is None:
+            return CompileResult(False, stderr="No C compiler found (tried gcc, clang)")
+        
+        # Build command for shared library
+        cmd = [
+            cc, "-g", "-O2", "-fPIC", "-shared",
+            "-Wno-error",  # Don't treat warnings as errors
+            f"-I{self.include_dir}",
+            "-o", str(output),
+        ]
+        
+        # Add extra includes
+        if extra_includes:
+            for inc in extra_includes:
+                cmd.append(f"-I{inc}")
+        
+        # Add generated sources
+        cmd.extend(str(s) for s in sources)
+        
+        # Add runtime sources
+        cmd.extend(str(s) for s in self.get_runtime_sources())
+        
+        # Run compiler
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(self.output_dir)
+        )
+        
         return CompileResult(
             success=(result.returncode == 0),
             stdout=result.stdout,

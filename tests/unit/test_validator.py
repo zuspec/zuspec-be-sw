@@ -17,7 +17,7 @@
 Unit tests for the validator module.
 """
 import pytest
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 from zuspec.be.sw.validator import CValidator, ValidationError
 
 
@@ -46,13 +46,13 @@ class TestCValidator:
 
     def test_validate_empty_context(self):
         """Test validating empty context."""
-        ctxt = dm.Context(type_m={})
+        ctxt = ir.Context(type_m={})
         result = self.validator.validate(ctxt)
         assert result is True
 
     def test_validate_component_with_no_fields(self):
         """Test validating component with no fields."""
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             py_type=None,
             super=None,
@@ -73,13 +73,13 @@ class TestCValidatorDatamodel:
 
     def test_validate_empty_context(self):
         """Test validating empty context."""
-        ctxt = dm.Context(type_m={})
+        ctxt = ir.Context(type_m={})
         result = self.validator.validate(ctxt)
         assert result is True
 
     def test_validate_component_with_no_fields(self):
         """Test validating component with no fields."""
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             py_type=None,
             super=None,

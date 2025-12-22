@@ -17,7 +17,7 @@
 Validator for checking that datamodel representation can be mapped to C.
 """
 from typing import List, Optional
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 
 class ValidationError:
@@ -39,13 +39,13 @@ class CValidator:
         self.errors: List[ValidationError] = []
         self.warnings: List[str] = []
 
-    def validate(self, ctxt: dm.Context) -> bool:
+    def validate(self, ctxt: ir.Context) -> bool:
         """Validate all types in the context."""
         for name, dtype in ctxt.type_m.items():
             self._validate_type(dtype)
         return self.is_valid()
 
-    def validate_component(self, comp: dm.DataTypeComponent) -> bool:
+    def validate_component(self, comp: ir.DataTypeComponent) -> bool:
         """Validate a single component."""
         self._validate_type(comp)
         return self.is_valid()
@@ -54,16 +54,16 @@ class CValidator:
         """Check if validation passed."""
         return len(self.errors) == 0
 
-    def _validate_type(self, dtype: dm.DataType):
+    def _validate_type(self, dtype: ir.DataType):
         """Validate a datamodel type."""
-        if isinstance(dtype, dm.DataTypeComponent):
+        if isinstance(dtype, ir.DataTypeComponent):
             self._validate_component(dtype)
-        elif isinstance(dtype, dm.DataTypeStruct):
+        elif isinstance(dtype, ir.DataTypeStruct):
             self._validate_struct(dtype)
-        elif isinstance(dtype, dm.DataTypeProtocol):
+        elif isinstance(dtype, ir.DataTypeProtocol):
             self._validate_protocol(dtype)
 
-    def _validate_component(self, comp: dm.DataTypeComponent):
+    def _validate_component(self, comp: ir.DataTypeComponent):
         """Validate a component type."""
         for field in comp.fields:
             self._validate_field(field)
@@ -71,17 +71,17 @@ class CValidator:
         for func in comp.functions:
             self._validate_function(func, comp.name)
 
-    def _validate_struct(self, struct: dm.DataTypeStruct):
+    def _validate_struct(self, struct: ir.DataTypeStruct):
         """Validate a struct type."""
         for field in struct.fields:
             self._validate_field(field)
 
-    def _validate_protocol(self, proto: dm.DataTypeProtocol):
+    def _validate_protocol(self, proto: ir.DataTypeProtocol):
         """Validate a protocol type."""
         # Protocols map to vtables in C
         pass
 
-    def _validate_field(self, field: dm.Field):
+    def _validate_field(self, field: ir.Field):
         """Validate a field."""
         # Fields need type annotations for C
         if field.dtype is None:
@@ -89,7 +89,7 @@ class CValidator:
                 f"Field '{field.name}' missing type annotation"
             ))
 
-    def _validate_function(self, func: dm.Function, type_name: str):
+    def _validate_function(self, func: ir.Function, type_name: str):
         """Validate a function."""
         location = f"{type_name}.{func.name}"
         

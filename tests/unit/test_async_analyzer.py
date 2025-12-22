@@ -17,28 +17,28 @@
 Unit tests for async-to-sync conversion analyzer.
 """
 import pytest
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 from zuspec.be.sw.async_analyzer import AsyncAnalyzer
 
 
 class TestAsyncAnalyzer:
     """Tests for AsyncAnalyzer class."""
     
-    def _create_context_with_component(self, comp: dm.DataTypeComponent) -> dm.Context:
+    def _create_context_with_component(self, comp: ir.DataTypeComponent) -> ir.Context:
         """Create a context with a single component."""
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m[comp.name] = comp
         return ctxt
     
     def test_empty_async_function_convertible(self):
         """Test that empty async function can be converted to sync."""
-        func = dm.Function(
+        func = ir.Function(
             name="empty_func",
             is_async=True,
             body=[]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
@@ -54,16 +54,16 @@ class TestAsyncAnalyzer:
     def test_async_function_with_await_not_convertible(self):
         """Test that async function with await cannot be converted."""
         # Create an await expression
-        await_expr = dm.ExprAwait(value=dm.ExprConstant(value=1))
-        stmt = dm.StmtExpr(expr=await_expr)
+        await_expr = ir.ExprAwait(value=ir.ExprConstant(value=1))
+        stmt = ir.StmtExpr(expr=await_expr)
         
-        func = dm.Function(
+        func = ir.Function(
             name="async_func",
             is_async=True,
             body=[stmt]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
@@ -79,18 +79,18 @@ class TestAsyncAnalyzer:
     def test_async_function_without_await_convertible(self):
         """Test that async function without await can be converted."""
         # Simple assignment statement
-        stmt = dm.StmtAssign(
-            targets=[dm.ExprRefLocal(name="x")],
-            value=dm.ExprConstant(value=42)
+        stmt = ir.StmtAssign(
+            targets=[ir.ExprRefLocal(name="x")],
+            value=ir.ExprConstant(value=42)
         )
         
-        func = dm.Function(
+        func = ir.Function(
             name="sync_func",
             is_async=True,
             body=[stmt]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
@@ -105,19 +105,19 @@ class TestAsyncAnalyzer:
     
     def test_external_task_not_convertible(self):
         """Test that external tasks (import/export) are never converted."""
-        func = dm.Function(
+        func = ir.Function(
             name="external_method",
             is_async=True,
             body=[]
         )
         
         # Create a protocol (external interface)
-        proto = dm.DataTypeProtocol(
+        proto = ir.DataTypeProtocol(
             name="ExternalAPI",
             methods=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["ExternalAPI"] = proto
         
         analyzer = AsyncAnalyzer(ctxt)
@@ -128,13 +128,13 @@ class TestAsyncAnalyzer:
     
     def test_get_report_format(self):
         """Test that report generation works."""
-        func = dm.Function(
+        func = ir.Function(
             name="test_func",
             is_async=True,
             body=[]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
@@ -152,13 +152,13 @@ class TestAsyncAnalyzer:
     
     def test_is_sync_convertible_api(self):
         """Test the convenience API for checking convertibility."""
-        func = dm.Function(
+        func = ir.Function(
             name="test_func",
             is_async=True,
             body=[]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]

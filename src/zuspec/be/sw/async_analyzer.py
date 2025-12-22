@@ -23,7 +23,7 @@ expressions, async calls, or time delays can be converted to improve performance
 External tasks (import/export) must always remain async.
 """
 from typing import Set, Dict, Optional
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 
 class AsyncAnalyzer:
@@ -34,7 +34,7 @@ class AsyncAnalyzer:
     actually need async machinery (no await, no async calls, no time operations).
     """
     
-    def __init__(self, ctxt: dm.Context):
+    def __init__(self, ctxt: ir.Context):
         self.ctxt = ctxt
         # Map: function_id -> can_be_sync
         self.sync_convertible: Dict[str, bool] = {}
@@ -53,7 +53,7 @@ class AsyncAnalyzer:
         
         # Second pass: analyze each async function
         for type_name, dtype in self.ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeComponent):
+            if isinstance(dtype, ir.DataTypeComponent):
                 self._analyze_component(dtype)
         
         return self.sync_convertible
@@ -70,13 +70,13 @@ class AsyncAnalyzer:
         # - Functions in specific API/protocol contexts
         
         for type_name, dtype in self.ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeProtocol):
+            if isinstance(dtype, ir.DataTypeProtocol):
                 # All methods in protocols are considered external interfaces
                 for func in dtype.methods:
                     func_id = f"{type_name}.{func.name}"
                     self.external_tasks.add(func_id)
     
-    def _analyze_component(self, comp: dm.DataTypeComponent):
+    def _analyze_component(self, comp: ir.DataTypeComponent):
         """Analyze all async functions in a component."""
         for func in comp.functions:
             if getattr(func, 'is_async', False):
@@ -91,7 +91,7 @@ class AsyncAnalyzer:
                 can_be_sync = self._can_convert_to_sync(func, comp)
                 self.sync_convertible[func_id] = can_be_sync
     
-    def _can_convert_to_sync(self, func: dm.Function, comp: dm.DataTypeComponent) -> bool:
+    def _can_convert_to_sync(self, func: ir.Function, comp: ir.DataTypeComponent) -> bool:
         """
         Determine if an async function can be converted to synchronous.
         
@@ -116,7 +116,7 @@ class AsyncAnalyzer:
         # Walk the statement tree looking for async operations
         return self._analyze_statements(func.body, comp)
     
-    def _analyze_statements(self, stmts, comp: dm.DataTypeComponent) -> bool:
+    def _analyze_statements(self, stmts, comp: ir.DataTypeComponent) -> bool:
         """
         Analyze a list of statements for async operations.
         
@@ -127,26 +127,26 @@ class AsyncAnalyzer:
                 return False
         return True
     
-    def _analyze_statement(self, stmt: dm.Stmt, comp: dm.DataTypeComponent) -> bool:
+    def _analyze_statement(self, stmt: ir.Stmt, comp: ir.DataTypeComponent) -> bool:
         """
         Analyze a single statement for async operations.
         
         Returns True if NO async operations are found.
         """
-        if isinstance(stmt, dm.StmtExpr):
+        if isinstance(stmt, ir.StmtExpr):
             return self._analyze_expr(stmt.expr, comp)
         
-        elif isinstance(stmt, dm.StmtAssign):
+        elif isinstance(stmt, ir.StmtAssign):
             # Check the value being assigned
             return self._analyze_expr(stmt.value, comp)
         
-        elif isinstance(stmt, dm.StmtReturn):
+        elif isinstance(stmt, ir.StmtReturn):
             # Check the return value
             if stmt.value:
                 return self._analyze_expr(stmt.value, comp)
             return True
         
-        elif isinstance(stmt, dm.StmtIf):
+        elif isinstance(stmt, ir.StmtIf):
             # Check all branches
             if not self._analyze_expr(stmt.test, comp):
                 return False
@@ -156,13 +156,13 @@ class AsyncAnalyzer:
                 return False
             return True
         
-        elif isinstance(stmt, dm.StmtWhile):
+        elif isinstance(stmt, ir.StmtWhile):
             # Check condition and body
             if not self._analyze_expr(stmt.test, comp):
                 return False
             return self._analyze_statements(stmt.body, comp)
         
-        elif isinstance(stmt, dm.StmtFor):
+        elif isinstance(stmt, ir.StmtFor):
             # Check iterator and body
             if not self._analyze_expr(stmt.iter, comp):
                 return False
@@ -171,38 +171,38 @@ class AsyncAnalyzer:
         # Unknown statement type - conservatively keep as async
         return True
     
-    def _analyze_expr(self, expr, comp: dm.DataTypeComponent) -> bool:
+    def _analyze_expr(self, expr, comp: ir.DataTypeComponent) -> bool:
         """
         Analyze an expression for async operations.
         
         Returns True if NO async operations are found.
         """
-        if isinstance(expr, dm.ExprAwait):
+        if isinstance(expr, ir.ExprAwait):
             # Found an await - must stay async
             return False
         
-        elif isinstance(expr, dm.ExprCall):
+        elif isinstance(expr, ir.ExprCall):
             # Check if calling an async function
             return self._analyze_call(expr, comp)
         
-        elif isinstance(expr, dm.ExprBin):
+        elif isinstance(expr, ir.ExprBin):
             # Check both operands
             if not self._analyze_expr(expr.lhs, comp):
                 return False
             return self._analyze_expr(expr.rhs, comp)
         
-        elif isinstance(expr, dm.ExprUnary):
+        elif isinstance(expr, ir.ExprUnary):
             return self._analyze_expr(expr.operand, comp)
         
-        elif isinstance(expr, dm.ExprAttribute):
+        elif isinstance(expr, ir.ExprAttribute):
             return self._analyze_expr(expr.value, comp)
         
-        elif isinstance(expr, dm.ExprSubscript):
+        elif isinstance(expr, ir.ExprSubscript):
             if not self._analyze_expr(expr.value, comp):
                 return False
             return self._analyze_expr(expr.slice, comp)
         
-        elif isinstance(expr, dm.ExprCompare):
+        elif isinstance(expr, ir.ExprCompare):
             if not self._analyze_expr(expr.left, comp):
                 return False
             for comparator in expr.comparators:
@@ -213,14 +213,14 @@ class AsyncAnalyzer:
         # Other expression types (constants, names, etc.) are safe
         return True
     
-    def _analyze_call(self, call: dm.ExprCall, comp: dm.DataTypeComponent) -> bool:
+    def _analyze_call(self, call: ir.ExprCall, comp: ir.DataTypeComponent) -> bool:
         """
         Analyze a function call to see if it's async.
         
         Returns True if the call is NOT async (safe for sync conversion).
         """
         # Check if this is a method call
-        if isinstance(call.func, dm.ExprAttribute):
+        if isinstance(call.func, ir.ExprAttribute):
             method_name = call.func.attr
             
             # Check for known async operations
@@ -238,7 +238,7 @@ class AsyncAnalyzer:
             # This would require more sophisticated type resolution
             # For now, we'll be conservative
             
-        elif isinstance(call.func, dm.ExprRefPy):
+        elif isinstance(call.func, ir.ExprRefPy):
             # Direct function reference
             ref_name = call.func.ref
             

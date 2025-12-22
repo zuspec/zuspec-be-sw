@@ -26,8 +26,8 @@ class StmtGenerator:
         """Initialize statement generator.
         
         Args:
-            component: The dm.DataTypeComponent being generated (for field name lookup)
-            ctxt: The dm.Context for type resolution
+            component: The ir.DataTypeComponent being generated (for field name lookup)
+            ctxt: The ir.Context for type resolution
         """
         self.indent_level = 0
         self.indent_str = "    "
@@ -41,72 +41,72 @@ class StmtGenerator:
     # Methods for generating from datamodel statements
     def _gen_dm_stmt(self, stmt) -> str:
         """Generate C code from a datamodel statement."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(stmt, dm.StmtExpr):
+        if isinstance(stmt, ir.StmtExpr):
             # Skip docstring literals (standalone string expressions)
-            if isinstance(stmt.expr, dm.ExprConstant) and isinstance(stmt.expr.value, str):
+            if isinstance(stmt.expr, ir.ExprConstant) and isinstance(stmt.expr.value, str):
                 return ""
             expr_code = self._gen_dm_expr(stmt.expr)
             return f"{self._indent()}{expr_code};"
-        elif isinstance(stmt, dm.StmtAssign):
+        elif isinstance(stmt, ir.StmtAssign):
             targets = [self._gen_dm_expr(t) for t in stmt.targets]
             value = self._gen_dm_expr(stmt.value)
             return f"{self._indent()}{targets[0]} = {value};"
-        elif isinstance(stmt, dm.StmtReturn):
+        elif isinstance(stmt, ir.StmtReturn):
             if stmt.value:
                 value = self._gen_dm_expr(stmt.value)
                 return f"{self._indent()}return {value};"
             return f"{self._indent()}return;"
-        elif isinstance(stmt, dm.StmtPass):
+        elif isinstance(stmt, ir.StmtPass):
             return f"{self._indent()}/* pass */"
-        elif isinstance(stmt, dm.StmtFor):
+        elif isinstance(stmt, ir.StmtFor):
             return self._gen_dm_for(stmt)
-        elif isinstance(stmt, dm.StmtIf):
+        elif isinstance(stmt, ir.StmtIf):
             return self._gen_dm_if(stmt)
-        elif isinstance(stmt, dm.StmtWhile):
+        elif isinstance(stmt, ir.StmtWhile):
             return self._gen_dm_while(stmt)
-        elif isinstance(stmt, dm.StmtBreak):
+        elif isinstance(stmt, ir.StmtBreak):
             return f"{self._indent()}break;"
-        elif isinstance(stmt, dm.StmtContinue):
+        elif isinstance(stmt, ir.StmtContinue):
             return f"{self._indent()}continue;"
         else:
             return f"{self._indent()}/* unsupported dm stmt: {type(stmt).__name__} */"
 
     def _gen_dm_expr(self, expr) -> str:
         """Generate C code from a datamodel expression."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(expr, dm.ExprConstant):
+        if isinstance(expr, ir.ExprConstant):
             return self._gen_dm_constant(expr)
-        elif isinstance(expr, dm.ExprCall):
+        elif isinstance(expr, ir.ExprCall):
             return self._gen_dm_call(expr)
-        elif isinstance(expr, dm.TypeExprRefSelf):
+        elif isinstance(expr, ir.TypeExprRefSelf):
             return "self"
-        elif isinstance(expr, dm.ExprRefField):
+        elif isinstance(expr, ir.ExprRefField):
             return self._gen_dm_field_ref(expr)
-        elif isinstance(expr, dm.ExprRefParam):
+        elif isinstance(expr, ir.ExprRefParam):
             return expr.name
-        elif isinstance(expr, dm.ExprRefLocal):
+        elif isinstance(expr, ir.ExprRefLocal):
             return expr.name
-        elif isinstance(expr, dm.ExprRefUnresolved):
+        elif isinstance(expr, ir.ExprRefUnresolved):
             # Unresolved names are likely builtins or external references
             return expr.name
-        elif isinstance(expr, dm.ExprAttribute):
+        elif isinstance(expr, ir.ExprAttribute):
             value = self._gen_dm_expr(expr.value)
             # Use -> for pointer access from self, . for struct member access
-            if isinstance(expr.value, dm.TypeExprRefSelf):
+            if isinstance(expr.value, ir.TypeExprRefSelf):
                 return f"{value}->{expr.attr}"
-            elif isinstance(expr.value, dm.ExprRefField):
+            elif isinstance(expr.value, ir.ExprRefField):
                 # Field access - determine if pointer or embedded based on field type
                 return f"{value}.{expr.attr}"
             return f"{value}->{expr.attr}"
-        elif isinstance(expr, dm.ExprBin):
+        elif isinstance(expr, ir.ExprBin):
             left = self._gen_dm_expr(expr.lhs)
             right = self._gen_dm_expr(expr.rhs)
             op = self._get_dm_binop(expr.op)
             return f"({left} {op} {right})"
-        elif isinstance(expr, dm.ExprAwait):
+        elif isinstance(expr, ir.ExprAwait):
             # Await in non-async context - just generate the awaited expression
             return self._gen_dm_expr(expr.value)
         else:
@@ -114,7 +114,7 @@ class StmtGenerator:
 
     def _gen_dm_field_ref(self, expr) -> str:
         """Generate C code for a field reference (ExprRefField)."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
         base = self._gen_dm_expr(expr.base)
         index = expr.index
@@ -123,7 +123,7 @@ class StmtGenerator:
         field_name = self._get_field_name_by_index(expr.base, index)
         
         # Determine accessor based on base type
-        if isinstance(expr.base, dm.TypeExprRefSelf):
+        if isinstance(expr.base, ir.TypeExprRefSelf):
             return f"{base}->{field_name}"
         else:
             # Nested field access - need to determine type of base
@@ -131,21 +131,21 @@ class StmtGenerator:
 
     def _get_field_name_by_index(self, base_expr, index: int) -> str:
         """Get field name from index, resolving through the type chain."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(base_expr, dm.TypeExprRefSelf):
+        if isinstance(base_expr, ir.TypeExprRefSelf):
             # Direct field of current component
             if self.component and index < len(self.component.fields):
                 return self.component.fields[index].name
-        elif isinstance(base_expr, dm.ExprRefField):
+        elif isinstance(base_expr, ir.ExprRefField):
             # Nested field - need to resolve the type of the base field
             base_type = self._get_field_type(base_expr)
-            if base_type and isinstance(base_type, dm.DataTypeComponent):
+            if base_type and isinstance(base_type, ir.DataTypeComponent):
                 if index < len(base_type.fields):
                     return base_type.fields[index].name
-            elif base_type and isinstance(base_type, dm.DataTypeRef) and self.ctxt:
+            elif base_type and isinstance(base_type, ir.DataTypeRef) and self.ctxt:
                 resolved = self.ctxt.type_m.get(base_type.ref_name)
-                if resolved and isinstance(resolved, dm.DataTypeComponent):
+                if resolved and isinstance(resolved, ir.DataTypeComponent):
                     if index < len(resolved.fields):
                         return resolved.fields[index].name
         
@@ -154,25 +154,25 @@ class StmtGenerator:
 
     def _get_field_type(self, expr):
         """Get the datatype of a field expression."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(expr, dm.ExprRefField):
-            base_type = self._get_field_type(expr.base) if not isinstance(expr.base, dm.TypeExprRefSelf) else None
+        if isinstance(expr, ir.ExprRefField):
+            base_type = self._get_field_type(expr.base) if not isinstance(expr.base, ir.TypeExprRefSelf) else None
             
-            if isinstance(expr.base, dm.TypeExprRefSelf):
+            if isinstance(expr.base, ir.TypeExprRefSelf):
                 # Direct field of component
                 if self.component and expr.index < len(self.component.fields):
                     dtype = self.component.fields[expr.index].datatype
                     # Resolve references
-                    if isinstance(dtype, dm.DataTypeRef) and self.ctxt:
+                    if isinstance(dtype, ir.DataTypeRef) and self.ctxt:
                         return self.ctxt.type_m.get(dtype.ref_name)
                     return dtype
             elif base_type:
                 # Nested field
-                if isinstance(base_type, dm.DataTypeComponent):
+                if isinstance(base_type, ir.DataTypeComponent):
                     if expr.index < len(base_type.fields):
                         dtype = base_type.fields[expr.index].datatype
-                        if isinstance(dtype, dm.DataTypeRef) and self.ctxt:
+                        if isinstance(dtype, ir.DataTypeRef) and self.ctxt:
                             return self.ctxt.type_m.get(dtype.ref_name)
                         return dtype
         
@@ -193,32 +193,32 @@ class StmtGenerator:
 
     def _gen_dm_call(self, expr) -> str:
         """Generate C code for a datamodel function call."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
         func = expr.func
         args = [self._gen_dm_expr(arg) for arg in expr.args]
         
         # Handle print() builtin - can be ExprConstant or ExprRefUnresolved
-        if isinstance(func, dm.ExprConstant) and func.value == "print":
+        if isinstance(func, ir.ExprConstant) and func.value == "print":
             return self._gen_dm_print(expr.args)
-        if isinstance(func, dm.ExprRefUnresolved) and func.name == "print":
+        if isinstance(func, ir.ExprRefUnresolved) and func.name == "print":
             return self._gen_dm_print(expr.args)
         
         # Handle range() builtin
-        if isinstance(func, dm.ExprRefUnresolved) and func.name == "range":
+        if isinstance(func, ir.ExprRefUnresolved) and func.name == "range":
             # range() is handled at statement level for for-loops
             args_str = ', '.join(args)
             return f"range({args_str})"
         
         # Handle method calls
-        if isinstance(func, dm.ExprAttribute):
+        if isinstance(func, ir.ExprAttribute):
             # Check for self.method() - direct method call on component
-            if isinstance(func.value, dm.TypeExprRefSelf):
+            if isinstance(func.value, ir.TypeExprRefSelf):
                 # self.method() -> method call (handled by vtable or direct)
                 return f"/* self.{func.attr}({', '.join(args)}) - direct method call */"
             
             # Check for self.field.method() - could be port call or memory access
-            if isinstance(func.value, dm.ExprRefField):
+            if isinstance(func.value, ir.ExprRefField):
                 # This is a call through a field - check if it's a port or memory
                 field_type = self._get_field_type(func.value)
                 base_code = self._gen_dm_expr(func.value)
@@ -248,27 +248,27 @@ class StmtGenerator:
 
     def _is_port_type(self, expr) -> bool:
         """Check if an expression refers to a port field."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(expr, dm.ExprRefField):
-            if isinstance(expr.base, dm.TypeExprRefSelf):
+        if isinstance(expr, ir.ExprRefField):
+            if isinstance(expr.base, ir.TypeExprRefSelf):
                 # Direct field of component
                 if self.component and expr.index < len(self.component.fields):
-                    return self.component.fields[expr.index].kind == dm.FieldKind.Port
+                    return self.component.fields[expr.index].kind == ir.FieldKind.Port
         return False
 
     def _is_memory_type(self, expr) -> bool:
         """Check if an expression refers to a memory field."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
-        if isinstance(expr, dm.ExprRefField):
+        if isinstance(expr, ir.ExprRefField):
             field_type = self._get_field_type(expr)
-            return isinstance(field_type, dm.DataTypeMemory)
+            return isinstance(field_type, ir.DataTypeMemory)
         return False
 
     def _gen_dm_print(self, args) -> str:
         """Generate fprintf for print()."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
         if not args:
             return 'fprintf(stdout, "\\n")'
@@ -276,16 +276,16 @@ class StmtGenerator:
         arg = args[0]
         
         # Check for format string
-        if isinstance(arg, dm.ExprBin) and arg.op == dm.BinOp.Mod:
+        if isinstance(arg, ir.ExprBin) and arg.op == ir.BinOp.Mod:
             format_expr = arg.lhs
             value_expr = arg.rhs
-            if isinstance(format_expr, dm.ExprConstant) and isinstance(format_expr.value, str):
+            if isinstance(format_expr, ir.ExprConstant) and isinstance(format_expr.value, str):
                 format_str = format_expr.value.replace('\\', '\\\\').replace('"', '\\"')
                 value_code = self._gen_dm_expr(value_expr)
                 return f'fprintf(stdout, "{format_str}\\n", {value_code})'
         
         # Simple argument
-        if isinstance(arg, dm.ExprConstant) and isinstance(arg.value, str):
+        if isinstance(arg, ir.ExprConstant) and isinstance(arg.value, str):
             escaped = arg.value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
             return f'fprintf(stdout, "{escaped}\\n")'
         
@@ -294,18 +294,18 @@ class StmtGenerator:
 
     def _get_dm_binop(self, op) -> str:
         """Get C operator string for datamodel binary operation."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         op_map = {
-            dm.BinOp.Add: "+",
-            dm.BinOp.Sub: "-",
-            dm.BinOp.Mult: "*",
-            dm.BinOp.Div: "/",
-            dm.BinOp.Mod: "%",
-            dm.BinOp.LShift: "<<",
-            dm.BinOp.RShift: ">>",
-            dm.BinOp.BitOr: "|",
-            dm.BinOp.BitXor: "^",
-            dm.BinOp.BitAnd: "&",
+            ir.BinOp.Add: "+",
+            ir.BinOp.Sub: "-",
+            ir.BinOp.Mult: "*",
+            ir.BinOp.Div: "/",
+            ir.BinOp.Mod: "%",
+            ir.BinOp.LShift: "<<",
+            ir.BinOp.RShift: ">>",
+            ir.BinOp.BitOr: "|",
+            ir.BinOp.BitXor: "^",
+            ir.BinOp.BitAnd: "&",
         }
         return op_map.get(op, "?")
 
@@ -316,12 +316,12 @@ class StmtGenerator:
         
         # Check for range iteration
         iter_expr = stmt.iter
-        from zuspec.dataclasses import dm
-        if isinstance(iter_expr, dm.ExprCall):
+        from zuspec.dataclasses import ir
+        if isinstance(iter_expr, ir.ExprCall):
             func_name = None
-            if isinstance(iter_expr.func, dm.ExprConstant) and iter_expr.func.value == "range":
+            if isinstance(iter_expr.func, ir.ExprConstant) and iter_expr.func.value == "range":
                 func_name = "range"
-            elif isinstance(iter_expr.func, dm.ExprRefUnresolved) and iter_expr.func.name == "range":
+            elif isinstance(iter_expr.func, ir.ExprRefUnresolved) and iter_expr.func.name == "range":
                 func_name = "range"
             
             if func_name == "range":

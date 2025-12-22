@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Type, Any
 
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 from .type_mapper import TypeMapper
 from .stmt_generator import StmtGenerator
@@ -54,7 +54,7 @@ class CGenerator:
         self.async_analyzer: Optional[AsyncAnalyzer] = None  # Async-to-sync analyzer
         self.enable_specialization = enable_specialization
 
-    def generate(self, ctxt: dm.Context, py_classes: List[Type] = None) -> List[Path]:
+    def generate(self, ctxt: ir.Context, py_classes: List[Type] = None) -> List[Path]:
         """Generate C code for all types in context.
         
         Args:
@@ -77,12 +77,12 @@ class CGenerator:
         
         # First pass: generate protocol/API types
         for name, dtype in ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeProtocol):
+            if isinstance(dtype, ir.DataTypeProtocol):
                 self._generate_protocol(dtype, ctxt)
         
         # Second pass: generate components
         for name, dtype in ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeComponent):
+            if isinstance(dtype, ir.DataTypeComponent):
                 self._generate_component(dtype, ctxt)
         
         # Generate test harness
@@ -90,7 +90,7 @@ class CGenerator:
         
         return self.output.write_all()
 
-    def _generate_protocol(self, proto: dm.DataTypeProtocol, ctxt: dm.Context):
+    def _generate_protocol(self, proto: ir.DataTypeProtocol, ctxt: ir.Context):
         """Generate C code for a Protocol (API interface)."""
         name = sanitize_c_name(proto.name)
         
@@ -98,7 +98,7 @@ class CGenerator:
         header = self._generate_protocol_header(proto, name)
         self.output.add_header(name.lower(), header)
 
-    def _generate_protocol_header(self, proto: dm.DataTypeProtocol, name: str) -> str:
+    def _generate_protocol_header(self, proto: ir.DataTypeProtocol, name: str) -> str:
         """Generate protocol/API header file."""
         guard = f"INCLUDED_{name.upper()}_H"
         
@@ -127,7 +127,7 @@ class CGenerator:
         
         return "\n".join(lines)
 
-    def _generate_func_params(self, func: dm.Function) -> str:
+    def _generate_func_params(self, func: ir.Function) -> str:
         """Generate C function parameter list from function datamodel."""
         params = ["void *self"]
         
@@ -151,7 +151,7 @@ class CGenerator:
         
         return ", ".join(params)
 
-    def _generate_component(self, comp: dm.DataTypeComponent, ctxt: dm.Context):
+    def _generate_component(self, comp: ir.DataTypeComponent, ctxt: ir.Context):
         """Generate C code for a component."""
         name = sanitize_c_name(comp.name)
         
@@ -164,7 +164,7 @@ class CGenerator:
         self.output.add_source(name.lower(), impl)
 
 
-    def _generate_component_header(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> str:
+    def _generate_component_header(self, comp: ir.DataTypeComponent, name: str, ctxt: ir.Context) -> str:
         """Generate component header file."""
         guard = f"INCLUDED_{name.upper()}_H"
         
@@ -182,26 +182,26 @@ class CGenerator:
         has_tlm_interfaces = False
         
         for field in comp.fields:
-            if field.kind == dm.FieldKind.Port or field.kind == dm.FieldKind.Export:
+            if field.kind == ir.FieldKind.Port or field.kind == ir.FieldKind.Export:
                 has_ports_or_exports = True
-                if isinstance(field.datatype, dm.DataTypeRef):
+                if isinstance(field.datatype, ir.DataTypeRef):
                     protocol_includes.add(field.datatype.ref_name.lower())
-                elif isinstance(field.datatype, dm.DataTypeProtocol):
+                elif isinstance(field.datatype, ir.DataTypeProtocol):
                     protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
-                elif isinstance(field.datatype, (dm.DataTypeGetIF, dm.DataTypePutIF)):
+                elif isinstance(field.datatype, (ir.DataTypeGetIF, ir.DataTypePutIF)):
                     has_tlm_interfaces = True
             # Check for memory fields
-            if isinstance(field.datatype, dm.DataTypeMemory):
+            if isinstance(field.datatype, ir.DataTypeMemory):
                 has_memories = True
             # Check for channel fields
-            elif isinstance(field.datatype, dm.DataTypeChannel):
+            elif isinstance(field.datatype, ir.DataTypeChannel):
                 has_channels = True
             # Check for sub-component fields
-            elif isinstance(field.datatype, dm.DataTypeComponent):
+            elif isinstance(field.datatype, ir.DataTypeComponent):
                 component_includes.add(sanitize_c_name(field.datatype.name).lower())
-            elif isinstance(field.datatype, dm.DataTypeRef):
+            elif isinstance(field.datatype, ir.DataTypeRef):
                 ref_type = ctxt.type_m.get(field.datatype.ref_name)
-                if isinstance(ref_type, dm.DataTypeComponent):
+                if isinstance(ref_type, ir.DataTypeComponent):
                     component_includes.add(sanitize_c_name(field.datatype.ref_name).lower())
         
         lines = [
@@ -245,23 +245,23 @@ class CGenerator:
         
         # Add fields - handle ports, exports, and sub-components specially
         for field in comp.fields:
-            is_port = field.kind == dm.FieldKind.Port
-            is_export = field.kind == dm.FieldKind.Export
+            is_port = field.kind == ir.FieldKind.Port
+            is_export = field.kind == ir.FieldKind.Export
             # Check if this is a sub-component field
             is_subcomp = False
-            if isinstance(field.datatype, dm.DataTypeComponent):
+            if isinstance(field.datatype, ir.DataTypeComponent):
                 is_subcomp = True
-            elif isinstance(field.datatype, dm.DataTypeRef):
+            elif isinstance(field.datatype, ir.DataTypeRef):
                 ref_type = ctxt.type_m.get(field.datatype.ref_name)
-                if isinstance(ref_type, dm.DataTypeComponent):
+                if isinstance(ref_type, ir.DataTypeComponent):
                     is_subcomp = True
             
             # Handle specialized types (Phase 1-2: Direct memory/channel)
-            if self.enable_specialization and isinstance(field.datatype, dm.DataTypeMemory):
+            if self.enable_specialization and isinstance(field.datatype, ir.DataTypeMemory):
                 # Generate direct C array for memory
                 type_info = self.type_mapper.get_type_info(field.datatype)
                 lines.append(f"    {type_info.element_type} {field.name}_data[{type_info.size}];")
-            elif self.enable_specialization and isinstance(field.datatype, dm.DataTypeChannel):
+            elif self.enable_specialization and isinstance(field.datatype, ir.DataTypeChannel):
                 # Generate ring buffer fields for channel
                 type_info = self.type_mapper.get_type_info(field.datatype)
                 lines.append(f"    {type_info.element_type} {field.name}_buffer[{type_info.capacity}];")
@@ -280,10 +280,10 @@ class CGenerator:
         # Generate inline accessors for specialized fields (Phase 3)
         if self.enable_specialization:
             for field in comp.fields:
-                if isinstance(field.datatype, dm.DataTypeMemory):
+                if isinstance(field.datatype, ir.DataTypeMemory):
                     lines.extend(self._generate_memory_accessors(name, field, field.datatype))
                     lines.append("")
-                elif isinstance(field.datatype, dm.DataTypeChannel):
+                elif isinstance(field.datatype, ir.DataTypeChannel):
                     lines.extend(self._generate_channel_accessors(name, field, field.datatype))
                     lines.append("")
         
@@ -344,7 +344,7 @@ class CGenerator:
         
         return "\n".join(lines)
 
-    def _generate_memory_accessors(self, comp_name: str, field: dm.Field, mem_dtype: dm.DataTypeMemory) -> List[str]:
+    def _generate_memory_accessors(self, comp_name: str, field: ir.Field, mem_dtype: ir.DataTypeMemory) -> List[str]:
         """Generate inline memory accessor functions (Phase 3)."""
         lines = [f"/* Inline accessors for {field.name} memory */"]
         
@@ -372,7 +372,7 @@ class CGenerator:
         
         return lines
 
-    def _generate_channel_accessors(self, comp_name: str, field: dm.Field, ch_dtype: dm.DataTypeChannel) -> List[str]:
+    def _generate_channel_accessors(self, comp_name: str, field: ir.Field, ch_dtype: ir.DataTypeChannel) -> List[str]:
         """Generate inline channel accessor functions (Phase 3)."""
         type_info = self.type_mapper.get_type_info(ch_dtype)
         elem_type = type_info.element_type
@@ -424,7 +424,7 @@ class CGenerator:
         
         return lines
 
-    def _generate_component_impl(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> str:
+    def _generate_component_impl(self, comp: ir.DataTypeComponent, name: str, ctxt: ir.Context) -> str:
         """Generate component implementation file."""
         
         # Collect required includes
@@ -432,13 +432,13 @@ class CGenerator:
         
         # Check for field types that need includes
         for field in comp.fields:
-            if isinstance(field.datatype, dm.DataTypeComponent):
+            if isinstance(field.datatype, ir.DataTypeComponent):
                 field_name = sanitize_c_name(field.datatype.name)
                 includes.append(f'#include "{field_name.lower()}.h"')
-            elif isinstance(field.datatype, dm.DataTypeRef):
+            elif isinstance(field.datatype, ir.DataTypeRef):
                 # Check if this is a component reference
                 ref_type = ctxt.type_m.get(field.datatype.ref_name)
-                if isinstance(ref_type, dm.DataTypeComponent):
+                if isinstance(ref_type, ir.DataTypeComponent):
                     field_name = sanitize_c_name(field.datatype.ref_name)
                     includes.append(f'#include "{field_name.lower()}.h"')
         
@@ -451,7 +451,7 @@ class CGenerator:
         
         # Generate bind function if needed
         has_ports_or_exports = any(
-            field.kind == dm.FieldKind.Port or field.kind == dm.FieldKind.Export
+            field.kind == ir.FieldKind.Port or field.kind == ir.FieldKind.Export
             for field in comp.fields
         )
         if comp.bind_map or has_ports_or_exports:
@@ -468,7 +468,7 @@ class CGenerator:
         # Generate process task wrappers and collect process list
         processes = []
         for func in comp.functions:
-            if isinstance(func, dm.Process):
+            if isinstance(func, ir.Process):
                 processes.append(func)
                 # Generate the process task wrapper
                 process_code = self._generate_process_task(comp, func, name, ctxt)
@@ -497,7 +497,7 @@ class CGenerator:
         
         return "\n".join(lines)
 
-    def _generate_init_function(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_init_function(self, comp: ir.DataTypeComponent, name: str, ctxt: ir.Context) -> List[str]:
         """Generate component initialization function."""
         
         lines = [
@@ -512,13 +512,13 @@ class CGenerator:
         
         # Initialize fields
         for field in comp.fields:
-            if field.kind == dm.FieldKind.Port:
+            if field.kind == ir.FieldKind.Port:
                 # Ports are pointers, initialize to NULL
                 lines.append(f"    self->{field.name} = NULL;")
-            elif field.kind == dm.FieldKind.Export:
+            elif field.kind == ir.FieldKind.Export:
                 # Exports are embedded structs, zero-initialize self pointer
                 lines.append(f"    self->{field.name}.self = NULL;")
-            elif isinstance(field.datatype, dm.DataTypeMemory):
+            elif isinstance(field.datatype, ir.DataTypeMemory):
                 if self.enable_specialization:
                     # Specialized: Initialize direct C array with memset
                     type_info = self.type_mapper.get_type_info(field.datatype)
@@ -527,12 +527,12 @@ class CGenerator:
                     # Generic: call memory init with size and element width
                     size = field.datatype.size
                     elem_type = field.datatype.element_type
-                    if isinstance(elem_type, dm.DataTypeInt):
+                    if isinstance(elem_type, ir.DataTypeInt):
                         width = elem_type.bits
                     else:
                         width = 32  # Default
                     lines.append(f'    zsp_memory_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {size}, {width});')
-            elif isinstance(field.datatype, dm.DataTypeChannel):
+            elif isinstance(field.datatype, ir.DataTypeChannel):
                 if self.enable_specialization:
                     # Specialized: Initialize ring buffer indices
                     lines.append(f'    self->{field.name}_head = 0;')
@@ -542,11 +542,11 @@ class CGenerator:
                     # Generic: call channel init with element size
                     elem_size = self.type_mapper.get_element_size(field.datatype.element_type)
                     lines.append(f'    zsp_channel_init(ctxt, &self->{field.name}, "{field.name}", &self->base, {elem_size});')
-            elif isinstance(field.datatype, dm.DataTypeComponent) or \
-                 (isinstance(field.datatype, dm.DataTypeRef) and 
-                  isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):
+            elif isinstance(field.datatype, ir.DataTypeComponent) or \
+                 (isinstance(field.datatype, ir.DataTypeRef) and 
+                  isinstance(ctxt.type_m.get(field.datatype.ref_name), ir.DataTypeComponent)):
                 # Sub-component: call its init function
-                if isinstance(field.datatype, dm.DataTypeRef):
+                if isinstance(field.datatype, ir.DataTypeRef):
                     field_type_name = sanitize_c_name(field.datatype.ref_name)
                 else:
                     field_type_name = sanitize_c_name(field.datatype.name)
@@ -559,7 +559,7 @@ class CGenerator:
         lines.append("}")
         return lines
 
-    def _generate_bind_function(self, comp: dm.DataTypeComponent, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_bind_function(self, comp: ir.DataTypeComponent, name: str, ctxt: ir.Context) -> List[str]:
         """Generate component bind function for connecting ports and exports."""
         
         lines = [
@@ -568,17 +568,17 @@ class CGenerator:
         
         # First, call bind on sub-components
         for field in comp.fields:
-            if isinstance(field.datatype, dm.DataTypeComponent) or \
-               (isinstance(field.datatype, dm.DataTypeRef) and 
-                isinstance(ctxt.type_m.get(field.datatype.ref_name), dm.DataTypeComponent)):
-                if isinstance(field.datatype, dm.DataTypeRef):
+            if isinstance(field.datatype, ir.DataTypeComponent) or \
+               (isinstance(field.datatype, ir.DataTypeRef) and 
+                isinstance(ctxt.type_m.get(field.datatype.ref_name), ir.DataTypeComponent)):
+                if isinstance(field.datatype, ir.DataTypeRef):
                     field_type_name = sanitize_c_name(field.datatype.ref_name)
                 else:
                     field_type_name = sanitize_c_name(field.datatype.name)
                 # Check if the sub-component has ports/exports
-                sub_comp = ctxt.type_m.get(field.datatype.ref_name if isinstance(field.datatype, dm.DataTypeRef) else field.datatype.name)
-                if sub_comp and isinstance(sub_comp, dm.DataTypeComponent):
-                    has_sub_binds = any(f.kind in (dm.FieldKind.Port, dm.FieldKind.Export) for f in sub_comp.fields)
+                sub_comp = ctxt.type_m.get(field.datatype.ref_name if isinstance(field.datatype, ir.DataTypeRef) else field.datatype.name)
+                if sub_comp and isinstance(sub_comp, ir.DataTypeComponent):
+                    has_sub_binds = any(f.kind in (ir.FieldKind.Port, ir.FieldKind.Export) for f in sub_comp.fields)
                     if has_sub_binds or sub_comp.bind_map:
                         lines.append(f"    {field_type_name}__bind(&self->{field.name});")
         
@@ -592,19 +592,19 @@ class CGenerator:
         lines.append("}")
         return lines
 
-    def _generate_bind_statement(self, bind: dm.Bind, comp: dm.DataTypeComponent, comp_name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_bind_statement(self, bind: ir.Bind, comp: ir.DataTypeComponent, comp_name: str, ctxt: ir.Context) -> List[str]:
         """Generate C statements for a single bind operation."""
         lhs = bind.lhs
         rhs = bind.rhs
         
         # Check if this is a method binding (ExprRefPy at top level)
-        if isinstance(lhs, dm.ExprRefPy):
+        if isinstance(lhs, ir.ExprRefPy):
             # Method binding: self.exp.method : self.method
             # Generates: self->exp.method = (func_ptr)CompType_method;
             return self._generate_method_bind(lhs, rhs, comp, comp_name, ctxt)
         
         # Check if RHS is a channel interface binding (self.ch.put or self.ch.get)
-        if isinstance(rhs, dm.ExprRefPy):
+        if isinstance(rhs, ir.ExprRefPy):
             rhs_attr = rhs.ref
             if rhs_attr in ("put", "get"):
                 # This is a channel binding: self.subcomp.port : self.ch.put/get
@@ -619,8 +619,8 @@ class CGenerator:
         
         return []
 
-    def _generate_channel_bind(self, lhs, rhs: dm.ExprRefPy, comp: dm.DataTypeComponent, 
-                               comp_name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_channel_bind(self, lhs, rhs: ir.ExprRefPy, comp: ir.DataTypeComponent, 
+                               comp_name: str, ctxt: ir.Context) -> List[str]:
         """Generate channel binding code for port-to-channel interface connections.
         
         Handles bindings like: self.subcomp.port : self.ch.put (or .get)
@@ -645,8 +645,8 @@ class CGenerator:
         
         return lines
 
-    def _generate_method_bind(self, lhs: dm.ExprRefPy, rhs, comp: dm.DataTypeComponent, 
-                              comp_name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_method_bind(self, lhs: ir.ExprRefPy, rhs, comp: ir.DataTypeComponent, 
+                              comp_name: str, ctxt: ir.Context) -> List[str]:
         """Generate method binding code."""
         # lhs: ExprRefPy(base=ExprRefField(...export...), ref="method_name")
         # rhs: ExprRefPy(base=TypeExprRefSelf, ref="method_name") or similar
@@ -655,7 +655,7 @@ class CGenerator:
         export_code = self._expr_to_c(lhs.base, comp, "self", ctxt)
         
         # Get the target method name
-        if isinstance(rhs, dm.ExprRefPy) and isinstance(rhs.base, dm.TypeExprRefSelf):
+        if isinstance(rhs, ir.ExprRefPy) and isinstance(rhs.base, ir.TypeExprRefSelf):
             # Binding to self.method -> use ComponentType_method
             target_method = f"{comp_name}_{rhs.ref}"
         else:
@@ -669,7 +669,7 @@ class CGenerator:
         
         return lines
 
-    def _expr_to_c(self, expr, comp: dm.DataTypeComponent, self_name: str, ctxt: dm.Context) -> str:
+    def _expr_to_c(self, expr, comp: ir.DataTypeComponent, self_name: str, ctxt: ir.Context) -> str:
         """Convert a datamodel expression to C code.
         
         Args:
@@ -678,24 +678,24 @@ class CGenerator:
             self_name: The name to use for self references
             ctxt: The datamodel context for type lookups
         """
-        if isinstance(expr, dm.ExprRefField):
+        if isinstance(expr, ir.ExprRefField):
             # Build field path recursively
             base = expr.base
             field_idx = expr.index
             
-            if isinstance(base, dm.TypeExprRefSelf):
+            if isinstance(base, ir.TypeExprRefSelf):
                 # Direct field access on self: self->field_name
                 if field_idx < len(comp.fields):
                     field_name = comp.fields[field_idx].name
                     return f"{self_name}->{field_name}"
                 return f"{self_name}->field_{field_idx}"
-            elif isinstance(base, dm.ExprRefField):
+            elif isinstance(base, ir.ExprRefField):
                 # Nested field access: self->subcomp.field
                 base_code = self._expr_to_c(base, comp, self_name, ctxt)
                 
                 # Get the type of the base to look up field names
                 base_type = self._get_expr_type(base, comp, ctxt)
-                if base_type and isinstance(base_type, dm.DataTypeComponent):
+                if base_type and isinstance(base_type, ir.DataTypeComponent):
                     if field_idx < len(base_type.fields):
                         field_name = base_type.fields[field_idx].name
                         return f"{base_code}.{field_name}"
@@ -703,56 +703,56 @@ class CGenerator:
             
             return ""
             
-        elif isinstance(expr, dm.TypeExprRefSelf):
+        elif isinstance(expr, ir.TypeExprRefSelf):
             return self_name
             
-        elif isinstance(expr, dm.ExprRefPy):
+        elif isinstance(expr, ir.ExprRefPy):
             base = self._expr_to_c(expr.base, comp, self_name, ctxt)
             return f"{base}.{expr.ref}" if base else expr.ref
             
-        elif isinstance(expr, dm.ExprAttribute):
+        elif isinstance(expr, ir.ExprAttribute):
             value = self._expr_to_c(expr.value, comp, self_name, ctxt)
             if value == self_name:
                 return f"{self_name}->{expr.attr}"
             else:
                 return f"{value}.{expr.attr}"
                 
-        elif isinstance(expr, dm.ExprConstant):
+        elif isinstance(expr, ir.ExprConstant):
             if expr.value == "self":
                 return self_name
             return str(expr.value)
         
         return ""
 
-    def _get_expr_type(self, expr, comp: dm.DataTypeComponent, ctxt: dm.Context) -> Optional[dm.DataType]:
+    def _get_expr_type(self, expr, comp: ir.DataTypeComponent, ctxt: ir.Context) -> Optional[ir.DataType]:
         """Get the data type of an expression for field lookup."""
-        if isinstance(expr, dm.ExprRefField):
+        if isinstance(expr, ir.ExprRefField):
             base = expr.base
             field_idx = expr.index
             
-            if isinstance(base, dm.TypeExprRefSelf):
+            if isinstance(base, ir.TypeExprRefSelf):
                 # Get field type from component
                 if field_idx < len(comp.fields):
                     field = comp.fields[field_idx]
                     dtype = field.datatype
                     # Resolve references
-                    if isinstance(dtype, dm.DataTypeRef):
+                    if isinstance(dtype, ir.DataTypeRef):
                         return ctxt.type_m.get(dtype.ref_name)
                     return dtype
-            elif isinstance(base, dm.ExprRefField):
+            elif isinstance(base, ir.ExprRefField):
                 # Get type of nested field
                 base_type = self._get_expr_type(base, comp, ctxt)
-                if base_type and isinstance(base_type, dm.DataTypeComponent):
+                if base_type and isinstance(base_type, ir.DataTypeComponent):
                     if field_idx < len(base_type.fields):
                         field = base_type.fields[field_idx]
                         dtype = field.datatype
-                        if isinstance(dtype, dm.DataTypeRef):
+                        if isinstance(dtype, ir.DataTypeRef):
                             return ctxt.type_m.get(dtype.ref_name)
                         return dtype
         
         return None
 
-    def _generate_method_params(self, func: dm.Function, comp_name: str) -> str:
+    def _generate_method_params(self, func: ir.Function, comp_name: str) -> str:
         """Generate method parameter list for C function."""
         params = [f"{comp_name} *self"]
         
@@ -787,13 +787,13 @@ class CGenerator:
                     return "int8_t"
         return "int32_t"  # Default
     
-    def _get_func_return_type(self, func: dm.Function) -> str:
+    def _get_func_return_type(self, func: ir.Function) -> str:
         """Get C return type for a function."""
         if not func.returns:
             return "void"
         
         ret_type = func.returns
-        if isinstance(ret_type, dm.DataTypeInt):
+        if isinstance(ret_type, ir.DataTypeInt):
             if ret_type.signed:
                 if ret_type.bits <= 8:
                     return "int8_t"
@@ -815,7 +815,7 @@ class CGenerator:
         
         return "int32_t"  # Default
 
-    def _generate_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_method(self, comp: ir.DataTypeComponent, func: ir.Function, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a component method."""
         
         # Check if this is an async method
@@ -849,7 +849,7 @@ class CGenerator:
         lines.append("}")
         return lines
 
-    def _generate_async_method(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_async_method(self, comp: ir.DataTypeComponent, func: ir.Function, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a component async method as a C coroutine.
         
         If the analyzer determines this can be sync, generates both sync and async variants.
@@ -886,7 +886,7 @@ class CGenerator:
         lines.extend(code.split("\n"))
         return lines
 
-    def _get_method_body(self, comp: dm.DataTypeComponent, func: dm.Function, ctxt: dm.Context) -> str:
+    def _get_method_body(self, comp: ir.DataTypeComponent, func: ir.Function, ctxt: ir.Context) -> str:
         """Generate method body from datamodel."""
         # Use the datamodel body - it must be populated by the DataModelFactory
         if not func.body:
@@ -902,14 +902,14 @@ class CGenerator:
                 lines.append(code)
         return "\n".join(lines)
     
-    def _get_method_return_type(self, func: dm.Function) -> str:
+    def _get_method_return_type(self, func: ir.Function) -> str:
         """Get C return type for a method."""
         if not func.returns:
             return "void"
         
         return self.type_mapper.map_type(func.returns)
     
-    def _extract_method_local_vars(self, stmts: List[dm.Stmt], args: dm.Arguments) -> List:
+    def _extract_method_local_vars(self, stmts: List[ir.Stmt], args: ir.Arguments) -> List:
         """Extract local variable declarations from function body."""
         local_vars = []
         seen_vars = set()
@@ -922,9 +922,9 @@ class CGenerator:
         
         # Walk statements to find assignments
         def extract_from_stmt(stmt):
-            if isinstance(stmt, dm.StmtAssign):
+            if isinstance(stmt, ir.StmtAssign):
                 for target in stmt.targets:
-                    if isinstance(target, dm.ExprRefLocal):
+                    if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
                         if var_name not in seen_vars:
                             # Try to infer type from annotation or default to int32_t
@@ -933,22 +933,22 @@ class CGenerator:
                                 var_type = self.type_mapper.map_type(target.type)
                             local_vars.append((var_name, var_type))
                             seen_vars.add(var_name)
-            elif isinstance(stmt, dm.StmtFor):
+            elif isinstance(stmt, ir.StmtFor):
                 # Mark for loop variable as seen (it's declared in the for statement)
-                if hasattr(stmt, 'target') and isinstance(stmt.target, dm.ExprRefLocal):
+                if hasattr(stmt, 'target') and isinstance(stmt.target, ir.ExprRefLocal):
                     seen_vars.add(stmt.target.name)
                 # Handle variables in for loop body
                 if hasattr(stmt, 'body'):
                     for s in stmt.body:
                         extract_from_stmt(s)
-            elif isinstance(stmt, dm.StmtIf):
+            elif isinstance(stmt, ir.StmtIf):
                 if hasattr(stmt, 'body'):
                     for s in stmt.body:
                         extract_from_stmt(s)
                 if hasattr(stmt, 'orelse'):
                     for s in stmt.orelse:
                         extract_from_stmt(s)
-            elif isinstance(stmt, dm.StmtWhile):
+            elif isinstance(stmt, ir.StmtWhile):
                 if hasattr(stmt, 'body'):
                     for s in stmt.body:
                         extract_from_stmt(s)
@@ -961,7 +961,7 @@ class CGenerator:
     def _should_generate_method(self, func) -> bool:
         """Check if a method should be generated."""
         # Skip Process types - they're background processes, not callable methods
-        if isinstance(func, dm.Process):
+        if isinstance(func, ir.Process):
             return False
         # Skip internal/inherited methods
         if func.name.startswith("__"):
@@ -970,7 +970,7 @@ class CGenerator:
             return False
         return True
 
-    def _generate_comb_process(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_comb_process(self, comp: ir.DataTypeComponent, func: ir.Function, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a combinational process as a C function.
         
         Comb processes are simple C functions that immediately update outputs based on inputs.
@@ -985,7 +985,7 @@ class CGenerator:
         if sensitivity:
             sens_names = []
             for sens_expr in sensitivity:
-                if isinstance(sens_expr, dm.ExprRefField) and hasattr(sens_expr, 'index'):
+                if isinstance(sens_expr, ir.ExprRefField) and hasattr(sens_expr, 'index'):
                     if sens_expr.index < len(comp.fields):
                         sens_names.append(comp.fields[sens_expr.index].name)
             if sens_names:
@@ -1007,7 +1007,7 @@ class CGenerator:
         
         return lines
     
-    def _generate_sync_process(self, comp: dm.DataTypeComponent, func: dm.Function, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_sync_process(self, comp: ir.DataTypeComponent, func: ir.Function, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a synchronous process as a C function.
         
         Sync processes are triggered on clock edges and update state accordingly.
@@ -1039,7 +1039,7 @@ class CGenerator:
         
         return lines
 
-    def _generate_process_task(self, comp: dm.DataTypeComponent, func: dm.Process, name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_process_task(self, comp: ir.DataTypeComponent, func: ir.Process, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a task wrapper for a Process function.
         
         The process body is generated using async-to-sync conversion.
@@ -1073,7 +1073,7 @@ class CGenerator:
         
         return lines
     
-    def _generate_process_startup(self, comp: dm.DataTypeComponent, processes: List[dm.Process], name: str, ctxt: dm.Context) -> List[str]:
+    def _generate_process_startup(self, comp: ir.DataTypeComponent, processes: List[ir.Process], name: str, ctxt: ir.Context) -> List[str]:
         """Generate the start_processes function for the component.
         
         This creates threads for all @process functions and schedules them.
@@ -1106,7 +1106,7 @@ class CGenerator:
         
         return lines
     
-    def _generate_main(self, ctxt: dm.Context):
+    def _generate_main(self, ctxt: ir.Context):
         """Generate main test harness."""
         lines = [
             "#include <stdio.h>",
@@ -1117,7 +1117,7 @@ class CGenerator:
         
         # Include headers for all components
         for orig_name, dtype in ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeComponent):
+            if isinstance(dtype, ir.DataTypeComponent):
                 name = sanitize_c_name(orig_name)
                 lines.append(f'#include "{name.lower()}.h"')
         
@@ -1134,7 +1134,7 @@ class CGenerator:
         
         # Instantiate and call hello on each component
         for orig_name, dtype in ctxt.type_m.items():
-            if isinstance(dtype, dm.DataTypeComponent):
+            if isinstance(dtype, ir.DataTypeComponent):
                 name = sanitize_c_name(orig_name)
                 var_name = name.lower()
                 lines.extend([

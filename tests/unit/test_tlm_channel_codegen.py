@@ -128,7 +128,7 @@ class TestChannelDataModelGeneration:
 
     def test_channel_datamodel_types(self):
         """Test that Channel, PutIF, GetIF are correctly in datamodel."""
-        from zuspec.dataclasses import dm
+        from zuspec.dataclasses import ir
         
         dm_ctxt = zdc.DataModelFactory().build(TopChannel)
         
@@ -144,7 +144,7 @@ class TestChannelDataModelGeneration:
                 break
         
         assert ch_field is not None, "ch field should exist"
-        assert isinstance(ch_field.datatype, dm.DataTypeChannel), \
+        assert isinstance(ch_field.datatype, ir.DataTypeChannel), \
             f"ch should be DataTypeChannel, got {type(ch_field.datatype).__name__}"
         
         # Verify Producer
@@ -158,7 +158,7 @@ class TestChannelDataModelGeneration:
                 break
         
         assert p_field is not None, "p field should exist in Producer"
-        assert isinstance(p_field.datatype, dm.DataTypePutIF), \
+        assert isinstance(p_field.datatype, ir.DataTypePutIF), \
             f"p should be DataTypePutIF, got {type(p_field.datatype).__name__}"
         
         # Verify Consumer
@@ -172,7 +172,7 @@ class TestChannelDataModelGeneration:
                 break
         
         assert c_field is not None, "c field should exist in Consumer"
-        assert isinstance(c_field.datatype, dm.DataTypeGetIF), \
+        assert isinstance(c_field.datatype, ir.DataTypeGetIF), \
             f"c should be DataTypeGetIF, got {type(c_field.datatype).__name__}"
 
 

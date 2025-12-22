@@ -21,7 +21,7 @@ that don't actually need async machinery. These functions bypass the state
 machine overhead and provide direct call semantics.
 """
 from typing import List, Tuple, Optional
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 
 class SyncMethodGenerator:
@@ -33,14 +33,14 @@ class SyncMethodGenerator:
     for hot-path operations.
     """
     
-    def __init__(self, component_name: str, method_name: str, component: dm.DataTypeComponent = None, ctxt: dm.Context = None):
+    def __init__(self, component_name: str, method_name: str, component: ir.DataTypeComponent = None, ctxt: ir.Context = None):
         self.component_name = component_name
         self.method_name = method_name
         self.component = component
         self.ctxt = ctxt
         self.indent_str = "    "
     
-    def generate(self, func: dm.Function) -> str:
+    def generate(self, func: ir.Function) -> str:
         """
         Generate synchronous C function from async method.
         
@@ -102,7 +102,7 @@ class SyncMethodGenerator:
         
         return "\n".join(lines)
     
-    def _generate_empty_function(self, func: dm.Function) -> str:
+    def _generate_empty_function(self, func: ir.Function) -> str:
         """Generate an empty synchronous function."""
         ret_type = self._get_return_type(func)
         func_name = f"{self.component_name}_{self.method_name}"
@@ -135,13 +135,13 @@ class SyncMethodGenerator:
         
         return "\n".join(lines)
     
-    def _get_return_type(self, func: dm.Function) -> str:
+    def _get_return_type(self, func: ir.Function) -> str:
         """Get C return type for function."""
         if not func.returns:
             return "void"
         
         ret_type = func.returns
-        if isinstance(ret_type, dm.DataTypeInt):
+        if isinstance(ret_type, ir.DataTypeInt):
             if ret_type.signed:
                 if ret_type.bits <= 8:
                     return "int8_t"
@@ -164,7 +164,7 @@ class SyncMethodGenerator:
         # Default to int32_t
         return "int32_t"
     
-    def _get_param_c_type(self, arg: dm.Arg) -> str:
+    def _get_param_c_type(self, arg: ir.Arg) -> str:
         """Get C type for a function parameter from its annotation."""
         if arg.annotation:
             ann = arg.annotation
@@ -188,7 +188,7 @@ class SyncMethodGenerator:
                         return 'int64_t'
         return 'int32_t'
     
-    def _extract_local_vars(self, stmts: List[dm.Stmt], args: dm.Arguments) -> List[Tuple[str, str]]:
+    def _extract_local_vars(self, stmts: List[ir.Stmt], args: ir.Arguments) -> List[Tuple[str, str]]:
         """Extract local variable declarations from function body."""
         local_vars = []
         seen_vars = set()
@@ -201,9 +201,9 @@ class SyncMethodGenerator:
         
         # Walk statements to find assignments
         def extract_from_stmt(stmt):
-            if isinstance(stmt, dm.StmtAssign):
+            if isinstance(stmt, ir.StmtAssign):
                 for target in stmt.targets:
-                    if isinstance(target, dm.ExprRefLocal):
+                    if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
                         if var_name not in seen_vars:
                             var_type = "int32_t"
@@ -215,21 +215,21 @@ class SyncMethodGenerator:
         
         return local_vars
     
-    def _has_return(self, stmts: List[dm.Stmt]) -> bool:
+    def _has_return(self, stmts: List[ir.Stmt]) -> bool:
         """Check if statement list has a return statement."""
         for stmt in stmts:
-            if isinstance(stmt, dm.StmtReturn):
+            if isinstance(stmt, ir.StmtReturn):
                 return True
             # Could check nested blocks (if/while/for) but not critical
         return False
     
-    def _gen_stmt(self, stmt: dm.Stmt) -> str:
+    def _gen_stmt(self, stmt: ir.Stmt) -> str:
         """Generate C code for a datamodel statement."""
-        if isinstance(stmt, dm.StmtExpr):
+        if isinstance(stmt, ir.StmtExpr):
             expr_code = self._gen_expr(stmt.expr)
             return f"{expr_code};"
         
-        elif isinstance(stmt, dm.StmtAssign):
+        elif isinstance(stmt, ir.StmtAssign):
             targets = [self._gen_expr(t) for t in stmt.targets]
             value = self._gen_expr(stmt.value)
             # For simplicity, handle single target
@@ -237,13 +237,13 @@ class SyncMethodGenerator:
                 return f"{targets[0]} = {value};"
             return ""
         
-        elif isinstance(stmt, dm.StmtReturn):
+        elif isinstance(stmt, ir.StmtReturn):
             if stmt.value:
                 value = self._gen_expr(stmt.value)
                 return f"return {value};"
             return "return;"
         
-        elif isinstance(stmt, dm.StmtIf):
+        elif isinstance(stmt, ir.StmtIf):
             test = self._gen_expr(stmt.test)
             lines = [f"if ({test}) {{"]
             for s in stmt.body:
@@ -257,7 +257,7 @@ class SyncMethodGenerator:
             lines.append("}")
             return "\n".join(lines)
         
-        elif isinstance(stmt, dm.StmtWhile):
+        elif isinstance(stmt, ir.StmtWhile):
             test = self._gen_expr(stmt.test)
             lines = [f"while ({test}) {{"]
             for s in stmt.body:
@@ -266,7 +266,7 @@ class SyncMethodGenerator:
             lines.append("}")
             return "\n".join(lines)
         
-        elif isinstance(stmt, dm.StmtFor):
+        elif isinstance(stmt, ir.StmtFor):
             # Simplified for loop handling
             target = self._gen_expr(stmt.target)
             iter_expr = self._gen_expr(stmt.iter)
@@ -281,7 +281,7 @@ class SyncMethodGenerator:
     
     def _gen_expr(self, expr) -> str:
         """Generate C code for a datamodel expression."""
-        if isinstance(expr, dm.ExprConstant):
+        if isinstance(expr, ir.ExprConstant):
             value = expr.value
             if isinstance(value, str):
                 return f'"{value}"'
@@ -289,12 +289,12 @@ class SyncMethodGenerator:
                 return "1" if value else "0"
             return str(value)
         
-        elif isinstance(expr, dm.ExprRefLocal):
+        elif isinstance(expr, ir.ExprRefLocal):
             return expr.name
         
-        elif isinstance(expr, dm.ExprRefField):
+        elif isinstance(expr, ir.ExprRefField):
             # Field access: self->field
-            if isinstance(expr.base, dm.TypeExprRefSelf):
+            if isinstance(expr.base, ir.TypeExprRefSelf):
                 if self.component and expr.index < len(self.component.fields):
                     field_name = self.component.fields[expr.index].name
                     return f"self->{field_name}"
@@ -302,33 +302,33 @@ class SyncMethodGenerator:
             base = self._gen_expr(expr.base)
             return f"{base}.field_{expr.index}"
         
-        elif isinstance(expr, dm.TypeExprRefSelf):
+        elif isinstance(expr, ir.TypeExprRefSelf):
             return "self"
         
-        elif isinstance(expr, dm.ExprAttribute):
+        elif isinstance(expr, ir.ExprAttribute):
             value = self._gen_expr(expr.value)
             if value == "self":
                 return f"self->{expr.attr}"
             return f"{value}.{expr.attr}"
         
-        elif isinstance(expr, dm.ExprBin):
+        elif isinstance(expr, ir.ExprBin):
             left = self._gen_expr(expr.lhs)
             right = self._gen_expr(expr.rhs)
             op = self._map_binop(expr.op)
             return f"({left} {op} {right})"
         
-        elif isinstance(expr, dm.ExprUnary):
+        elif isinstance(expr, ir.ExprUnary):
             operand = self._gen_expr(expr.operand)
             op = self._map_unaryop(expr.op)
             return f"({op}{operand})"
         
-        elif isinstance(expr, dm.ExprCall):
+        elif isinstance(expr, ir.ExprCall):
             # Direct function call (no await in sync version)
             func_code = self._gen_expr(expr.func)
             args = [self._gen_expr(arg) for arg in expr.args]
             return f"{func_code}({', '.join(args)})"
         
-        elif isinstance(expr, dm.ExprCompare):
+        elif isinstance(expr, ir.ExprCompare):
             left = self._gen_expr(expr.left)
             # Handle simple comparison with one operator
             if expr.ops and expr.comparators:
@@ -337,7 +337,7 @@ class SyncMethodGenerator:
                 return f"({left} {op} {right})"
             return left
         
-        elif isinstance(expr, dm.ExprSubscript):
+        elif isinstance(expr, ir.ExprSubscript):
             value = self._gen_expr(expr.value)
             slice_expr = self._gen_expr(expr.slice)
             return f"{value}[{slice_expr}]"

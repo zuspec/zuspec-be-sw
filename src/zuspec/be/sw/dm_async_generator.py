@@ -20,7 +20,7 @@ This module converts async method bodies represented in the datamodel into C cor
 functions using the switch/case pattern used by the zsp_timebase runtime.
 """
 from typing import List, Tuple, Optional
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 
 class DmAsyncMethodGenerator:
@@ -31,14 +31,14 @@ class DmAsyncMethodGenerator:
     with the zsp_timebase scheduling system.
     """
 
-    def __init__(self, component_name: str, method_name: str, component: dm.DataTypeComponent = None, ctxt: dm.Context = None):
+    def __init__(self, component_name: str, method_name: str, component: ir.DataTypeComponent = None, ctxt: ir.Context = None):
         self.component_name = component_name
         self.method_name = method_name
         self.component = component
         self.ctxt = ctxt
         self.indent_str = "    "
 
-    def generate(self, func: dm.Function) -> str:
+    def generate(self, func: ir.Function) -> str:
         """Generate C coroutine function from datamodel Function.
         
         Args:
@@ -119,7 +119,7 @@ class DmAsyncMethodGenerator:
                 if i > 0:
                     prev_block = blocks[i-1]
                     prev_await_stmt = prev_block[2]  # The statement containing the await
-                    if prev_await_stmt and isinstance(prev_await_stmt, dm.StmtAssign):
+                    if prev_await_stmt and isinstance(prev_await_stmt, ir.StmtAssign):
                         # Previous await was an assignment, get the value from thread->rval
                         target = self._gen_expr(prev_await_stmt.targets[0])
                         lines.append(f"            {target} = (int)thread->rval;  /* Result from previous await */")
@@ -182,7 +182,7 @@ class DmAsyncMethodGenerator:
         
         return "\n".join(lines)
     
-    def _get_param_c_type(self, arg: dm.Arg) -> str:
+    def _get_param_c_type(self, arg: ir.Arg) -> str:
         """Get C type for a function parameter from its annotation."""
         if arg.annotation:
             # Check for DataTypeInt or similar
@@ -215,7 +215,7 @@ class DmAsyncMethodGenerator:
             return 'double'
         return 'int'
 
-    def _extract_local_vars(self, stmts: List[dm.Stmt], args: dm.Arguments) -> List[Tuple[str, str]]:
+    def _extract_local_vars(self, stmts: List[ir.Stmt], args: ir.Arguments) -> List[Tuple[str, str]]:
         """
         Extract local variable declarations from function body.
         Returns list of (var_name, var_type) tuples.
@@ -234,9 +234,9 @@ class DmAsyncMethodGenerator:
         
         # Walk statements to find assignments
         def extract_from_stmt(stmt):
-            if isinstance(stmt, dm.StmtAssign):
+            if isinstance(stmt, ir.StmtAssign):
                 for target in stmt.targets:
-                    if isinstance(target, dm.ExprRefLocal):
+                    if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
                         if var_name not in seen_vars:
                             # Determine type - for now assume int32_t
@@ -249,7 +249,7 @@ class DmAsyncMethodGenerator:
         
         return local_vars
 
-    def _split_at_awaits(self, stmts: List[dm.Stmt]) -> List[Tuple[List[dm.Stmt], Optional[dm.ExprAwait], Optional[dm.Stmt]]]:
+    def _split_at_awaits(self, stmts: List[ir.Stmt]) -> List[Tuple[List[ir.Stmt], Optional[ir.ExprAwait], Optional[ir.Stmt]]]:
         """
         Split statement list into blocks separated by await points.
         
@@ -284,37 +284,37 @@ class DmAsyncMethodGenerator:
             
         return blocks
 
-    def _find_await(self, stmt: dm.Stmt) -> Optional[dm.ExprAwait]:
+    def _find_await(self, stmt: ir.Stmt) -> Optional[ir.ExprAwait]:
         """Find await expression in a statement, if any."""
-        if isinstance(stmt, dm.StmtExpr):
-            if isinstance(stmt.expr, dm.ExprAwait):
+        if isinstance(stmt, ir.StmtExpr):
+            if isinstance(stmt.expr, ir.ExprAwait):
                 return stmt.expr
-        elif isinstance(stmt, dm.StmtAssign):
+        elif isinstance(stmt, ir.StmtAssign):
             # Check if the value being assigned contains an await
-            if isinstance(stmt.value, dm.ExprAwait):
+            if isinstance(stmt.value, ir.ExprAwait):
                 return stmt.value
-        elif isinstance(stmt, dm.StmtReturn):
+        elif isinstance(stmt, ir.StmtReturn):
             # Check if the return value contains an await
-            if stmt.value and isinstance(stmt.value, dm.ExprAwait):
+            if stmt.value and isinstance(stmt.value, ir.ExprAwait):
                 return stmt.value
         return None
 
-    def _gen_stmt(self, stmt: dm.Stmt) -> str:
+    def _gen_stmt(self, stmt: ir.Stmt) -> str:
         """Generate C code for a datamodel statement."""
-        if isinstance(stmt, dm.StmtExpr):
+        if isinstance(stmt, ir.StmtExpr):
             expr_code = self._gen_expr(stmt.expr)
             return f"{expr_code};"
-        elif isinstance(stmt, dm.StmtAssign):
+        elif isinstance(stmt, ir.StmtAssign):
             targets = [self._gen_expr(t) for t in stmt.targets]
             value = self._gen_expr(stmt.value)
             return f"{targets[0]} = {value};"
-        elif isinstance(stmt, dm.StmtReturn):
+        elif isinstance(stmt, ir.StmtReturn):
             if stmt.value:
                 return f"return {self._gen_expr(stmt.value)};"
             return "return;"
-        elif isinstance(stmt, dm.StmtPass):
+        elif isinstance(stmt, ir.StmtPass):
             return "/* pass */"
-        elif isinstance(stmt, dm.StmtFor):
+        elif isinstance(stmt, ir.StmtFor):
             return self._gen_for_stmt(stmt)
         else:
             # Unsupported statement type - fail with clear error
@@ -324,21 +324,21 @@ class DmAsyncMethodGenerator:
                 f"Add support for additional statement types if needed."
             )
 
-    def _gen_for_stmt(self, stmt: dm.StmtFor) -> str:
+    def _gen_for_stmt(self, stmt: ir.StmtFor) -> str:
         """Generate C code for a for loop."""
         # Get the loop variable name
-        if isinstance(stmt.target, dm.ExprRefLocal):
+        if isinstance(stmt.target, ir.ExprRefLocal):
             loop_var = stmt.target.name
-        elif isinstance(stmt.target, dm.ExprConstant):
+        elif isinstance(stmt.target, ir.ExprConstant):
             loop_var = str(stmt.target.value)
         else:
             loop_var = "i"
         
         # Handle range() iteration
         iter_expr = stmt.iter
-        if isinstance(iter_expr, dm.ExprCall):
+        if isinstance(iter_expr, ir.ExprCall):
             func = iter_expr.func
-            if isinstance(func, dm.ExprRefUnresolved) and func.name == "range":
+            if isinstance(func, ir.ExprRefUnresolved) and func.name == "range":
                 return self._gen_range_for(loop_var, iter_expr.args, stmt.body)
         
         # Unsupported iteration type
@@ -376,73 +376,73 @@ class DmAsyncMethodGenerator:
         
         return '\n'.join(lines)
 
-    def _gen_expr(self, expr: dm.Expr) -> str:
+    def _gen_expr(self, expr: ir.Expr) -> str:
         """Generate C code for a datamodel expression."""
-        if isinstance(expr, dm.ExprCall):
+        if isinstance(expr, ir.ExprCall):
             return self._gen_call(expr)
-        elif isinstance(expr, dm.ExprConstant):
+        elif isinstance(expr, ir.ExprConstant):
             return self._gen_constant(expr)
-        elif isinstance(expr, dm.TypeExprRefSelf):
+        elif isinstance(expr, ir.TypeExprRefSelf):
             return "locals->self"
-        elif isinstance(expr, dm.ExprRefParam):
+        elif isinstance(expr, ir.ExprRefParam):
             return f"locals->{expr.name}"
-        elif isinstance(expr, dm.ExprRefLocal):
+        elif isinstance(expr, ir.ExprRefLocal):
             return f"locals->{expr.name}"
-        elif isinstance(expr, dm.ExprRefUnresolved):
+        elif isinstance(expr, ir.ExprRefUnresolved):
             return expr.name
-        elif isinstance(expr, dm.ExprRefField):
+        elif isinstance(expr, ir.ExprRefField):
             return self._gen_field_ref(expr)
-        elif isinstance(expr, dm.ExprAttribute):
+        elif isinstance(expr, ir.ExprAttribute):
             return self._gen_attribute(expr)
-        elif isinstance(expr, dm.ExprBin):
+        elif isinstance(expr, ir.ExprBin):
             return self._gen_binop(expr)
-        elif isinstance(expr, dm.ExprAwait):
+        elif isinstance(expr, ir.ExprAwait):
             # Await should be handled at statement level, not here
             return f"/* await {self._gen_expr(expr.value)} */"
         else:
             return f"/* unsupported expr: {type(expr).__name__} */"
 
-    def _gen_field_ref(self, expr: dm.ExprRefField) -> str:
+    def _gen_field_ref(self, expr: ir.ExprRefField) -> str:
         """Generate C code for a field reference."""
         base = self._gen_expr(expr.base)
         field_name = self._get_field_name(expr.base, expr.index)
         
-        if isinstance(expr.base, dm.TypeExprRefSelf):
+        if isinstance(expr.base, ir.TypeExprRefSelf):
             return f"{base}->{field_name}"
         else:
             return f"{base}.{field_name}"
 
     def _get_field_name(self, base_expr, index: int) -> str:
         """Get field name from index using component context."""
-        if isinstance(base_expr, dm.TypeExprRefSelf):
+        if isinstance(base_expr, ir.TypeExprRefSelf):
             if self.component and index < len(self.component.fields):
                 return self.component.fields[index].name
-        elif isinstance(base_expr, dm.ExprRefField):
+        elif isinstance(base_expr, ir.ExprRefField):
             # Nested field - resolve type
             base_type = self._get_field_type(base_expr)
-            if base_type and isinstance(base_type, dm.DataTypeComponent):
+            if base_type and isinstance(base_type, ir.DataTypeComponent):
                 if index < len(base_type.fields):
                     return base_type.fields[index].name
         return f"field_{index}"
 
-    def _get_field_type(self, expr: dm.ExprRefField):
+    def _get_field_type(self, expr: ir.ExprRefField):
         """Get the data type of a field expression."""
-        if isinstance(expr.base, dm.TypeExprRefSelf):
+        if isinstance(expr.base, ir.TypeExprRefSelf):
             if self.component and expr.index < len(self.component.fields):
                 dtype = self.component.fields[expr.index].datatype
-                if isinstance(dtype, dm.DataTypeRef) and self.ctxt:
+                if isinstance(dtype, ir.DataTypeRef) and self.ctxt:
                     return self.ctxt.type_m.get(dtype.ref_name)
                 return dtype
         return None
 
-    def _is_port_field(self, expr: dm.ExprRefField) -> bool:
+    def _is_port_field(self, expr: ir.ExprRefField) -> bool:
         """Check if a field reference is a port."""
-        if isinstance(expr.base, dm.TypeExprRefSelf):
+        if isinstance(expr.base, ir.TypeExprRefSelf):
             if self.component and expr.index < len(self.component.fields):
-                return self.component.fields[expr.index].kind == dm.FieldKind.Port
+                return self.component.fields[expr.index].kind == ir.FieldKind.Port
         return False
 
-    def _gen_call(self, expr: dm.ExprCall) -> str:
+    def _gen_call(self, expr: ir.ExprCall) -> str:
         """Generate C code for a function call."""
         func = expr.func
         args = [self._gen_expr(arg) for arg in expr.args]
@@ -453,9 +453,9 @@ class DmAsyncMethodGenerator:
             return self._gen_print_call(expr.args)
         
         # Check for self.time() and self.wait() - Component built-in methods
-        if isinstance(func, dm.ExprAttribute):
-            is_self = (isinstance(func.value, dm.TypeExprRefSelf) or
-                       (isinstance(func.value, dm.ExprConstant) and func.value.value == "self"))
+        if isinstance(func, ir.ExprAttribute):
+            is_self = (isinstance(func.value, ir.TypeExprRefSelf) or
+                       (isinstance(func.value, ir.ExprConstant) and func.value.value == "self"))
             if is_self:
                 if func.attr == "time":
                     # self.time() -> zsp_timebase_current_ticks(tb)
@@ -467,18 +467,18 @@ class DmAsyncMethodGenerator:
         
         return f"{func_name}({', '.join(args)})"
 
-    def _get_func_name(self, func: dm.Expr) -> str:
+    def _get_func_name(self, func: ir.Expr) -> str:
         """Extract function name from call expression."""
-        if isinstance(func, dm.ExprConstant):
+        if isinstance(func, ir.ExprConstant):
             return str(func.value)
-        elif isinstance(func, dm.ExprRefUnresolved):
+        elif isinstance(func, ir.ExprRefUnresolved):
             return func.name
-        elif isinstance(func, dm.ExprAttribute):
+        elif isinstance(func, ir.ExprAttribute):
             value = self._gen_expr(func.value)
             return f"{value}->{func.attr}"
         return "unknown_func"
 
-    def _gen_print_call(self, args: List[dm.Expr]) -> str:
+    def _gen_print_call(self, args: List[ir.Expr]) -> str:
         """Generate C fprintf call from print arguments."""
         if not args:
             return 'fprintf(stdout, "\\n")'
@@ -486,12 +486,12 @@ class DmAsyncMethodGenerator:
         arg = args[0]
         
         # Check for format string: print("format %s" % value)
-        if isinstance(arg, dm.ExprBin) and arg.op == dm.BinOp.Mod:
+        if isinstance(arg, ir.ExprBin) and arg.op == ir.BinOp.Mod:
             return self._gen_print_format(arg)
         
         # Simple argument
         arg_code = self._gen_expr(arg)
-        if isinstance(arg, dm.ExprConstant) and isinstance(arg.value, str):
+        if isinstance(arg, ir.ExprConstant) and isinstance(arg.value, str):
             # String literal - escape and add newline
             escaped = arg.value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
             return f'fprintf(stdout, "{escaped}\\n")'
@@ -499,13 +499,13 @@ class DmAsyncMethodGenerator:
             # Variable - use %s format
             return f'fprintf(stdout, "%s\\n", {arg_code})'
 
-    def _gen_print_format(self, binop: dm.ExprBin) -> str:
+    def _gen_print_format(self, binop: ir.ExprBin) -> str:
         """Generate fprintf for print("format %s" % value) pattern."""
         format_expr = binop.lhs
         value_expr = binop.rhs
         
         # Get format string
-        if isinstance(format_expr, dm.ExprConstant) and isinstance(format_expr.value, str):
+        if isinstance(format_expr, ir.ExprConstant) and isinstance(format_expr.value, str):
             format_str = format_expr.value
             value_code = self._gen_expr(value_expr)
             
@@ -523,18 +523,18 @@ class DmAsyncMethodGenerator:
         value_code = self._gen_expr(value_expr)
         return f'fprintf(stdout, "%s\\n", {format_code}, {value_code})'
 
-    def _is_time_call(self, expr: dm.Expr) -> bool:
+    def _is_time_call(self, expr: ir.Expr) -> bool:
         """Check if expression is self.time() which returns uint64_t."""
-        if isinstance(expr, dm.ExprCall):
+        if isinstance(expr, ir.ExprCall):
             func = expr.func
-            if isinstance(func, dm.ExprAttribute):
-                is_self = (isinstance(func.value, dm.TypeExprRefSelf) or
-                           (isinstance(func.value, dm.ExprConstant) and func.value.value == "self"))
+            if isinstance(func, ir.ExprAttribute):
+                is_self = (isinstance(func.value, ir.TypeExprRefSelf) or
+                           (isinstance(func.value, ir.ExprConstant) and func.value.value == "self"))
                 if is_self and func.attr == "time":
                     return True
         return False
 
-    def _gen_constant(self, expr: dm.ExprConstant) -> str:
+    def _gen_constant(self, expr: ir.ExprConstant) -> str:
         """Generate C code for a constant value."""
         if isinstance(expr.value, str):
             escaped = expr.value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
@@ -547,50 +547,50 @@ class DmAsyncMethodGenerator:
             return "NULL"
         return str(expr.value)
 
-    def _gen_attribute(self, expr: dm.ExprAttribute) -> str:
+    def _gen_attribute(self, expr: ir.ExprAttribute) -> str:
         """Generate C code for attribute access."""
         # Special case for TypeExprRefSelf -> access via locals->self
-        if isinstance(expr.value, dm.TypeExprRefSelf):
+        if isinstance(expr.value, ir.TypeExprRefSelf):
             return f"locals->self->{expr.attr}"
         value = self._gen_expr(expr.value)
         if value == "self" or value == "locals->self":
             return f"locals->self->{expr.attr}"
         return f"{value}->{expr.attr}"
 
-    def _gen_binop(self, expr: dm.ExprBin) -> str:
+    def _gen_binop(self, expr: ir.ExprBin) -> str:
         """Generate C code for a binary operation."""
         left = self._gen_expr(expr.lhs)
         right = self._gen_expr(expr.rhs)
         op = self._get_binop_str(expr.op)
         return f"({left} {op} {right})"
 
-    def _get_binop_str(self, op: dm.BinOp) -> str:
+    def _get_binop_str(self, op: ir.BinOp) -> str:
         """Get C operator string for binary operation."""
         op_map = {
-            dm.BinOp.Add: "+",
-            dm.BinOp.Sub: "-",
-            dm.BinOp.Mult: "*",
-            dm.BinOp.Div: "/",
-            dm.BinOp.Mod: "%",
-            dm.BinOp.LShift: "<<",
-            dm.BinOp.RShift: ">>",
-            dm.BinOp.BitOr: "|",
-            dm.BinOp.BitXor: "^",
-            dm.BinOp.BitAnd: "&",
+            ir.BinOp.Add: "+",
+            ir.BinOp.Sub: "-",
+            ir.BinOp.Mult: "*",
+            ir.BinOp.Div: "/",
+            ir.BinOp.Mod: "%",
+            ir.BinOp.LShift: "<<",
+            ir.BinOp.RShift: ">>",
+            ir.BinOp.BitOr: "|",
+            ir.BinOp.BitXor: "^",
+            ir.BinOp.BitAnd: "&",
         }
         return op_map.get(op, "?")
 
-    def _gen_await_code(self, await_expr: dm.ExprAwait, await_stmt: Optional[dm.Stmt] = None) -> str:
+    def _gen_await_code(self, await_expr: ir.ExprAwait, await_stmt: Optional[ir.Stmt] = None) -> str:
         """Generate C code for an await expression."""
         awaited = await_expr.value
         
         # Check what we're awaiting
-        if isinstance(awaited, dm.ExprCall):
+        if isinstance(awaited, ir.ExprCall):
             func = awaited.func
-            if isinstance(func, dm.ExprAttribute):
+            if isinstance(func, ir.ExprAttribute):
                 # Check for self.method() calls
-                is_self = (isinstance(func.value, dm.TypeExprRefSelf) or
-                           (isinstance(func.value, dm.ExprConstant) and func.value.value == "self"))
+                is_self = (isinstance(func.value, ir.TypeExprRefSelf) or
+                           (isinstance(func.value, ir.ExprConstant) and func.value.value == "self"))
                 if is_self:
                     if func.attr == "wait":
                         # await self.wait(time) -> zsp_timebase_wait(thread, time)
@@ -612,12 +612,12 @@ class DmAsyncMethodGenerator:
                         return f"ret = zsp_timebase_call(thread, &{task_func}, {args_str});"
                 
                 # Check for port.put() or port.get() - TLM channel operations
-                if isinstance(func.value, dm.ExprRefField):
+                if isinstance(func.value, ir.ExprRefField):
                     # Get field info
                     field_idx = func.value.index
                     if self.component and field_idx < len(self.component.fields):
                         field = self.component.fields[field_idx]
-                        if field.kind == dm.FieldKind.Port:
+                        if field.kind == ir.FieldKind.Port:
                             if func.attr == "put":
                                 # await self.port.put(data) -> channel put via call
                                 port_code = self._gen_field_ref(func.value)
@@ -632,8 +632,8 @@ class DmAsyncMethodGenerator:
         
         # Unsupported await expression - provide helpful error
         awaited_type = type(awaited).__name__
-        if isinstance(awaited, dm.ExprCall):
-            if isinstance(awaited.func, dm.ExprAttribute):
+        if isinstance(awaited, ir.ExprCall):
+            if isinstance(awaited.func, ir.ExprAttribute):
                 method_info = f"{awaited.func.attr}()"
             else:
                 method_info = f"{awaited_type}"
@@ -648,69 +648,69 @@ class DmAsyncMethodGenerator:
             f"Await must be used with self.wait(), port.put(), or port.get()."
         )
 
-    def _is_wait_call(self, await_expr: dm.ExprAwait) -> bool:
+    def _is_wait_call(self, await_expr: ir.ExprAwait) -> bool:
         """Check if await expression is a wait() call."""
         awaited = await_expr.value
-        if isinstance(awaited, dm.ExprCall):
+        if isinstance(awaited, ir.ExprCall):
             func = awaited.func
-            if isinstance(func, dm.ExprAttribute):
-                is_self = (isinstance(func.value, dm.TypeExprRefSelf) or
-                           (isinstance(func.value, dm.ExprConstant) and func.value.value == "self"))
+            if isinstance(func, ir.ExprAttribute):
+                is_self = (isinstance(func.value, ir.TypeExprRefSelf) or
+                           (isinstance(func.value, ir.ExprConstant) and func.value.value == "self"))
                 return is_self and func.attr == "wait"
         return False
 
     def _is_channel_port(self, expr) -> bool:
         """Check if expression refers to a channel port (PutIF or GetIF)."""
-        if isinstance(expr, dm.ExprRefField):
+        if isinstance(expr, ir.ExprRefField):
             if self.component and expr.index < len(self.component.fields):
                 field = self.component.fields[expr.index]
                 dtype = field.datatype
-                return isinstance(dtype, (dm.DataTypePutIF, dm.DataTypeGetIF))
+                return isinstance(dtype, (ir.DataTypePutIF, ir.DataTypeGetIF))
         return False
 
-    def _needs_timebase(self, func: dm.Function) -> bool:
+    def _needs_timebase(self, func: ir.Function) -> bool:
         def walk_expr(e):
-            if isinstance(e, dm.ExprCall) and isinstance(e.func, dm.ExprAttribute):
-                is_self = (isinstance(e.func.value, dm.TypeExprRefSelf) or
-                           (isinstance(e.func.value, dm.ExprConstant) and e.func.value.value == "self"))
+            if isinstance(e, ir.ExprCall) and isinstance(e.func, ir.ExprAttribute):
+                is_self = (isinstance(e.func.value, ir.TypeExprRefSelf) or
+                           (isinstance(e.func.value, ir.ExprConstant) and e.func.value.value == "self"))
                 if is_self and e.func.attr == "time":
                     return True
             for v in getattr(e, '__dict__', {}).values():
-                if isinstance(v, dm.Expr) and walk_expr(v):
+                if isinstance(v, ir.Expr) and walk_expr(v):
                     return True
                 if isinstance(v, list):
                     for i in v:
-                        if isinstance(i, dm.Expr) and walk_expr(i):
+                        if isinstance(i, ir.Expr) and walk_expr(i):
                             return True
             return False
 
         for s in func.body:
             e = getattr(s, 'expr', None)
-            if isinstance(e, dm.Expr) and walk_expr(e):
+            if isinstance(e, ir.Expr) and walk_expr(e):
                 return True
             v = getattr(s, 'value', None)
-            if isinstance(v, dm.Expr) and walk_expr(v):
+            if isinstance(v, ir.Expr) and walk_expr(v):
                 return True
         return False
 
-    def _is_trivial_wait_only(self, func: dm.Function) -> bool:
+    def _is_trivial_wait_only(self, func: ir.Function) -> bool:
         if len(func.body) != 1:
             return False
         s = func.body[0]
-        if not isinstance(s, dm.StmtExpr):
+        if not isinstance(s, ir.StmtExpr):
             return False
-        if not isinstance(s.expr, dm.ExprAwait):
+        if not isinstance(s.expr, ir.ExprAwait):
             return False
         awaited = s.expr.value
-        if not (isinstance(awaited, dm.ExprCall) and isinstance(awaited.func, dm.ExprAttribute)):
+        if not (isinstance(awaited, ir.ExprCall) and isinstance(awaited.func, ir.ExprAttribute)):
             return False
-        is_self = (isinstance(awaited.func.value, dm.TypeExprRefSelf) or
-                   (isinstance(awaited.func.value, dm.ExprConstant) and awaited.func.value.value == "self"))
+        is_self = (isinstance(awaited.func.value, ir.TypeExprRefSelf) or
+                   (isinstance(awaited.func.value, ir.ExprConstant) and awaited.func.value.value == "self"))
         if not is_self or awaited.func.attr != "wait":
             return False
         return len(awaited.args) == 1
 
-    def _generate_trivial_wait_only(self, func: dm.Function) -> str:
+    def _generate_trivial_wait_only(self, func: ir.Function) -> str:
         func_name = f"{self.component_name}_{self.method_name}"
         awaited = func.body[0].expr.value
         time_arg = self._gen_time_expr(awaited.args[0])
@@ -759,13 +759,13 @@ class DmAsyncMethodGenerator:
 
         return "\n".join(lines)
 
-    def _gen_time_expr(self, expr: dm.Expr) -> str:
+    def _gen_time_expr(self, expr: ir.Expr) -> str:
         """Generate C code for a time expression (e.g., zdc.Time.ns(1))."""
-        if isinstance(expr, dm.ExprCall):
+        if isinstance(expr, ir.ExprCall):
             func = expr.func
-            if isinstance(func, dm.ExprAttribute):
+            if isinstance(func, ir.ExprAttribute):
                 # Look for Time.ns(), Time.us(), etc.
-                if isinstance(func.value, dm.ExprAttribute):
+                if isinstance(func.value, ir.ExprAttribute):
                     # zdc.Time.ns(1)
                     time_class = func.value
                     if time_class.attr == "Time":
@@ -773,7 +773,7 @@ class DmAsyncMethodGenerator:
                         if expr.args:
                             amount = self._gen_expr(expr.args[0])
                             return f"ZSP_TIME_{unit.upper()}({amount})"
-                elif isinstance(func.value, dm.ExprConstant):
+                elif isinstance(func.value, ir.ExprConstant):
                     # Time.ns(1)
                     if func.value.value == "Time":
                         unit = func.attr

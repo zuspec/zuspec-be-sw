@@ -17,7 +17,7 @@
 Unit tests for datamodel-based async method code generation.
 """
 import pytest
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 from zuspec.be.sw.dm_async_generator import DmAsyncMethodGenerator
 
 
@@ -27,11 +27,11 @@ class TestDmAsyncMethodGenerator:
     def test_simple_async_no_await(self):
         """Test async method with no await points."""
         # Create a simple function with just an assignment
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=dm.ExprConstant(value=1))
+                ir.StmtExpr(expr=ir.ExprConstant(value=1))
             ]
         )
         
@@ -46,20 +46,20 @@ class TestDmAsyncMethodGenerator:
     def test_async_with_single_await(self):
         """Test async method with single await self.wait()."""
         # Build: await self.wait(100)
-        wait_call = dm.ExprCall(
-            func=dm.ExprAttribute(
-                value=dm.ExprConstant(value="self"),
+        wait_call = ir.ExprCall(
+            func=ir.ExprAttribute(
+                value=ir.ExprConstant(value="self"),
                 attr="wait"
             ),
-            args=[dm.ExprConstant(value=100)]
+            args=[ir.ExprConstant(value=100)]
         )
-        await_expr = dm.ExprAwait(value=wait_call)
+        await_expr = ir.ExprAwait(value=wait_call)
         
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=await_expr)
+                ir.StmtExpr(expr=await_expr)
             ]
         )
         
@@ -74,26 +74,26 @@ class TestDmAsyncMethodGenerator:
     def test_async_with_print_before_await(self):
         """Test async method with print before await."""
         # Build: print("hello"); await self.wait(100)
-        print_call = dm.ExprCall(
-            func=dm.ExprConstant(value="print"),
-            args=[dm.ExprConstant(value="hello")]
+        print_call = ir.ExprCall(
+            func=ir.ExprConstant(value="print"),
+            args=[ir.ExprConstant(value="hello")]
         )
         
-        wait_call = dm.ExprCall(
-            func=dm.ExprAttribute(
-                value=dm.ExprConstant(value="self"),
+        wait_call = ir.ExprCall(
+            func=ir.ExprAttribute(
+                value=ir.ExprConstant(value="self"),
                 attr="wait"
             ),
-            args=[dm.ExprConstant(value=100)]
+            args=[ir.ExprConstant(value=100)]
         )
-        await_expr = dm.ExprAwait(value=wait_call)
+        await_expr = ir.ExprAwait(value=wait_call)
         
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=print_call),
-                dm.StmtExpr(expr=await_expr)
+                ir.StmtExpr(expr=print_call),
+                ir.StmtExpr(expr=await_expr)
             ]
         )
         
@@ -108,31 +108,31 @@ class TestDmAsyncMethodGenerator:
     def test_async_with_time_ns(self):
         """Test async method with Time.ns() argument."""
         # Build: await self.wait(zdc.Time.ns(100))
-        time_call = dm.ExprCall(
-            func=dm.ExprAttribute(
-                value=dm.ExprAttribute(
-                    value=dm.ExprConstant(value="zdc"),
+        time_call = ir.ExprCall(
+            func=ir.ExprAttribute(
+                value=ir.ExprAttribute(
+                    value=ir.ExprConstant(value="zdc"),
                     attr="Time"
                 ),
                 attr="ns"
             ),
-            args=[dm.ExprConstant(value=100)]
+            args=[ir.ExprConstant(value=100)]
         )
         
-        wait_call = dm.ExprCall(
-            func=dm.ExprAttribute(
-                value=dm.ExprConstant(value="self"),
+        wait_call = ir.ExprCall(
+            func=ir.ExprAttribute(
+                value=ir.ExprConstant(value="self"),
                 attr="wait"
             ),
             args=[time_call]
         )
-        await_expr = dm.ExprAwait(value=wait_call)
+        await_expr = ir.ExprAwait(value=wait_call)
         
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=await_expr)
+                ir.StmtExpr(expr=await_expr)
             ]
         )
         
@@ -144,37 +144,37 @@ class TestDmAsyncMethodGenerator:
     def test_async_multiple_awaits(self):
         """Test async method with multiple await points."""
         # Build: print("start"); await self.wait(1); print("middle"); await self.wait(2); print("end")
-        print1 = dm.ExprCall(
-            func=dm.ExprConstant(value="print"),
-            args=[dm.ExprConstant(value="start")]
+        print1 = ir.ExprCall(
+            func=ir.ExprConstant(value="print"),
+            args=[ir.ExprConstant(value="start")]
         )
-        print2 = dm.ExprCall(
-            func=dm.ExprConstant(value="print"),
-            args=[dm.ExprConstant(value="middle")]
+        print2 = ir.ExprCall(
+            func=ir.ExprConstant(value="print"),
+            args=[ir.ExprConstant(value="middle")]
         )
-        print3 = dm.ExprCall(
-            func=dm.ExprConstant(value="print"),
-            args=[dm.ExprConstant(value="end")]
+        print3 = ir.ExprCall(
+            func=ir.ExprConstant(value="print"),
+            args=[ir.ExprConstant(value="end")]
         )
         
         def make_await(delay):
-            return dm.ExprAwait(value=dm.ExprCall(
-                func=dm.ExprAttribute(
-                    value=dm.ExprConstant(value="self"),
+            return ir.ExprAwait(value=ir.ExprCall(
+                func=ir.ExprAttribute(
+                    value=ir.ExprConstant(value="self"),
                     attr="wait"
                 ),
-                args=[dm.ExprConstant(value=delay)]
+                args=[ir.ExprConstant(value=delay)]
             ))
         
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=print1),
-                dm.StmtExpr(expr=make_await(1)),
-                dm.StmtExpr(expr=print2),
-                dm.StmtExpr(expr=make_await(2)),
-                dm.StmtExpr(expr=print3),
+                ir.StmtExpr(expr=print1),
+                ir.StmtExpr(expr=make_await(1)),
+                ir.StmtExpr(expr=print2),
+                ir.StmtExpr(expr=make_await(2)),
+                ir.StmtExpr(expr=print3),
             ]
         )
         
@@ -189,16 +189,16 @@ class TestDmAsyncMethodGenerator:
 
     def test_generates_wrapper_function(self):
         """Test that wrapper function is generated."""
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=dm.ExprAwait(value=dm.ExprCall(
-                    func=dm.ExprAttribute(
-                        value=dm.ExprConstant(value="self"),
+                ir.StmtExpr(expr=ir.ExprAwait(value=ir.ExprCall(
+                    func=ir.ExprAttribute(
+                        value=ir.ExprConstant(value="self"),
                         attr="wait"
                     ),
-                    args=[dm.ExprConstant(value=1)]
+                    args=[ir.ExprConstant(value=1)]
                 )))
             ]
         )
@@ -214,21 +214,21 @@ class TestDmAsyncMethodGenerator:
     def test_print_with_format_string(self):
         """Test print("format %s" % value) pattern."""
         # Build: print("value: %s" % x)
-        format_expr = dm.ExprBin(
-            lhs=dm.ExprConstant(value="value: %s"),
-            op=dm.BinOp.Mod,
-            rhs=dm.ExprConstant(value="x")
+        format_expr = ir.ExprBin(
+            lhs=ir.ExprConstant(value="value: %s"),
+            op=ir.BinOp.Mod,
+            rhs=ir.ExprConstant(value="x")
         )
-        print_call = dm.ExprCall(
-            func=dm.ExprConstant(value="print"),
+        print_call = ir.ExprCall(
+            func=ir.ExprConstant(value="print"),
             args=[format_expr]
         )
         
-        func = dm.Function(
+        func = ir.Function(
             name="doit",
             is_async=True,
             body=[
-                dm.StmtExpr(expr=print_call)
+                ir.StmtExpr(expr=print_call)
             ]
         )
         

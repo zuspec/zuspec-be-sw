@@ -7,7 +7,7 @@ Creates create/destroy and accessor functions for existing C components.
 
 from pathlib import Path
 from typing import List
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 
 
 class LibraryWrapperGenerator:
@@ -16,7 +16,7 @@ class LibraryWrapperGenerator:
     def __init__(self, output_dir: Path):
         self.output_dir = Path(output_dir)
     
-    def generate_wrapper(self, comp: dm.DataTypeComponent, comp_name: str) -> tuple[str, str]:
+    def generate_wrapper(self, comp: ir.DataTypeComponent, comp_name: str) -> tuple[str, str]:
         """Generate wrapper header and implementation for a component.
         
         Args:
@@ -161,7 +161,7 @@ class LibraryWrapperGenerator:
         # Using weak linkage so explicit methods can override
         for field in comp.fields:
             # Check if it's an InOut field (has is_out attribute)
-            if isinstance(field, dm.FieldInOut):
+            if isinstance(field, ir.FieldInOut):
                 # Get C type for the field
                 c_type = self._get_field_c_type(field.datatype)
                 
@@ -206,7 +206,7 @@ class LibraryWrapperGenerator:
         
         return "\n".join(header_lines), "\n".join(impl_lines)
     
-    def _get_field_c_type(self, datatype: dm.DataType) -> str:
+    def _get_field_c_type(self, datatype: ir.DataType) -> str:
         """Get C type for a field datatype.
         
         Args:
@@ -215,7 +215,7 @@ class LibraryWrapperGenerator:
         Returns:
             C type string
         """
-        if isinstance(datatype, dm.DataTypeInt):
+        if isinstance(datatype, ir.DataTypeInt):
             # Use bits field for width, default to 32 if not specified
             width = datatype.bits if datatype.bits > 0 else 32
             if datatype.signed:
@@ -240,7 +240,7 @@ class LibraryWrapperGenerator:
         # Default to uint32_t for unknown types
         return "uint32_t"
     
-    def write_wrapper(self, comp: dm.DataTypeComponent, comp_name: str) -> List[Path]:
+    def write_wrapper(self, comp: ir.DataTypeComponent, comp_name: str) -> List[Path]:
         """Write wrapper files to disk.
         
         Args:

@@ -19,7 +19,7 @@ Integration test for async-to-sync conversion in code generation.
 import pytest
 import tempfile
 from pathlib import Path
-from zuspec.dataclasses import dm
+from zuspec.dataclasses import ir
 from zuspec.be.sw.c_generator import CGenerator
 from zuspec.be.sw.async_analyzer import AsyncAnalyzer
 
@@ -30,21 +30,21 @@ class TestAsyncToSyncConversion:
     def test_generates_both_sync_and_async_variants(self):
         """Test that convertible async functions generate both variants."""
         # Create a simple async function without await
-        stmt = dm.StmtReturn(value=dm.ExprConstant(value=42))
-        func = dm.Function(
+        stmt = ir.StmtReturn(value=ir.ExprConstant(value=42))
+        func = ir.Function(
             name="get_value",
             is_async=True,
             body=[stmt],
-            returns=dm.DataTypeInt(bits=32, signed=True)
+            returns=ir.DataTypeInt(bits=32, signed=True)
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["TestComp"] = comp
         
         # Generate C code
@@ -69,28 +69,28 @@ class TestAsyncToSyncConversion:
         """Test that functions with await only generate async variant."""
         # Create async function with await self.wait()
         # Build: await self.wait(time_value)
-        wait_call = dm.ExprCall(
-            func=dm.ExprAttribute(
-                value=dm.TypeExprRefSelf(),
+        wait_call = ir.ExprCall(
+            func=ir.ExprAttribute(
+                value=ir.TypeExprRefSelf(),
                 attr="wait"
             ),
-            args=[dm.ExprConstant(value=100)]
+            args=[ir.ExprConstant(value=100)]
         )
-        await_expr = dm.ExprAwait(value=wait_call)
-        stmt = dm.StmtExpr(expr=await_expr)
-        func = dm.Function(
+        await_expr = ir.ExprAwait(value=wait_call)
+        stmt = ir.StmtExpr(expr=await_expr)
+        func = ir.Function(
             name="wait_func",
             is_async=True,
             body=[stmt]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["TestComp"] = comp
         
         # Generate C code
@@ -112,21 +112,21 @@ class TestAsyncToSyncConversion:
     def test_header_declares_both_variants(self):
         """Test that header declares both sync and async variants."""
         # Create simple async function without await
-        stmt = dm.StmtReturn(value=dm.ExprConstant(value=42))
-        func = dm.Function(
+        stmt = ir.StmtReturn(value=ir.ExprConstant(value=42))
+        func = ir.Function(
             name="get_value",
             is_async=True,
             body=[stmt],
-            returns=dm.DataTypeInt(bits=32, signed=True)
+            returns=ir.DataTypeInt(bits=32, signed=True)
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["TestComp"] = comp
         
         # Generate C code
@@ -148,20 +148,20 @@ class TestAsyncToSyncConversion:
     def test_analyzer_report_printed(self, capsys):
         """Test that analyzer report is printed during generation."""
         # Create simple async function
-        stmt = dm.StmtReturn(value=dm.ExprConstant(value=42))
-        func = dm.Function(
+        stmt = ir.StmtReturn(value=ir.ExprConstant(value=42))
+        func = ir.Function(
             name="get_value",
             is_async=True,
             body=[stmt]
         )
         
-        comp = dm.DataTypeComponent(
+        comp = ir.DataTypeComponent(
             name="TestComp",
             super=None,
             functions=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["TestComp"] = comp
         
         # Generate C code
@@ -177,18 +177,18 @@ class TestAsyncToSyncConversion:
     def test_external_task_never_converted(self):
         """Test that external tasks (in protocols) are never converted."""
         # Create a protocol method (external interface)
-        func = dm.Function(
+        func = ir.Function(
             name="external_method",
             is_async=True,
             body=[]
         )
         
-        proto = dm.DataTypeProtocol(
+        proto = ir.DataTypeProtocol(
             name="ExternalAPI",
             methods=[func]
         )
         
-        ctxt = dm.Context()
+        ctxt = ir.Context()
         ctxt.type_m["ExternalAPI"] = proto
         
         # Analyze

@@ -9,7 +9,6 @@ package:
     deps:
     - name: zuspec-dataclasses
       url: https://github.com/zuspec/zuspec-dataclasses.git
-      branch: mballance/simplify
     - name: pytest-dfm
       url: https://github.com/dv-flow/pytest-dfm.git
     - name: pytest

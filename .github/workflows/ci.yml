@@ -10,7 +10,7 @@ jobs:
   linux:
     uses: zuspec/zuspec-release/.github/workflows/zuspec-pybuild.yml@main
     with:
-      version_dir: 'python/zsp_be_sw'
+      version_dir: 'src/zuspec/be/sw'
     secrets:
       PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 #  ci-macos-arm64:

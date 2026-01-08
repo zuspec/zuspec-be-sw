@@ -13,8 +13,11 @@ jobs:
       version_dir: 'src/zuspec/be/sw'
       build_universal: true
       build_linux: false
+      build_docs: true
+      build_llms_txt: false
     secrets:
       PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      LLMS_PAT: ${{ secrets.LLMS_PAT }}
 #  ci-macos-arm64:
 #    runs-on: [self-hosted, macOS, ARM64]
 #    steps:

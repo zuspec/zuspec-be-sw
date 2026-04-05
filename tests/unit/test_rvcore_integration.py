@@ -8,15 +8,14 @@ Current IR limitations (documented as xfail/skip markers):
   - ``cfg`` field (zdc.const sub-object) not embedded in C struct → error
   - ``FetchNext()()`` / ``ExecuteInstruction()()`` zdc.Action calls not lowered → error
   - ClaimPool / sub-component inst fields are skipped in struct generation
-  - Process parameters always zero-initialised (not passed at call-site)
-  - Return values from process coroutines lost (typed as ``zsp_frame_t *``)
 
 Test sections:
   A. Code-generation quality for each sub-unit (enum values, cast patterns)
   B. RVCore struct / header code-gen quality (regfile, rd_sched, icache)
-  C. RVCore compilation status — xfail on 3 known errors
+  C. RVCore compilation status
   D. MiniCore runtime: icache callback invocation and PC advancement
   E. Sub-unit compilation smoke tests
+  F. Sub-unit execution tests — exercise C-compiled execute() entry functions
 """
 from __future__ import annotations
 
@@ -456,3 +455,111 @@ class TestSubUnitCompilation:
         from org.zuspec.example.mls.riscv.rv_units import LoadStoreUnit
         proxy = fac.mkComponent(LoadStoreUnit)
         assert callable(proxy.run)
+
+
+# ===========================================================================
+# F. Sub-unit execution tests — exercise C-compiled execute() entry functions
+# ===========================================================================
+
+@pytest.mark.skipif(not HAS_BACKEND, reason="be-sw backend not available")
+class TestALUUnitExecution:
+    """ALUUnit.execute() returns correct results for each AluOp."""
+
+    @pytest.fixture(scope="class")
+    def proxy(self, unit_tmpdir):
+        from org.zuspec.example.mls.riscv.rv_units import ALUUnit
+        return CObjFactory(cache_dir=unit_tmpdir).mkComponent(ALUUnit)
+
+    def test_execute_method_callable(self, proxy):
+        """ALUUnit proxy exposes callable execute method."""
+        assert callable(proxy.execute), "execute not exposed on ALUUnit proxy"
+
+    def test_add(self, proxy):
+        """ALU_ADD: 5 + 3 == 8."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_ADD
+        assert proxy.execute(ALU_ADD, 5, 3) == 8
+
+    def test_sub(self, proxy):
+        """ALU_SUB: 10 - 4 == 6."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SUB
+        assert proxy.execute(ALU_SUB, 10, 4) == 6
+
+    def test_or(self, proxy):
+        """ALU_OR: 0xA | 0x5 == 0xF."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_OR
+        assert proxy.execute(ALU_OR, 0xA, 0x5) == 0xF
+
+    def test_and(self, proxy):
+        """ALU_AND: 0xFF & 0x0F == 0x0F."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_AND
+        assert proxy.execute(ALU_AND, 0xFF, 0x0F) == 0x0F
+
+    def test_xor(self, proxy):
+        """ALU_XOR: 0xFF ^ 0xFF == 0."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_XOR
+        assert proxy.execute(ALU_XOR, 0xFF, 0xFF) == 0
+
+    def test_sll(self, proxy):
+        """ALU_SLL: 1 << 4 == 16."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SLL
+        assert proxy.execute(ALU_SLL, 1, 4) == 16
+
+    def test_srl(self, proxy):
+        """ALU_SRL: 0x80 >> 3 == 0x10."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SRL
+        assert proxy.execute(ALU_SRL, 0x80, 3) == 0x10
+
+    def test_slt_true(self, proxy):
+        """ALU_SLT: 1 < 2 → 1."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SLT
+        assert proxy.execute(ALU_SLT, 1, 2) == 1
+
+    def test_slt_false(self, proxy):
+        """ALU_SLT: 2 < 1 → 0."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SLT
+        assert proxy.execute(ALU_SLT, 2, 1) == 0
+
+    def test_sltu_true(self, proxy):
+        """ALU_SLTU: 0 < 0xFFFFFFFF → 1 (unsigned)."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_SLTU
+        assert proxy.execute(ALU_SLTU, 0, 0xFFFF_FFFF) == 1
+
+    def test_add_wraps_32bit(self, proxy):
+        """ALU_ADD wraps at 32 bits: 0xFFFFFFFF + 1 == 0."""
+        from org.zuspec.example.mls.riscv.rv_units import ALU_ADD
+        result = proxy.execute(ALU_ADD, 0xFFFF_FFFF, 1) & 0xFFFF_FFFF
+        assert result == 0
+
+
+@pytest.mark.skipif(not HAS_BACKEND, reason="be-sw backend not available")
+class TestMulDivUnitExecution:
+    """MulDivUnit.execute() returns correct results for multiply/divide."""
+
+    @pytest.fixture(scope="class")
+    def proxy(self, unit_tmpdir):
+        from org.zuspec.example.mls.riscv.rv_units import MulDivUnit
+        return CObjFactory(cache_dir=unit_tmpdir).mkComponent(MulDivUnit)
+
+    def test_execute_method_callable(self, proxy):
+        """MulDivUnit proxy exposes callable execute method."""
+        assert callable(proxy.execute), "execute not exposed on MulDivUnit proxy"
+
+    def test_mul(self, proxy):
+        """MUL (op=0): 6 * 7 == 42."""
+        from org.zuspec.example.mls.riscv.rv_units import MulDivUnit
+        # MUL funct3=0
+        assert proxy.execute(0, 6, 7) == 42
+
+    def test_mul_by_zero(self, proxy):
+        """MUL: anything * 0 == 0."""
+        assert proxy.execute(0, 0xDEAD, 0) == 0
+
+    def test_divu(self, proxy):
+        """DIVU (op=5): 42 / 6 == 7."""
+        # funct3=101 → DIVU
+        assert proxy.execute(5, 42, 6) == 7
+
+    def test_divu_by_zero(self, proxy):
+        """DIVU by zero returns 0xFFFFFFFF (ISA-defined)."""
+        result = proxy.execute(5, 1, 0) & 0xFFFF_FFFF
+        assert result == 0xFFFF_FFFF

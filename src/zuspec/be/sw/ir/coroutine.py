@@ -99,8 +99,16 @@ class SwCoroutineFrame(SwNode):
     continuations:
         Ordered list of ``SwContinuation`` objects representing the switch
         arms.
+    process_params:
+        For ``@process`` methods with parameters, the list of ``(name, Arg)``
+        tuples.  These are added to the locals struct and an entry function
+        that accepts them is emitted.
+    return_dtype:
+        Optional return ``DataType`` for entry functions that return a value.
     """
     func_name: Optional[str] = dc.field(default=None)
     comp_type_name: Optional[str] = dc.field(default=None)
     locals_struct: List[SwLocalVar] = dc.field(default_factory=list)
     continuations: List[SwContinuation] = dc.field(default_factory=list)
+    process_params: List[Any] = dc.field(default_factory=list)  # List of (name, annotation_expr)
+    return_dtype: Optional[Any] = dc.field(default=None)  # DataType or None

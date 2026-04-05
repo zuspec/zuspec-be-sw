@@ -201,13 +201,17 @@ def _collect_stub_ptr_names(stmts: list) -> Set[str]:
     return names
 
 
-def _collect_action_type_hints(stmts: list) -> Dict[str, "ir.DataTypeAction"]:
-    """Return {var_name: DataTypeAction} for every StmtAnnAssign with an action ir_type."""
+def _collect_action_type_hints(stmts: list) -> Dict[str, "ir.DataType"]:
+    """Return {var_name: DataType} for every StmtAnnAssign that carries a typed ir_type.
+
+    Covers DataTypeAction (inlined action struct vars) and DataTypeTupleReturn
+    (tuple-unpack temp vars), both of which need non-uint32_t C declarations.
+    """
     hints: Dict[str, Any] = {}
     for stmt in stmts:
         if isinstance(stmt, ir.StmtAnnAssign):
             ir_type = getattr(stmt, "ir_type", None)
-            if isinstance(ir_type, ir.DataTypeAction):
+            if isinstance(ir_type, (ir.DataTypeAction, ir.DataTypeTupleReturn)):
                 tgt = getattr(stmt, "target", None)
                 if isinstance(tgt, ir.ExprRefLocal):
                     hints[tgt.name] = ir_type
@@ -254,7 +258,43 @@ def _c_type(dtype: Optional[ir.DataType], ctxt: SwContext) -> str:
     if isinstance(dtype, ir.DataTypeChannel):
         elem = _c_type(dtype.element_type, ctxt)
         return f"zsp_fifo_t /* {elem} */"
+    if isinstance(dtype, ir.DataTypeTupleReturn):
+        n = dtype.arity
+        return f"_zsp_tuple{n}_t"
     return "void"
+
+
+def _c_type_from_annotation(annotation_expr, ctxt: SwContext) -> str:
+    """Convert an ``Arg.annotation`` (ExprConstant wrapping a Python type) to a C type string."""
+    if annotation_expr is None:
+        return "uint32_t"
+    # annotation_expr is ExprConstant(value=<Python type>)
+    py_type = getattr(annotation_expr, "value", None)
+    if py_type is None:
+        return "uint32_t"
+    # Check for annotated integer (zdc.u32, zdc.u5, etc.)
+    if _typing.get_origin(py_type) is _typing.Annotated:
+        args = _typing.get_args(py_type)
+        if args:
+            meta = args[1] if len(args) > 1 else None
+            if meta is not None and hasattr(meta, "width"):
+                bits = meta.width
+                if bits <= 8: bits = 8
+                elif bits <= 16: bits = 16
+                elif bits <= 32: bits = 32
+                else: bits = 64
+                signed = getattr(meta, "signed", False)
+                return f"{'int' if signed else 'uint'}{bits}_t"
+    # Enum type → uint32_t
+    import enum as _enum
+    if isinstance(py_type, type) and issubclass(py_type, _enum.IntEnum):
+        return "uint32_t"
+    # Named type present in type_m → {Name}_t
+    if hasattr(py_type, "__name__"):
+        name = py_type.__name__
+        if name in ctxt.type_m:
+            return f"{name}_t"
+    return "uint32_t"
 
 
 def _py_uint_width(annotated_type: Any) -> int:
@@ -273,7 +313,7 @@ class _FieldMeta:
     __slots__ = (
         "name", "kind", "c_type", "depth", "elem_bits", "idx_bits",
         "accessible", "callable_ret_bits", "callable_arg_bits",
-        "mem_size", "comp_type", "py_struct_cls",
+        "mem_size", "comp_type", "py_struct_cls", "elem_type_name",
     )
 
     def __init__(self):
@@ -285,6 +325,7 @@ class _FieldMeta:
         self.idx_bits: int = 5
         self.mem_size: int = 0   # for kind=="memory": number of elements
         self.comp_type: str = ""  # for kind=="component": C type name of sub-component
+        self.elem_type_name: str = ""  # for kind=="claim_pool": element type name
         self.accessible: bool = False  # True when a C getter/setter will be generated
         self.callable_ret_bits: int = 32
         self.callable_arg_bits: List[int] = []
@@ -367,6 +408,25 @@ def _collect_field_meta(
                 m.accessible = False
                 result[field.name] = m
                 continue
+
+            if ref == "ClaimPool":
+                m.kind = "claim_pool"
+                # Recover element type name from Python hint ClaimPool[ElemType]
+                hint = py_hints.get(field.name)
+                if hint is not None:
+                    type_args = _typing.get_args(hint)
+                    if type_args and isinstance(type_args[0], type):
+                        m.elem_type_name = type_args[0].__name__
+                m.accessible = False
+                result[field.name] = m
+                continue
+
+        if isinstance(field.datatype, ir.DataTypeClaimPool):
+            m.kind = "claim_pool"
+            m.elem_type_name = field.datatype.elem_type_name
+            m.accessible = False
+            result[field.name] = m
+            continue
 
         if isinstance(field.datatype, ir.DataTypeMemory):
             m.kind = "memory"
@@ -658,6 +718,16 @@ class CEmitPass(SwPass):
             w.line("#include \"zsp_indexed_pool.h\"")
             w.blank()
 
+        # Include mutex header and element type headers for claim_pool fields
+        has_claim_pool = any(m.kind == "claim_pool" for m in fmeta.values())
+        if has_claim_pool:
+            w.line("#include \"zsp_mutex.h\"")
+            for field in dtype.fields:
+                m = fmeta.get(field.name)
+                if m and m.kind == "claim_pool" and m.elem_type_name:
+                    w.line(f"#include \"{m.elem_type_name}.h\"")
+            w.blank()
+
         # Include memory header if any memory fields are present
         has_memory = any(m.kind == "memory" for m in fmeta.values())
         if has_memory:
@@ -686,6 +756,10 @@ class CEmitPass(SwPass):
 
         # Emit action struct typedefs used by coroutine locals of this component
         self._emit_action_typedefs(name, ctxt, w)
+
+        # Emit static inline C functions collected from @staticmethod members of
+        # action types referenced by this component.
+        self._emit_static_inline_funcs(name, ctxt, w)
 
         # Forward-declare the struct typedef, then emit the full struct body
         # so that other .h files that include this one can embed the type by value.
@@ -776,6 +850,42 @@ class CEmitPass(SwPass):
                     f"ZUSPEC_API {m.comp_type}_t *{name}_ptr_{field.name}({name}_t *self);"
                 )
 
+        # Process function declarations (promoted @process with params)
+        for func in dtype.functions:
+            if not getattr(func, "metadata", {}).get("sync_convertible"):
+                continue
+            if not getattr(func, "metadata", {}).get("is_process"):
+                continue
+            param_parts = []
+            if func.args and func.args.args:
+                for arg in func.args.args:
+                    c_t = _c_type_from_annotation(arg.annotation, ctxt)
+                    param_parts.append(f"{c_t} {arg.arg}")
+            ret_type = "void" if func.returns is None else _c_type(func.returns, ctxt)
+            if param_parts:
+                params_str = ", ".join(param_parts)
+                w.line(
+                    f"ZUSPEC_API {ret_type} {name}_{func.name}({name}_t *self, {params_str});"
+                )
+
+        # Async process entry function declarations (promoted @process with params, non-sync)
+        for node in ctxt.sw_nodes.get(name, []):
+            if not isinstance(node, SwCoroutineFrame):
+                continue
+            if not node.process_params:
+                continue
+            comp_name = node.comp_type_name or name
+            fn_name = node.func_name or f"{name}_run"
+            param_ann = {arg.arg: getattr(arg, 'annotation', None) for arg in node.process_params}
+            param_parts = [
+                f"{_c_type_from_annotation(param_ann[arg.arg], ctxt)} {arg.arg}"
+                for arg in node.process_params
+            ]
+            ret_type = "void" if node.return_dtype is None else _c_type(node.return_dtype, ctxt)
+            params_str = ", ".join(param_parts)
+            sep = ", " if params_str else ""
+            w.line(f"ZUSPEC_API {ret_type} {fn_name}({comp_name}_t *self{sep}{params_str});")
+
         w.blank()
         w.line(f"#endif /* {guard} */")
         return w.getvalue()
@@ -801,6 +911,11 @@ class CEmitPass(SwPass):
         has_pool = any(m.kind == "indexed_pool" for m in fmeta.values())
         if has_pool:
             w.line('#include "zsp_indexed_pool.h"')
+            w.blank()
+
+        has_claim_pool = any(m.kind == "claim_pool" for m in fmeta.values())
+        if has_claim_pool:
+            w.line('#include "zsp_mutex.h"')
             w.blank()
 
         has_memory = any(m.kind == "memory" for m in fmeta.values())
@@ -836,6 +951,9 @@ class CEmitPass(SwPass):
             if isinstance(node, SwCoroutineFrame):
                 self._emit_coroutine(node, ctxt, w)
                 w.blank()
+                if node.process_params:
+                    self._emit_coroutine_entry_fn(node, ctxt, w)
+                    w.blank()
 
         # init function
         self._emit_init_fn(name, dtype, nodes, ctxt, w)
@@ -917,7 +1035,8 @@ class CEmitPass(SwPass):
             if hasattr(node, 'continuations'):
                 for cont in node.continuations:
                     for vt in _collect_action_type_hints(cont.stmts).values():
-                        _emit_if_new(vt)
+                        if isinstance(vt, ir.DataTypeAction):
+                            _emit_if_new(vt)
         if emitted:
             w.blank()
 
@@ -931,6 +1050,91 @@ class CEmitPass(SwPass):
             c_type = _c_type(field.datatype, ctxt)
             w.line(f"    {c_type} {field.name};")
         w.line(f"}} {aname}_t;")
+        w.blank()
+
+    def _emit_static_inline_funcs(self, comp_name: str, ctxt: SwContext, w) -> None:
+        """Emit ``static inline`` C functions for each ``@staticmethod`` collected
+        from action types referenced by *comp_name*'s coroutine frames."""
+        emitted_funcs: set = set()
+
+        def _emit_action_statics(action_type: "ir.DataTypeAction") -> None:
+            for func in getattr(action_type, "static_methods", []):
+                if func.name in emitted_funcs:
+                    continue
+                emitted_funcs.add(func.name)
+                self._emit_static_inline_func(func, ctxt, w)
+
+        seen_actions: set = set()
+
+        def _consider_action(action_type: "ir.DataTypeAction") -> None:
+            if action_type.name not in seen_actions:
+                seen_actions.add(action_type.name)
+                _emit_action_statics(action_type)
+
+        for node in ctxt.sw_nodes.get(comp_name, []):
+            if hasattr(node, 'locals_struct'):
+                for local_var in node.locals_struct:
+                    vt = getattr(local_var, 'var_type', None)
+                    if isinstance(vt, ir.DataTypeAction):
+                        _consider_action(vt)
+            if hasattr(node, 'continuations'):
+                for cont in node.continuations:
+                    for vt in _collect_action_type_hints(cont.stmts).values():
+                        if isinstance(vt, ir.DataTypeAction):
+                            _consider_action(vt)
+
+        # Also scan all action types in type_m — they may be inlined without locals
+        for tname, dtype in ctxt.type_m.items():
+            if isinstance(dtype, ir.DataTypeAction):
+                _consider_action(dtype)
+
+    def _emit_static_inline_func(self, func: "ir.Function", ctxt: SwContext, w) -> None:
+        """Emit a single ``static inline uint32_t name(...)`` function.
+
+        Uses an ``#ifndef`` / ``#define`` / ``#endif`` idempotency guard so that
+        the same helper (e.g. ``_sext``) can be included from multiple headers
+        without triggering a redefinition error.
+        """
+        from zuspec.be.sw.stmt_generator import StmtGenerator
+
+        guard = f"_ZSP_FUNC_{func.name.upper()}_DEFINED"
+        w.line(f"#ifndef {guard}")
+        w.line(f"#define {guard}")
+
+        # Build parameter list — all parameters default to uint32_t.
+        param_names = set()
+        params = []
+        if func.args:
+            for arg in func.args.args:
+                params.append(f"uint32_t {arg.arg}")
+                param_names.add(arg.arg)
+        params_str = ", ".join(params) if params else "void"
+
+        w.line(f"static inline uint32_t {func.name}({params_str}) {{")
+        w.indent()
+
+        # Declare local variables (those that are assigned in the body but are
+        # not parameters).
+        body_stmts = func.body or []
+        locals_needed = _collect_unresolved_names(body_stmts) - param_names
+        for lname in sorted(locals_needed):
+            w.line(f"uint32_t {lname};")
+
+        sg = StmtGenerator(
+            component=None,
+            ctxt=ctxt,
+            py_globals={},
+            locals_struct_names=set(),
+        )
+        for stmt in body_stmts:
+            code = sg._gen_dm_stmt(stmt)
+            if code.strip():
+                for line in code.splitlines():
+                    w.line(line)
+
+        w.dedent()
+        w.line("}")
+        w.line("#endif")
         w.blank()
 
     # ------------------------------------------------------------------
@@ -963,6 +1167,10 @@ class CEmitPass(SwPass):
                 )
             elif m.kind == "indexed_pool":
                 w.line(f"zsp_indexed_pool_t {field.name};  /* IndexedPool depth={m.depth} */")
+            elif m.kind == "claim_pool":
+                elem = m.elem_type_name or "void"
+                w.line(f"{elem}_t {field.name};  /* ClaimPool<{elem}> */")
+                w.line(f"zsp_mutex_t {field.name}_mutex;")
             elif m.kind == "memory":
                 w.line(f"zsp_memory_t {field.name};  /* Memory[{m.elem_bits}b] size={m.mem_size} */")
             elif m.kind == "component":
@@ -1019,6 +1227,10 @@ class CEmitPass(SwPass):
                 w.line(f"{m.comp_type}_init(&self->{field.name});")
             elif m and m.kind == "indexed_pool":
                 w.line(f"zsp_indexed_pool_init(&self->{field.name}, {m.depth});")
+            elif m and m.kind == "claim_pool":
+                elem = m.elem_type_name or "void"
+                w.line(f"{elem}_init(&self->{field.name});")
+                w.line(f"zsp_mutex_init(&self->{field.name}_mutex, 1);")
             elif m and m.kind == "memory":
                 w.line(
                     f'zsp_memory_init(&_ctxt, &self->{field.name}, "{field.name}", NULL,'
@@ -1474,9 +1686,32 @@ class CEmitPass(SwPass):
         self, comp_name: str, func: ir.Function, ctxt: SwContext, w: _Writer
     ) -> None:
         sg = StmtGenerator(py_globals=ctxt.py_globals)
-        w.line(f"static void {comp_name}_{func.name}({comp_name}_t *self) {{")
+        # Build parameter list from func.args
+        param_names: set = set()
+        param_parts = []
+        if func.args and func.args.args:
+            for arg in func.args.args:
+                c_t = _c_type_from_annotation(arg.annotation, ctxt)
+                param_parts.append(f"{c_t} {arg.arg}")
+                param_names.add(arg.arg)
+
+        ret_type = "void"
+        if func.returns is not None:
+            ret_type = _c_type(func.returns, ctxt)
+
+        if param_parts:
+            params_str = ", ".join(param_parts)
+            sig = f"ZUSPEC_API {ret_type} {comp_name}_{func.name}({comp_name}_t *self, {params_str})"
+        else:
+            sig = f"static {ret_type} {comp_name}_{func.name}({comp_name}_t *self)"
+        w.line(f"{sig} {{")
         w.indent()
-        for stmt in func.body:
+        # Declare any local variables used in the body (excluding params)
+        body = func.body if isinstance(func.body, list) else []
+        locals_needed = _collect_unresolved_names(body) - param_names
+        for lname in sorted(locals_needed):
+            w.line(f"uint32_t {lname} = 0;")
+        for stmt in body:
             code = sg._gen_dm_stmt(stmt)
             if code.strip():
                 for line in code.splitlines():
@@ -1498,12 +1733,21 @@ class CEmitPass(SwPass):
         """
         fn_name = frame.func_name or "coroutine"
         comp_name = frame.comp_type_name or "Comp"
+        # Build annotation map for process params
+        param_ann = {}
+        for arg in (frame.process_params or []):
+            param_ann[arg.arg] = getattr(arg, 'annotation', None)
         w.line(f"typedef struct {{")
         w.indent()
         w.line("zsp_frame_t frame;")
         w.line(f"{comp_name}_t *self;")
         for lv in (frame.locals_struct or []):
-            c_t = _c_type(lv.var_type, ctxt) if lv.var_type else "int"
+            if lv.var_type is not None:
+                c_t = _c_type(lv.var_type, ctxt)
+            elif lv.var_name in param_ann:
+                c_t = _c_type_from_annotation(param_ann[lv.var_name], ctxt)
+            else:
+                c_t = "int"
             w.line(f"{c_t} {lv.var_name};")
         w.dedent()
         w.line(f"}} {fn_name}_locals_t;")
@@ -1541,6 +1785,52 @@ class CEmitPass(SwPass):
         w.dedent()
         w.line("}")  # function
 
+    def _emit_coroutine_entry_fn(
+        self, frame: SwCoroutineFrame, ctxt: SwContext, w: _Writer
+    ) -> None:
+        """Emit a callable entry wrapper for a coroutine with process params.
+
+        Drives all continuations in order.  For ``wait()``/suspend points the
+        timebase fast-path is used (no other threads, no pending events), so
+        time advances inline without requiring a real scheduler.  The return
+        value of the last continuation is the function result.
+        """
+        fn_name = frame.func_name or "coroutine"
+        comp_name = frame.comp_type_name or "Comp"
+        param_ann = {arg.arg: getattr(arg, 'annotation', None) for arg in (frame.process_params or [])}
+        param_parts = [
+            f"{_c_type_from_annotation(param_ann[arg.arg], ctxt)} {arg.arg}"
+            for arg in (frame.process_params or [])
+        ]
+        ret_type = "void"
+        if frame.return_dtype is not None:
+            ret_type = _c_type(frame.return_dtype, ctxt)
+        params_str = ", ".join(param_parts)
+        sep = ", " if params_str else ""
+        n_conts = len(frame.continuations)
+
+        w.line(f"ZUSPEC_API {ret_type} {fn_name}({comp_name}_t *self{sep}{params_str}) {{")
+        w.indent()
+        w.line(f"{fn_name}_locals_t locals = {{{{0}}}};")
+        w.line("zsp_thread_t thread = {{0}};")
+        w.line("zsp_timebase_t tb = {{0}};")
+        w.line("locals.self = self;")
+        for arg in (frame.process_params or []):
+            w.line(f"locals.{arg.arg} = {arg.arg};")
+        w.line("thread.leaf = (zsp_frame_t *)&locals;")
+        w.line("thread.timebase = &tb;")
+        if ret_type != "void":
+            w.line("zsp_frame_t *_r = NULL;")
+        for idx in range(n_conts):
+            if ret_type != "void":
+                w.line(f"_r = {fn_name}_task(&tb, &thread, {idx});")
+            else:
+                w.line(f"{fn_name}_task(&tb, &thread, {idx});")
+        if ret_type != "void":
+            w.line(f"return ({ret_type})(uintptr_t)_r;")
+        w.dedent()
+        w.line("}")
+
     def _emit_continuation(
         self, fn_name: str, cont: SwContinuation, ctxt: SwContext, w: _Writer,
         component=None,
@@ -1557,20 +1847,20 @@ class CEmitPass(SwPass):
         w.indent()
 
         # Declare any unresolved local variable names, using the correct type.
-        # Action vars (StmtAnnAssign with DataTypeAction ir_type) get their struct type;
+        # Typed hints (DataTypeAction, DataTypeTupleReturn) get their C struct type;
         # names used as '->field' pointer bases get _zsp_stub_t *;
         # all other vars fall back to uint32_t.
         #
         # Note: stub_ptr_names may include names excluded from unresolved (pure attr bases
         # like `claim` in `claim->t->execute(...)`) — declare those separately.
-        action_hints = _collect_action_type_hints(cont.stmts)
+        type_hints = _collect_action_type_hints(cont.stmts)
         stub_ptr_names = _collect_stub_ptr_names(cont.stmts)
         unresolved = _collect_unresolved_names(cont.stmts) - _lsn
         all_to_declare = unresolved | (stub_ptr_names - _lsn)
         for name in sorted(all_to_declare):
-            if name in action_hints:
-                struct_type = f"{action_hints[name].name}_t"
-                w.line(f"{struct_type} {name} = {{{{0}}}};")
+            if name in type_hints:
+                c_t = _c_type(type_hints[name], ctxt)
+                w.line(f"{c_t} {name} = {{{{0}}}};")
             elif name in stub_ptr_names:
                 w.line(f"_zsp_stub_t *{name} = NULL;")
             else:

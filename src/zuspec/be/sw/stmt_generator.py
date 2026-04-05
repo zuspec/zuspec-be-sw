@@ -110,6 +110,9 @@ class StmtGenerator:
         elif isinstance(expr, ir.ExprRefField):
             return self._gen_dm_field_ref(expr)
         elif isinstance(expr, ir.ExprRefParam):
+            # In coroutine context, params live in the locals struct
+            if expr.name in self.locals_struct_names:
+                return f"locals->{expr.name}"
             return expr.name
         elif isinstance(expr, ir.ExprRefLocal):
             if expr.name in self.locals_struct_names:
@@ -214,10 +217,10 @@ class StmtGenerator:
     def _get_field_type(self, expr):
         """Get the datatype of a field expression."""
         from zuspec.dataclasses import ir
-        
+
         if isinstance(expr, ir.ExprRefField):
             base_type = self._get_field_type(expr.base) if not isinstance(expr.base, ir.TypeExprRefSelf) else None
-            
+
             if isinstance(expr.base, ir.TypeExprRefSelf):
                 # Direct field of component
                 if self.component and expr.index < len(self.component.fields):
@@ -225,6 +228,9 @@ class StmtGenerator:
                     # Resolve references
                     if isinstance(dtype, ir.DataTypeRef) and self.ctxt:
                         return self.ctxt.type_m.get(dtype.ref_name)
+                    # ClaimPool[ElemType] → resolve to the element DataTypeComponent
+                    if isinstance(dtype, ir.DataTypeClaimPool) and self.ctxt:
+                        return self.ctxt.type_m.get(dtype.elem_type_name)
                     return dtype
             elif base_type:
                 # Nested field
@@ -233,8 +239,10 @@ class StmtGenerator:
                         dtype = base_type.fields[expr.index].datatype
                         if isinstance(dtype, ir.DataTypeRef) and self.ctxt:
                             return self.ctxt.type_m.get(dtype.ref_name)
+                        if isinstance(dtype, ir.DataTypeClaimPool) and self.ctxt:
+                            return self.ctxt.type_m.get(dtype.elem_type_name)
                         return dtype
-        
+
         return None
 
     def _gen_dm_constant(self, expr) -> str:
@@ -334,6 +342,24 @@ class StmtGenerator:
                     else:
                         # Unknown memory method
                         return f"{base_code}.{func.attr}({', '.join(args)})"
+                elif isinstance(field_type, ir.DataTypeComponent):
+                    # Embedded component field — check if method is a callable port
+                    # e.g. self->alu_pool.execute(self->alu_pool.execute_ud, ...)
+                    comp_fields = {f.name: f for f in field_type.fields}
+                    if func.attr in comp_fields and comp_fields[func.attr].kind == ir.FieldKind.CallablePort:
+                        args_str = ", ".join(args)
+                        sep = ", " if args_str else ""
+                        return f"{base_code}.{func.attr}({base_code}.{func.attr}_ud{sep}{args_str})"
+                    # Check if it's a process/function on the component type
+                    # (emitted as a standalone C function: TypeName_method(&field, args))
+                    comp_funcs = {f.name: f for f in (field_type.functions or [])}
+                    if func.attr in comp_funcs:
+                        args_str = ", ".join(args)
+                        sep = ", " if args_str else ""
+                        type_name = field_type.name or "Comp"
+                        return f"{type_name}_{func.attr}(&{base_code}{sep}{args_str})"
+                    # Unknown method on embedded component
+                    return f"{base_code}.{func.attr}({', '.join(args)})"
                 else:
                     # Regular field method call
                     return f"{base_code}.{func.attr}({', '.join(args)})"
@@ -420,6 +446,7 @@ class StmtGenerator:
             ir.BinOp.Sub: "-",
             ir.BinOp.Mult: "*",
             ir.BinOp.Div: "/",
+            ir.BinOp.FloorDiv: "/",
             ir.BinOp.Mod: "%",
             ir.BinOp.LShift: "<<",
             ir.BinOp.RShift: ">>",

@@ -371,15 +371,30 @@ class AsyncLowerPass(SwPass):
                 continue
             for func in getattr(dtype, "functions", []):
                 is_process = type(func).__name__ == "Process"
+                is_promoted_process = (not is_process
+                                       and getattr(func, "is_async", False)
+                                       and getattr(func, "metadata", {}).get("is_process"))
                 if not is_process and not getattr(func, "is_async", False):
                     continue
                 key = f"{type_name}.{func.name}"
-                if not is_process and sync_map.get(key):
+                # Promoted processes use sync_convertible only if they have no awaits
+                if not is_process and not is_promoted_process and sync_map.get(key):
+                    func.metadata["sync_convertible"] = True
+                elif not is_process and is_promoted_process and sync_map.get(key):
                     func.metadata["sync_convertible"] = True
                 else:
                     body = func.body if isinstance(func.body, list) else (func.body.stmts if func.body else [])
                     if body:
                         frame = _split_at_awaits(body, type_name, func.name)
+                        # For promoted @process Functions with params, carry params in frame
+                        if is_promoted_process and func.args and func.args.args:
+                            frame.process_params = list(func.args.args)
+                            frame.return_dtype = func.returns
+                            # Add all params to locals_struct so they survive suspension
+                            existing = {lv.var_name for lv in frame.locals_struct}
+                            for arg in func.args.args:
+                                if arg.arg not in existing:
+                                    frame.locals_struct.insert(0, SwLocalVar(var_name=arg.arg))
                         ctxt.sw_nodes.setdefault(type_name, []).append(frame)
 
         return ctxt

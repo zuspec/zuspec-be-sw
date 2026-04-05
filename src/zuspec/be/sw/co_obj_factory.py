@@ -548,6 +548,10 @@ class CObjFactory:
             if isinstance(dtype, ir.DataTypeComponent):
                 fmeta = _collect_field_meta(dtype, sw_ctx)
                 methods = self._build_method_shims(cls, dtype, fmeta, lib)
+                # Expose C-compiled process entry functions (those with params)
+                methods.update(
+                    self._build_process_method_wrappers(type_name, dtype, sw_ctx, lib)
+                )
 
         return lib, fmeta, methods, sw_ctx.type_m
 
@@ -604,3 +608,117 @@ class CObjFactory:
             shims.setdefault("timebase_advance", lambda *a, **kw: None)
 
         return shims
+
+    def _build_process_method_wrappers(
+        self,
+        type_name: str,
+        dtype: Any,
+        sw_ctx: Any,
+        lib: ctypes.CDLL,
+    ) -> Dict[str, Any]:
+        """Expose C-compiled process entry functions (those that have parameters).
+
+        Covers two cases:
+          1. Sync-convertible @process with params → ``{TypeName}_{func}(self, ...)``
+          2. Async @process with params (has coroutine entry wrapper) → same signature
+
+        Returns a dict of ``func_name → bound-callable`` that can be merged into the
+        methods dict for a ComponentProxy.
+        """
+        from zuspec.be.sw.ir.coroutine import SwCoroutineFrame
+        from zuspec.be.sw.passes.c_emit import _c_type_from_annotation
+
+        _CTYPES_FROM_C = {
+            "uint8_t":  ctypes.c_uint8,
+            "uint16_t": ctypes.c_uint16,
+            "uint32_t": ctypes.c_uint32,
+            "uint64_t": ctypes.c_uint64,
+            "int8_t":   ctypes.c_int8,
+            "int16_t":  ctypes.c_int16,
+            "int32_t":  ctypes.c_int32,
+            "int64_t":  ctypes.c_int64,
+            "float":    ctypes.c_float,
+            "double":   ctypes.c_double,
+            "void":     None,
+        }
+
+        wrappers: Dict[str, Any] = {}
+        nodes = sw_ctx.sw_nodes.get(type_name, [])
+
+        # Case 1: sync-convertible @process functions with params
+        for func in getattr(dtype, "functions", []):
+            meta = getattr(func, "metadata", {}) or {}
+            if not meta.get("is_process"):
+                continue
+            if not meta.get("sync_convertible"):
+                continue
+            args = getattr(func.args, "args", []) if func.args else []
+            if not args:
+                continue
+            c_fn_name = f"{type_name}_{func.name}"
+            c_fn = getattr(lib, c_fn_name, None)
+            if c_fn is None:
+                continue
+            param_ctypes = []
+            for arg in args:
+                c_t_str = _c_type_from_annotation(getattr(arg, "annotation", None), sw_ctx)
+                param_ctypes.append(_CTYPES_FROM_C.get(c_t_str, ctypes.c_uint32))
+            if func.returns is None:
+                ret_ct = None
+            else:
+                from zuspec.be.sw.passes.c_emit import _c_type
+                ret_t_str = _c_type(func.returns, sw_ctx)
+                ret_ct = _CTYPES_FROM_C.get(ret_t_str, ctypes.c_uint32)
+            c_fn.argtypes = [ctypes.c_void_p] + param_ctypes
+            c_fn.restype = ret_ct
+            func_name = func.name
+
+            def _make_sync_wrapper(fn, param_cts):
+                def _wrapper(proxy_self, *args):
+                    ptr = object.__getattribute__(proxy_self, "_c_ptr")
+                    casted = [ctypes.cast(ptr, ctypes.c_void_p)]
+                    for val, ct in zip(args, param_cts):
+                        casted.append(ct(val))
+                    return fn(*casted)
+                return _wrapper
+
+            wrappers[func_name] = _make_sync_wrapper(c_fn, param_ctypes)
+
+        # Case 2: coroutine frames with process_params (async @process entry wrappers)
+        for node in nodes:
+            if not isinstance(node, SwCoroutineFrame):
+                continue
+            if not node.process_params:
+                continue
+            c_fn_name = node.func_name or ""
+            if not c_fn_name:
+                continue
+            # Derive Python method name: strip "{TypeName}_" prefix
+            meth_name = c_fn_name[len(type_name) + 1:] if c_fn_name.startswith(f"{type_name}_") else c_fn_name
+            c_fn = getattr(lib, c_fn_name, None)
+            if c_fn is None:
+                continue
+            param_ctypes = []
+            for arg in node.process_params:
+                c_t_str = _c_type_from_annotation(getattr(arg, "annotation", None), sw_ctx)
+                param_ctypes.append(_CTYPES_FROM_C.get(c_t_str, ctypes.c_uint32))
+            ret_ct = None  # async entry wrappers are void for now
+            if node.return_dtype is not None:
+                from zuspec.be.sw.passes.c_emit import _c_type
+                ret_t_str = _c_type(node.return_dtype, sw_ctx)
+                ret_ct = _CTYPES_FROM_C.get(ret_t_str)
+            c_fn.argtypes = [ctypes.c_void_p] + param_ctypes
+            c_fn.restype = ret_ct
+
+            def _make_async_wrapper(fn, param_cts):
+                def _wrapper(proxy_self, *args):
+                    ptr = object.__getattribute__(proxy_self, "_c_ptr")
+                    casted = [ctypes.cast(ptr, ctypes.c_void_p)]
+                    for val, ct in zip(args, param_cts):
+                        casted.append(ct(val))
+                    return fn(*casted)
+                return _wrapper
+
+            wrappers[meth_name] = _make_async_wrapper(c_fn, param_ctypes)
+
+        return wrappers

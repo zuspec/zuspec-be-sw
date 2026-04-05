@@ -637,6 +637,7 @@ class DmAsyncMethodGenerator:
             ir.BinOp.Sub: "-",
             ir.BinOp.Mult: "*",
             ir.BinOp.Div: "/",
+            ir.BinOp.FloorDiv: "/",
             ir.BinOp.Mod: "%",
             ir.BinOp.LShift: "<<",
             ir.BinOp.RShift: ">>",

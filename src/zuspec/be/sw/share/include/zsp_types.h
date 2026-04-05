@@ -13,4 +13,9 @@ typedef struct _zsp_stub_s {
     uint32_t (*access)(uint32_t, uint32_t, uint32_t);
 } _zsp_stub_t;
 
+/* Multi-return struct types used for tuple-unpack lowering (a, b = f(...)). */
+typedef struct { uint32_t v0; uint32_t v1; } _zsp_tuple2_t;
+typedef struct { uint32_t v0; uint32_t v1; uint32_t v2; } _zsp_tuple3_t;
+typedef struct { uint32_t v0; uint32_t v1; uint32_t v2; uint32_t v3; } _zsp_tuple4_t;
+
 #endif /* INCLUDED_ZSP_TYPES_H */

@@ -16,7 +16,7 @@ from fixtures.simple_components import (
 # Check if backend is available
 try:
     import zuspec.dataclasses as zdc
-    from zuspec.dataclasses.rt.c_rt import CObjFactory
+    from zuspec.be.sw import CObjFactory
     HAS_BACKEND = True
 except ImportError:
     HAS_BACKEND = False

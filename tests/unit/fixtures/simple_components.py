@@ -33,3 +33,9 @@ class CompWithField(zdc.Component):
 class CachedComp(zdc.Component):
     """Component for testing library caching."""
     val: zdc.bit8 = zdc.input()
+
+
+@zdc.dataclass
+class MemComp(zdc.Component):
+    """Component with a Memory field for backdoor access testing."""
+    mem: zdc.Memory[zdc.uint32_t] = zdc.Memory(size=1024)

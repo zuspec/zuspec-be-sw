@@ -46,13 +46,15 @@ def sanitize_c_name(name: str) -> str:
 class CGenerator:
     """Main C code generator from datamodel."""
 
-    def __init__(self, output_dir: Path, enable_specialization: bool = False):
+    def __init__(self, output_dir: Path, enable_specialization: bool = False,
+                 use_pass_pipeline: bool = False):
         self.output_dir = Path(output_dir)
         self.type_mapper = TypeMapper(enable_specialization=enable_specialization)
         self.output = OutputManager(output_dir)
         self.py_classes: Dict[str, Type] = {}  # Map from type name to Python class
         self.async_analyzer: Optional[AsyncAnalyzer] = None  # Async-to-sync analyzer
         self.enable_specialization = enable_specialization
+        self._use_pass_pipeline = use_pass_pipeline
 
     def generate(self, ctxt: ir.Context, py_classes: List[Type] = None) -> List[Path]:
         """Generate C code for all types in context.
@@ -61,6 +63,9 @@ class CGenerator:
             ctxt: The datamodel context
             py_classes: Optional list of original Python classes for source introspection
         """
+        if self._use_pass_pipeline:
+            return self._generate_via_pipeline(ctxt)
+
         # Build map of Python classes by name
         if py_classes:
             for cls in py_classes:
@@ -89,6 +94,19 @@ class CGenerator:
         self._generate_main(ctxt)
         
         return self.output.write_all()
+
+    def _generate_via_pipeline(self, ctxt: ir.Context) -> List[Path]:
+        """Delegate code generation to the new SwPassManager pipeline."""
+        from zuspec.be.sw.pipeline import SwPassManager
+        pm = SwPassManager(output_dir=self.output_dir)
+        sw_ctxt = pm.run(ctxt)
+        # Write emitted files to output_dir
+        written: List[Path] = []
+        for filename, content in sw_ctxt.output_files:
+            out_path = self.output_dir / filename
+            out_path.write_text(content)
+            written.append(out_path)
+        return written
 
     def _generate_protocol(self, proto: ir.DataTypeProtocol, ctxt: ir.Context):
         """Generate C code for a Protocol (API interface)."""
@@ -181,15 +199,19 @@ class CGenerator:
         has_memories = False
         has_tlm_interfaces = False
         
+        _port_kinds = (ir.FieldKind.Port, ir.FieldKind.ProtocolPort, ir.FieldKind.CallablePort)
+        _export_kinds = (ir.FieldKind.Export, ir.FieldKind.ProtocolExport, ir.FieldKind.CallableExport)
         for field in comp.fields:
-            if field.kind == ir.FieldKind.Port or field.kind == ir.FieldKind.Export:
+            if field.kind in _port_kinds or field.kind in _export_kinds:
                 has_ports_or_exports = True
-                if isinstance(field.datatype, ir.DataTypeRef):
-                    protocol_includes.add(field.datatype.ref_name.lower())
-                elif isinstance(field.datatype, ir.DataTypeProtocol):
-                    protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
-                elif isinstance(field.datatype, (ir.DataTypeGetIF, ir.DataTypePutIF)):
-                    has_tlm_interfaces = True
+                # CallablePort/Export use inline fn-ptr — no protocol header needed
+                if field.kind not in (ir.FieldKind.CallablePort, ir.FieldKind.CallableExport):
+                    if isinstance(field.datatype, ir.DataTypeRef):
+                        protocol_includes.add(field.datatype.ref_name.lower())
+                    elif isinstance(field.datatype, ir.DataTypeProtocol):
+                        protocol_includes.add(sanitize_c_name(field.datatype.name).lower())
+                    elif isinstance(field.datatype, (ir.DataTypeGetIF, ir.DataTypePutIF)):
+                        has_tlm_interfaces = True
             # Check for memory fields
             if isinstance(field.datatype, ir.DataTypeMemory):
                 has_memories = True
@@ -245,8 +267,8 @@ class CGenerator:
         
         # Add fields - handle ports, exports, and sub-components specially
         for field in comp.fields:
-            is_port = field.kind == ir.FieldKind.Port
-            is_export = field.kind == ir.FieldKind.Export
+            is_port = field.kind in _port_kinds
+            is_export = field.kind in _export_kinds
             # Check if this is a sub-component field
             is_subcomp = False
             if isinstance(field.datatype, ir.DataTypeComponent):
@@ -268,6 +290,10 @@ class CGenerator:
                 lines.append(f"    uint32_t {field.name}_head;")
                 lines.append(f"    uint32_t {field.name}_tail;")
                 lines.append(f"    uint32_t {field.name}_count;")
+            elif field.kind == ir.FieldKind.CallablePort:
+                # Callable port: function pointer + userdata
+                lines.append(f"    uint32_t (*{field.name})(void *ud, uint32_t);")
+                lines.append(f"    void *{field.name}_ud;")
             else:
                 c_type = self.type_mapper.map_type(field.datatype, is_port=is_port, is_export=is_export, 
                                                    is_subcomponent=is_subcomp)
@@ -510,12 +536,14 @@ class CGenerator:
             f"    self->timebase = ctxt->timebase;  /* Store timebase reference */",
         ]
         
+        _port_init_kinds = (ir.FieldKind.Port, ir.FieldKind.ProtocolPort, ir.FieldKind.CallablePort)
+        _export_init_kinds = (ir.FieldKind.Export, ir.FieldKind.ProtocolExport, ir.FieldKind.CallableExport)
         # Initialize fields
         for field in comp.fields:
-            if field.kind == ir.FieldKind.Port:
+            if field.kind in _port_init_kinds:
                 # Ports are pointers, initialize to NULL
                 lines.append(f"    self->{field.name} = NULL;")
-            elif field.kind == ir.FieldKind.Export:
+            elif field.kind in _export_init_kinds:
                 # Exports are embedded structs, zero-initialize self pointer
                 lines.append(f"    self->{field.name}.self = NULL;")
             elif isinstance(field.datatype, ir.DataTypeMemory):
@@ -1041,10 +1069,48 @@ class CGenerator:
 
     def _generate_process_task(self, comp: ir.DataTypeComponent, func: ir.Process, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a task wrapper for a Process function.
-        
-        The process body is generated using async-to-sync conversion.
-        This wrapper creates the zsp_thread task function signature.
+
+        If the process has a body (from DataModelFactory), delegates to
+        DmAsyncMethodGenerator to emit a real coroutine with switch/case.
+        Otherwise, falls back to a placeholder.
         """
+        lines = []
+
+        # If we have a real body, emit action typedefs then use DmAsyncMethodGenerator.
+        body = func.body if isinstance(func.body, list) else (func.body.stmts if func.body else [])
+        if body:
+            # Emit typedef structs for any DataTypeAction vars in the locals
+            action_types_emitted: set = set()
+            for stmt in body:
+                if isinstance(stmt, ir.StmtAnnAssign):
+                    ir_type = getattr(stmt, 'ir_type', None)
+                    if isinstance(ir_type, ir.DataTypeAction) and ir_type.name not in action_types_emitted:
+                        action_types_emitted.add(ir_type.name)
+                        lines.append(f"/* Action struct for {ir_type.name} */")
+                        lines.append(f"typedef struct {{")
+                        for field in ir_type.fields:
+                            if field.name == 'comp':
+                                continue
+                            from .passes.c_emit import _c_type
+                            from .ir.base import SwContext
+                            sw_ctxt = SwContext(type_m=ctxt.type_m)
+                            lines.append(f"    {_c_type(field.datatype, sw_ctxt)} {field.name};")
+                        lines.append(f"}} {ir_type.name}_t;")
+                        lines.append(f"")
+
+            func_as_function = ir.Function(
+                name=func.name,
+                args=ir.Arguments(args=[]),
+                body=body,
+                returns=None,
+                is_async=True,
+            )
+            dm_gen = DmAsyncMethodGenerator(name, func.name, component=comp, ctxt=ctxt)
+            code = dm_gen.generate(func_as_function)
+            lines.extend(code.split("\n"))
+            return lines
+
+        # Placeholder fallback
         lines = [
             f"/* Process task: {func.name} */",
             f"zsp_frame_t* {name}_{func.name}_task(",
@@ -1054,11 +1120,6 @@ class CGenerator:
             f"    va_list *args) {{",
             f"    /* Get component instance from args */",
             f"    {name} *self = ({name}*)zsp_timebase_va_arg(args, sizeof({name}*));",
-            f"    ",
-            f"    /* Call the process implementation */",
-            f"    /* NOTE: The actual process body with wait() calls should be */",
-            f"    /* generated by the async-to-sync converter. For now, this is */",
-            f"    /* a placeholder that immediately returns. */",
             f"    ",
             f"    /* Placeholder: Just yield once and exit */",
             f"    if (idx == 0) {{",
@@ -1070,9 +1131,8 @@ class CGenerator:
             f"    return NULL;",
             f"}}",
         ]
-        
         return lines
-    
+
     def _generate_process_startup(self, comp: ir.DataTypeComponent, processes: List[ir.Process], name: str, ctxt: ir.Context) -> List[str]:
         """Generate the start_processes function for the component.
         

@@ -27,6 +27,8 @@ from .stmt_generator import StmtGenerator
 from .dm_async_generator import DmAsyncMethodGenerator
 from .output import OutputManager, OutputFile
 
+from .co_obj_factory import CObjFactory, ComponentProxy
+
 __all__ = [
     "CGenerator",
     "CValidator",
@@ -40,4 +42,6 @@ __all__ = [
     "DmAsyncMethodGenerator",
     "OutputManager",
     "OutputFile",
+    "CObjFactory",
+    "ComponentProxy",
 ]

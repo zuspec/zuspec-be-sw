@@ -128,6 +128,8 @@ class DmAsyncMethodGenerator:
             block_stmts, await_expr, await_stmt = block
             for stmt in block_stmts:
                 stmt_code = self._gen_stmt(stmt)
+                if stmt_code is None:
+                    continue
                 for line in stmt_code.split('\n'):
                     if line.strip():
                         lines.append(f"            {line}")
@@ -143,6 +145,11 @@ class DmAsyncMethodGenerator:
                     lines.append(f"                break;  /* Suspended */")
                     lines.append(f"            }}")
                     lines.append(f"            /* Fall through - time advanced without suspension */")
+                elif self._is_callable_port_await(await_expr):
+                    # Synchronous callable port: call and fall through (no suspension)
+                    lines.append(f"            {await_code}")
+                    lines.append(f"            ret->idx = {i + 1};")
+                    # No break — fall through to next case
                 else:
                     # Other awaits (calls, channel ops) always suspend
                     lines.append(f"            ret->idx = {i + 1};")
@@ -234,7 +241,19 @@ class DmAsyncMethodGenerator:
         
         # Walk statements to find assignments
         def extract_from_stmt(stmt):
-            if isinstance(stmt, ir.StmtAssign):
+            if isinstance(stmt, ir.StmtAnnAssign):
+                # Typed declaration: ``var: T = ...`` or action result var
+                tgt = getattr(stmt, 'target', None)
+                if isinstance(tgt, ir.ExprRefLocal) and tgt.name not in seen_vars:
+                    var_name = tgt.name
+                    ir_type = getattr(stmt, 'ir_type', None)
+                    if ir_type is not None and isinstance(ir_type, ir.DataTypeAction):
+                        var_type = f"{ir_type.name}_t"
+                    else:
+                        var_type = "int32_t"
+                    local_vars.append((var_name, var_type))
+                    seen_vars.add(var_name)
+            elif isinstance(stmt, ir.StmtAssign):
                 for target in stmt.targets:
                     if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
@@ -301,7 +320,15 @@ class DmAsyncMethodGenerator:
 
     def _gen_stmt(self, stmt: ir.Stmt) -> str:
         """Generate C code for a datamodel statement."""
-        if isinstance(stmt, ir.StmtExpr):
+        if isinstance(stmt, ir.StmtAnnAssign):
+            # Typed declaration: already emitted as a local var in the locals typedef.
+            # If it has a non-None value, emit the assignment; otherwise skip.
+            if stmt.value is not None:
+                tgt = self._gen_expr(stmt.target)
+                val = self._gen_expr(stmt.value)
+                return f"{tgt} = {val};"
+            return None  # pure declaration — already in locals typedef
+        elif isinstance(stmt, ir.StmtExpr):
             expr_code = self._gen_expr(stmt.expr)
             return f"{expr_code};"
         elif isinstance(stmt, ir.StmtAssign):
@@ -316,6 +343,10 @@ class DmAsyncMethodGenerator:
             return "/* pass */"
         elif isinstance(stmt, ir.StmtFor):
             return self._gen_for_stmt(stmt)
+        elif isinstance(stmt, ir.StmtWhile):
+            return self._gen_while_stmt(stmt)
+        elif isinstance(stmt, ir.StmtIf):
+            return self._gen_if_stmt(stmt)
         else:
             # Unsupported statement type - fail with clear error
             raise ValueError(
@@ -368,13 +399,44 @@ class DmAsyncMethodGenerator:
         
         # Generate the for loop
         lines = [f"for (int {loop_var} = {start}; {loop_var} < {end}; {loop_var} += {step}) {{"]
-        for stmt in body:
-            stmt_code = self._gen_stmt(stmt)
-            for line in stmt_code.split('\n'):
-                lines.append(f"    {line}")
+        body_code = self._gen_body(body)
+        lines.append(body_code)
         lines.append("}")
         
         return '\n'.join(lines)
+
+    def _gen_body(self, stmts: list) -> str:
+        """Generate indented C lines for a list of statements."""
+        lines = []
+        for stmt in stmts:
+            code = self._gen_stmt(stmt)
+            if code is None:
+                continue
+            for line in code.split('\n'):
+                lines.append(f"    {line}")
+        return '\n'.join(lines)
+
+    def _gen_while_stmt(self, stmt: ir.StmtWhile) -> str:
+        """Generate C while loop."""
+        test = self._gen_expr(stmt.test)
+        body = self._gen_body(stmt.body)
+        return f"while ({test}) {{\n{body}\n}}"
+
+    def _gen_if_stmt(self, stmt: ir.StmtIf) -> str:
+        """Generate C if/else statement."""
+        test = self._gen_expr(stmt.test)
+        body = self._gen_body(stmt.body)
+        result = f"if ({test}) {{\n{body}\n}}"
+        if stmt.orelse:
+            # Flatten else-if chains
+            if len(stmt.orelse) == 1 and isinstance(stmt.orelse[0], ir.StmtIf):
+                else_code = self._gen_if_stmt(stmt.orelse[0])
+                result += f" else {else_code}"
+            else:
+                orelse = self._gen_body(stmt.orelse)
+                result += f" else {{\n{orelse}\n}}"
+        return result
+
 
     def _gen_expr(self, expr: ir.Expr) -> str:
         """Generate C code for a datamodel expression."""
@@ -437,9 +499,10 @@ class DmAsyncMethodGenerator:
 
     def _is_port_field(self, expr: ir.ExprRefField) -> bool:
         """Check if a field reference is a port."""
+        _port_kinds = (ir.FieldKind.Port, ir.FieldKind.ProtocolPort, ir.FieldKind.CallablePort)
         if isinstance(expr.base, ir.TypeExprRefSelf):
             if self.component and expr.index < len(self.component.fields):
-                return self.component.fields[expr.index].kind == ir.FieldKind.Port
+                return self.component.fields[expr.index].kind in _port_kinds
         return False
 
     def _gen_call(self, expr: ir.ExprCall) -> str:
@@ -555,6 +618,9 @@ class DmAsyncMethodGenerator:
         value = self._gen_expr(expr.value)
         if value == "self" or value == "locals->self":
             return f"locals->self->{expr.attr}"
+        # ExprRefLocal vars live in locals_t as embedded structs — use '.' not '->'
+        if isinstance(expr.value, ir.ExprRefLocal):
+            return f"{value}.{expr.attr}"
         return f"{value}->{expr.attr}"
 
     def _gen_binop(self, expr: ir.ExprBin) -> str:
@@ -617,7 +683,8 @@ class DmAsyncMethodGenerator:
                     field_idx = func.value.index
                     if self.component and field_idx < len(self.component.fields):
                         field = self.component.fields[field_idx]
-                        if field.kind == ir.FieldKind.Port:
+                        _port_kinds = (ir.FieldKind.Port, ir.FieldKind.ProtocolPort, ir.FieldKind.CallablePort)
+                        if field.kind in _port_kinds:
                             if func.attr == "put":
                                 # await self.port.put(data) -> channel put via call
                                 port_code = self._gen_field_ref(func.value)
@@ -629,8 +696,20 @@ class DmAsyncMethodGenerator:
                                 # await self.port.get() -> channel get via call
                                 port_code = self._gen_field_ref(func.value)
                                 return f"ret = zsp_timebase_call(thread, &zsp_channel_get_task, (zsp_channel_t *){port_code});"
-        
-        # Unsupported await expression - provide helpful error
+
+            # await self.callable_port(args) — ExprRefField directly as func
+            if isinstance(func, ir.ExprRefField):
+                field_idx = func.index
+                if self.component and field_idx < len(self.component.fields):
+                    field = self.component.fields[field_idx]
+                    if field.kind == ir.FieldKind.CallablePort:
+                        # Synchronous callable port: port_fn(port_ud, args...)
+                        call_args = [f"locals->self->{field.name}_ud"]
+                        for arg in awaited.args:
+                            call_args.append(self._gen_expr(arg))
+                        call_args_str = ", ".join(call_args)
+                        return f"thread->rval = (uintptr_t)(locals->self->{field.name}({call_args_str}));"
+
         awaited_type = type(awaited).__name__
         if isinstance(awaited, ir.ExprCall):
             if isinstance(awaited.func, ir.ExprAttribute):
@@ -657,6 +736,16 @@ class DmAsyncMethodGenerator:
                 is_self = (isinstance(func.value, ir.TypeExprRefSelf) or
                            (isinstance(func.value, ir.ExprConstant) and func.value.value == "self"))
                 return is_self and func.attr == "wait"
+        return False
+
+    def _is_callable_port_await(self, await_expr: ir.ExprAwait) -> bool:
+        """Check if await expression is a synchronous callable-port call."""
+        awaited = await_expr.value
+        if isinstance(awaited, ir.ExprCall):
+            func = awaited.func
+            if isinstance(func, ir.ExprRefField) and isinstance(func.base, ir.TypeExprRefSelf):
+                if self.component and func.index < len(self.component.fields):
+                    return self.component.fields[func.index].kind == ir.FieldKind.CallablePort
         return False
 
     def _is_channel_port(self, expr) -> bool:

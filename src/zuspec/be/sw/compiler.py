@@ -44,6 +44,13 @@ class CCompiler:
         "zsp_component.c",
         "zsp_struct.c",
         "zsp_map.c",
+        "zsp_fifo.c",
+        "zsp_mutex.c",
+        "zsp_indexed_pool.c",
+        "zsp_par_block.c",
+        "zsp_select.c",
+        "zsp_memory.c",
+        "zsp_channel.c",
     ]
 
     def __init__(self, output_dir: Path):

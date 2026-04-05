@@ -10,7 +10,7 @@ from pathlib import Path
 
 # Check if backend is available
 try:
-    from zuspec.dataclasses.rt.c_rt import CObjFactory
+    from zuspec.be.sw import CObjFactory
     import zuspec.dataclasses as zdc
     HAS_BACKEND = True
 except ImportError:

@@ -9,7 +9,7 @@ import ctypes
 
 # Check if backend is available
 try:
-    from zuspec.dataclasses.rt.c_rt import (
+    from zuspec.be.sw import (
         CallbackRegistry, register_callback, get_c_callback, unregister_callback
     )
     HAS_BACKEND = True

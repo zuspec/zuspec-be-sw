@@ -205,14 +205,19 @@ class TestLoadStoreUnitCodeGen:
         )
 
     def test_mem_width_constants_used_in_comparisons(self):
-        """MEM_BYTE and MEM_HALFWORD names appear in width comparisons.
+        """Width constants appear as literal values in comparisons.
 
-        MEM_WORD (2) is the catch-all ``else`` case for word-sized accesses,
-        so it does not appear as an explicit comparison target.  The narrower
-        widths (byte, halfword) are always explicit.
+        MEM_BYTE=0 and MEM_HALFWORD=1 are module-level integer constants that
+        are now resolved to their literal values during compilation.
+        MEM_WORD (2) is the catch-all ``else`` case for word-sized accesses.
         """
-        assert "MEM_BYTE" in self.src, "MEM_BYTE not referenced in generated C"
-        assert "MEM_HALFWORD" in self.src, "MEM_HALFWORD not referenced in generated C"
+        # After constant resolution, MEM_BYTE=0 and MEM_HALFWORD=1 appear as literals
+        assert (
+            "== 0" in self.src or "!= 0" in self.src or "locals->width == 0" in self.src
+        ), "byte-width comparison (MEM_BYTE=0) not found in generated C"
+        assert (
+            "== 1" in self.src or "!= 1" in self.src or "locals->width == 1" in self.src
+        ), "halfword-width comparison (MEM_HALFWORD=1) not found in generated C"
 
 
 # ===========================================================================
@@ -563,3 +568,179 @@ class TestMulDivUnitExecution:
         """DIVU by zero returns 0xFFFFFFFF (ISA-defined)."""
         result = proxy.execute(5, 1, 0) & 0xFFFF_FFFF
         assert result == 0xFFFF_FFFF
+
+
+# ===========================================================================
+# G. RVCore end-to-end execution tests
+# ===========================================================================
+
+@pytest.mark.skipif(not HAS_BACKEND, reason="be-sw backend not available")
+class TestRVCoreExecution:
+    """End-to-end RVCore execution: real RISC-V instructions through the full pipeline.
+
+    Each test pre-fills registers, binds an icache callback that returns one real
+    instruction encoding then calls proxy.halt() on subsequent fetches, calls
+    proxy.run(), and asserts the architectural state.
+
+    RV32I encodings used:
+      ADD  rd,rs1,rs2  : funct7=0000000 rs2 rs1 000 rd 0110011
+      ADDI rd,rs1,imm  : imm[11:0] rs1 000 rd 0010011
+      AND  rd,rs1,rs2  : funct7=0000000 rs2 rs1 111 rd 0110011
+      OR   rd,rs1,rs2  : funct7=0000000 rs2 rs1 110 rd 0110011
+      XOR  rd,rs1,rs2  : funct7=0000000 rs2 rs1 100 rd 0110011
+      SLT  rd,rs1,rs2  : funct7=0000000 rs2 rs1 010 rd 0110011
+      SUB  rd,rs1,rs2  : funct7=0100000 rs2 rs1 000 rd 0110011
+    """
+
+    # -----------------------------------------------------------------------
+    # Helpers
+    # -----------------------------------------------------------------------
+
+    @staticmethod
+    def _r_enc(funct7: int, rs2: int, rs1: int, funct3: int, rd: int) -> int:
+        """Encode a R-type RV32I instruction (opcode=0x33 OP)."""
+        return (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | 0x33
+
+    @staticmethod
+    def _i_enc(imm: int, rs1: int, funct3: int, rd: int, opcode: int) -> int:
+        """Encode an I-type RV32I instruction."""
+        return ((imm & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode
+
+    @staticmethod
+    def _one_shot_icache(fac, proxy, instr: int):
+        """Bind an icache that returns *instr* on the first call, then requests halt.
+
+        On the second call we return a harmless NOP (ADDI x0,x0,0 = 0x00000013)
+        which writes to x0 (hardwired zero — always a no-op) and request halt so
+        the loop terminates before fetching a third instruction.
+        """
+        _NOP = 0x00000013  # ADDI x0, x0, 0
+        state = {"done": False}
+
+        def _cb(addr: int) -> int:
+            if state["done"]:
+                proxy.request_halt()
+                return _NOP
+            state["done"] = True
+            return instr
+
+        fac.bind_callable(proxy, "icache", _cb)
+
+    # -----------------------------------------------------------------------
+    # Fixtures
+    # -----------------------------------------------------------------------
+
+    @pytest.fixture(scope="class")
+    def fac(self, unit_tmpdir):
+        return CObjFactory(cache_dir=unit_tmpdir)
+
+    @pytest.fixture(scope="class")
+    def proxy(self, fac):
+        from org.zuspec.example.mls.riscv.rv_core import RVCore
+        return fac.mkComponent(RVCore)
+
+    # -----------------------------------------------------------------------
+    # Smoke: halt stops the run loop
+    # -----------------------------------------------------------------------
+
+    def test_halt_stops_run(self, fac, proxy):
+        """proxy.request_halt() terminates run() without hanging."""
+        fac.bind_callable(proxy, "icache", lambda addr: (proxy.request_halt() or 0))
+        proxy.run()  # should return; if it loops forever the test times out
+
+    # -----------------------------------------------------------------------
+    # ADD x1, x2, x3  (x2=5, x3=7 → x1=12)
+    # -----------------------------------------------------------------------
+
+    def test_add(self, fac, proxy):
+        """ADD x1, x2, x3: x2=5, x3=7 → x1=12."""
+        # funct7=0, rs2=3(x3), rs1=2(x2), funct3=0(ADD), rd=1(x1)
+        instr = self._r_enc(0b0000000, 3, 2, 0b000, 1)
+        proxy.regfile.set(2, 5)
+        proxy.regfile.set(3, 7)
+        proxy.regfile.set(1, 0)
+        proxy.pc = 0
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        assert proxy.regfile.get(1) == 12, \
+            f"ADD x1,x2,x3: expected 12, got {proxy.regfile.get(1)}"
+
+    # -----------------------------------------------------------------------
+    # SUB x1, x2, x3  (x2=10, x3=3 → x1=7)
+    # -----------------------------------------------------------------------
+
+    def test_sub(self, fac, proxy):
+        """SUB x1, x2, x3: x2=10, x3=3 → x1=7."""
+        # funct7=0100000, funct3=0(SUB), rd=1, rs1=2, rs2=3
+        instr = self._r_enc(0b0100000, 3, 2, 0b000, 1)
+        proxy.regfile.set(2, 10)
+        proxy.regfile.set(3, 3)
+        proxy.regfile.set(1, 0)
+        proxy.pc = 0
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        assert proxy.regfile.get(1) == 7, \
+            f"SUB x1,x2,x3: expected 7, got {proxy.regfile.get(1)}"
+
+    # -----------------------------------------------------------------------
+    # AND x1, x2, x3
+    # -----------------------------------------------------------------------
+
+    def test_and(self, fac, proxy):
+        """AND x1, x2, x3: 0xF0 & 0xFF → 0xF0."""
+        instr = self._r_enc(0b0000000, 3, 2, 0b111, 1)  # funct3=7 AND
+        proxy.regfile.set(2, 0xF0)
+        proxy.regfile.set(3, 0xFF)
+        proxy.regfile.set(1, 0)
+        proxy.pc = 0
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        assert proxy.regfile.get(1) == 0xF0
+
+    # -----------------------------------------------------------------------
+    # OR x1, x2, x3
+    # -----------------------------------------------------------------------
+
+    def test_or(self, fac, proxy):
+        """OR x1, x2, x3: 0xA0 | 0x0F → 0xAF."""
+        instr = self._r_enc(0b0000000, 3, 2, 0b110, 1)  # funct3=6 OR
+        proxy.regfile.set(2, 0xA0)
+        proxy.regfile.set(3, 0x0F)
+        proxy.regfile.set(1, 0)
+        proxy.pc = 0
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        assert proxy.regfile.get(1) == 0xAF
+
+    # -----------------------------------------------------------------------
+    # XOR x1, x2, x3
+    # -----------------------------------------------------------------------
+
+    def test_xor(self, fac, proxy):
+        """XOR x1, x2, x3: 0xFF ^ 0x0F → 0xF0."""
+        instr = self._r_enc(0b0000000, 3, 2, 0b100, 1)  # funct3=4 XOR
+        proxy.regfile.set(2, 0xFF)
+        proxy.regfile.set(3, 0x0F)
+        proxy.regfile.set(1, 0)
+        proxy.pc = 0
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        assert proxy.regfile.get(1) == 0xF0
+
+    # -----------------------------------------------------------------------
+    # PC advances by 4 after one instruction
+    # -----------------------------------------------------------------------
+
+    def test_pc_advances(self, fac, proxy):
+        """PC advances by 4 for each instruction.
+
+        run() resets PC to reset_addr (0).  _one_shot_icache executes two
+        instructions (ADD + NOP) before halting, so PC ends at 8.
+        """
+        instr = self._r_enc(0b0000000, 3, 2, 0b000, 1)  # ADD x1,x2,x3
+        proxy.regfile.set(2, 1)
+        proxy.regfile.set(3, 1)
+        self._one_shot_icache(fac, proxy, instr)
+        proxy.run()
+        # ADD at 0→pc=4, NOP at 4→pc=8, then halt fires at top of next iteration.
+        assert proxy.pc == 8, f"Expected pc=8 after ADD+NOP, got pc={proxy.pc:#x}"

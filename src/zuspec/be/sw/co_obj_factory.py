@@ -410,12 +410,24 @@ class CObjFactory:
             for mname, meth in unbound_methods.items():
                 bound[mname] = (lambda m, p=proxy: lambda *args, **kw: m(p, *args, **kw))(meth)
 
-        # Always expose run() on the proxy
+        # Always expose run() and halt() on the proxy
         _run_fn = getattr(lib, f"{type_name}_run")
         _run_fn.argtypes = [ctypes.c_void_p]
         _run_fn.restype = None
         _captured_ptr = ptr
         bound.setdefault("run", lambda: _run_fn(_captured_ptr))
+
+        _halt_fn = getattr(lib, f"{type_name}_halt", None)
+        if _halt_fn is not None:
+            _halt_fn.argtypes = [ctypes.c_void_p]
+            _halt_fn.restype = None
+            bound.setdefault("halt", lambda: _halt_fn(_captured_ptr))
+
+        _req_halt_fn = getattr(lib, f"{type_name}_request_halt", None)
+        if _req_halt_fn is not None:
+            _req_halt_fn.argtypes = [ctypes.c_void_p]
+            _req_halt_fn.restype = None
+            bound.setdefault("request_halt", lambda: _req_halt_fn(_captured_ptr))
 
         object.__setattr__(proxy, "_c_methods", bound)
 

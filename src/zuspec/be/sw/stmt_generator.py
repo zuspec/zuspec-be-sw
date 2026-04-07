@@ -574,6 +574,13 @@ class StmtGenerator:
         lines.append(f"{self._indent()}while ({test}) {{")
         
         self.indent_level += 1
+        # For infinite loops inject an async halt check so that
+        # request_halt() (safe from ctypes callbacks) can break the loop.
+        if test in ("1", "true"):
+            ind = self._indent()
+            lines.append(
+                f"{ind}if (self->_halt_requested) {{ longjmp(self->_halt_jmp, 1); }}"
+            )
         for s in stmt.body:
             lines.append(self._gen_dm_stmt(s))
         self.indent_level -= 1

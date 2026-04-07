@@ -420,6 +420,15 @@ class DmAsyncMethodGenerator:
         """Generate C while loop."""
         test = self._gen_expr(stmt.test)
         body = self._gen_body(stmt.body)
+        # For infinite loops (while True / while 1), inject an async halt check.
+        # This lets Python safely request a halt by setting _halt_requested
+        # without needing to call longjmp() from a ctypes callback.
+        if test in ("1", "true"):
+            halt_check = (
+                "if (locals->self->_halt_requested) "
+                "{ longjmp(locals->self->_halt_jmp, 1); }\n"
+            )
+            body = halt_check + body
         return f"while ({test}) {{\n{body}\n}}"
 
     def _gen_if_stmt(self, stmt: ir.StmtIf) -> str:

@@ -786,6 +786,8 @@ class CEmitPass(SwPass):
         # Core lifecycle declarations
         w.line(f"ZUSPEC_API void {name}_init({name}_t *self);")
         w.line(f"ZUSPEC_API void {name}_run({name}_t *self);")
+        w.line(f"ZUSPEC_API void {name}_halt({name}_t *self);")
+        w.line(f"ZUSPEC_API void {name}_request_halt({name}_t *self);")
         w.blank()
 
         # Field accessor declarations
@@ -1196,6 +1198,7 @@ class CEmitPass(SwPass):
         w.line(f"void (*_halt_fn)(void *ud, int exit_code);")
         w.line(f"void *_halt_ud;")
         w.line(f"jmp_buf _halt_jmp;")
+        w.line(f"volatile uint8_t _halt_requested;  /* safe async halt from callbacks */")
         w.dedent()
         w.line("};")
 
@@ -1278,6 +1281,7 @@ class CEmitPass(SwPass):
         ]
         w.line(f"ZUSPEC_API void {name}_run({name}_t *self) {{")
         w.indent()
+        w.line("self->_halt_requested = 0;")
         w.line("if (setjmp(self->_halt_jmp) != 0) { return; }")
         if sched_nodes:
             w.line(f"{name}_sched(self);")
@@ -1303,10 +1307,18 @@ class CEmitPass(SwPass):
             w.line("/* no processes — nothing to run */")
         w.dedent()
         w.line("}")
-
-    # ------------------------------------------------------------------
-    # Field accessors
-    # ------------------------------------------------------------------
+        w.blank()
+        w.line(f"ZUSPEC_API void {name}_halt({name}_t *self) {{")
+        w.indent()
+        w.line("longjmp(self->_halt_jmp, 1);")
+        w.dedent()
+        w.line("}")
+        w.blank()
+        w.line(f"ZUSPEC_API void {name}_request_halt({name}_t *self) {{")
+        w.indent()
+        w.line("self->_halt_requested = 1;")
+        w.dedent()
+        w.line("}")
 
     def _emit_field_accessors(
         self,
@@ -1545,6 +1557,10 @@ class CEmitPass(SwPass):
         _fn(f"{name}_init", [ptr], "None")
         # _run
         _fn(f"{name}_run", [ptr], "None")
+        # _halt
+        _fn(f"{name}_halt", [ptr], "None")
+        # _request_halt (safe to call from ctypes callbacks — sets a flag)
+        _fn(f"{name}_request_halt", [ptr], "None")
 
         # field accessors
         for field in dtype.fields:

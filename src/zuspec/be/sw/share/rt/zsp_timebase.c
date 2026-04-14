@@ -587,6 +587,10 @@ int zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay) {
     return 1;  /* Thread suspended */
 }
 
+int zsp_timebase_wait_ps(zsp_thread_t *thread, uint64_t delay_ps) {
+    return zsp_timebase_wait(thread, ZSP_TIME_PS(delay_ps));
+}
+
 zsp_frame_t *zsp_timebase_return(zsp_thread_t *thread, uintptr_t rval) {
     zsp_timebase_t *tb = thread->timebase;
     zsp_frame_t *ret = thread->leaf;

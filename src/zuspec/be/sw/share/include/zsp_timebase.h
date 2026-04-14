@@ -95,14 +95,15 @@ typedef struct zsp_thread_s {
     zsp_thread_exit_f           exit_f;
     struct zsp_frame_s          *leaf;
     
-    zsp_alloc_t                 alloc;      /* Thread-local allocator */
-    zsp_stack_block_t           *block;     /* Stack blocks */
+    zsp_alloc_t                 alloc;          /* Thread-local allocator */
+    zsp_stack_block_t           *block;         /* Stack blocks */
     
-    struct zsp_timebase_s       *timebase;  /* Owning timebase */
-    struct zsp_thread_s         *next;      /* Next in queue */
+    struct zsp_timebase_s       *timebase;      /* Owning timebase */
+    struct zsp_thread_s         *next;          /* Next in queue */
     
-    uintptr_t                   rval;       /* Return value */
+    uintptr_t                   rval;           /* Return value */
     zsp_thread_flags_e          flags;
+    uint64_t                    local_time_ps;  /* LT mode: accumulated time not yet committed */
 } zsp_thread_t;
 
 #define zsp_thread_clear_flags(thread, f) \
@@ -292,6 +293,13 @@ void zsp_timebase_yield(zsp_thread_t *thread);
 int zsp_timebase_wait(zsp_thread_t *thread, zsp_time_t delay);
 
 /**
+ * Wait for a raw picosecond delay (hot-path helper, avoids zsp_time_t construction).
+ * In precise mode: equivalent to zsp_timebase_wait(thread, ZSP_TIME_PS(delay_ps)).
+ * In LT mode: generated code uses ZSP_WAIT_PS instead of calling this directly.
+ */
+int zsp_timebase_wait_ps(zsp_thread_t *thread, uint64_t delay_ps);
+
+/**
  * Return from current frame.
  */
 zsp_frame_t *zsp_timebase_return(zsp_thread_t *thread, uintptr_t ret);
@@ -329,6 +337,35 @@ uintptr_t zsp_timebase_va_arg(va_list *args, size_t sz);
     } *__locals = zsp_frame_locals(ret, struct __locals_s);
 
 #define zsp_task_yield zsp_timebase_yield(thread); break
+
+/*============================================================================
+ * LT-mode Wait Macro
+ *
+ * ZSP_WAIT_PS(thread, delay_ps) — used by generated coroutine code.
+ *
+ * In LT mode (-DZSP_LT_MODE): accumulate into local_time_ps; yield only
+ * when the quantum is exceeded.  ZSP_LT_QUANTUM_PS must be defined before
+ * including this header in LT builds.
+ *
+ * In precise mode (default): call zsp_timebase_wait_ps() directly, which
+ * suspends the thread for exactly delay_ps picoseconds.
+ *============================================================================*/
+#ifdef ZSP_LT_MODE
+#  ifndef ZSP_LT_QUANTUM_PS
+#    error "ZSP_LT_MODE requires ZSP_LT_QUANTUM_PS to be defined"
+#  endif
+#  define ZSP_WAIT_PS(thread, delay_ps)                                     \
+     do {                                                                    \
+         (thread)->local_time_ps += (uint64_t)(delay_ps);                   \
+         if ((thread)->local_time_ps >= (uint64_t)ZSP_LT_QUANTUM_PS) {      \
+             zsp_timebase_wait_ps((thread), (thread)->local_time_ps);        \
+             (thread)->local_time_ps = 0;                                    \
+         }                                                                   \
+     } while (0)
+#else
+#  define ZSP_WAIT_PS(thread, delay_ps) \
+     zsp_timebase_wait_ps((thread), (uint64_t)(delay_ps))
+#endif
 
 #ifdef __cplusplus
 }

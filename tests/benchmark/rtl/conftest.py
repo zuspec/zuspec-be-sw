@@ -1,8 +1,8 @@
 """
-Benchmark test conftest.py.
+RTL benchmark conftest — simulator detection and shared helpers.
 
-Tests are skipped by default; pass ``--run-benchmarks`` to enable them.
-Detects iverilog and verilator in PATH and exposes them as fixtures.
+The ``--run-benchmarks`` option and ``benchmark_test`` marker are registered
+in the parent ``benchmark/conftest.py``.
 """
 from __future__ import annotations
 
@@ -13,34 +13,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import pytest
-
-# ---- Custom CLI option ---------------------------------------------------
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-benchmarks",
-        action="store_true",
-        default=False,
-        help="Run benchmark tests (skipped by default).",
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers",
-        "benchmark_test: performance benchmark (requires --run-benchmarks)",
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-benchmarks", default=False):
-        skip = pytest.mark.skip(reason="pass --run-benchmarks to run")
-        for item in items:
-            if "benchmark_test" in item.keywords:
-                item.add_marker(skip)
-
-
-# ---- Simulator detection -------------------------------------------------
 
 def _find_sim(name: str) -> Optional[str]:
     return shutil.which(name)

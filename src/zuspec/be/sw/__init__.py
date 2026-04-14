@@ -40,6 +40,7 @@ __all__ = [
     "ComponentProxy",
     "EvalProtocol",
     "generate",
+    "generate_tlm",
     "compile_and_load",
     "debug_session",
 ]
@@ -158,6 +159,86 @@ def generate(
     # Copy runtime headers alongside generated files
     _share_include = Path(__file__).parent / "share" / "include"
     for _hdr in _share_include.glob("zsp_rtl*.h"):
+        dest = output_dir / _hdr.name
+        _shutil.copy(_hdr, dest)
+        if dest not in written:
+            written.append(dest)
+
+    return written
+
+
+def generate_tlm(
+    component_class: type,
+    output_dir: "str | Path",
+    *,
+    sync_mode: str = "lt",
+    lt_quantum_ps: int = 1_000_000,
+    debug: bool = False,
+) -> List[Path]:
+    """Run the TLM pass pipeline and write generated files.
+
+    Parameters
+    ----------
+    component_class:
+        A ``@zdc.dataclass`` component class with TLM method ports.
+    output_dir:
+        Directory to write generated files into.
+    sync_mode:
+        ``"lt"`` (loosely-timed, default) or ``"at"`` (approximately-timed /
+        precise).  In LT mode, ``ZSP_WAIT_PS`` accumulates local time and
+        only synchronises at quantum boundaries.
+    lt_quantum_ps:
+        LT quantum size in picoseconds (default 1 µs).  Only used when
+        ``sync_mode="lt"``.
+    debug:
+        When ``True``, emit extra diagnostics.
+
+    Returns
+    -------
+    List of ``Path`` objects for every file written.
+    """
+    import shutil as _shutil
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    from .passes.elaborate import ElaborateSwPass
+    from .passes.channel_port_lower import ChannelPortLowerPass
+    from .passes.async_lower import AsyncLowerPass
+    from .passes.wait_point_analysis import WaitPointAnalysisPass
+    from .passes.devirtualize import DevirtualizePass
+    from .passes.frame_eliminate import FrameEliminatePass
+    from .passes.bulk_sync import BulkSyncSchedulerPass
+    from .passes.c_emit import CEmitPass
+
+    dmf = DataModelFactory()
+    build_ctx = dmf.build(component_class)
+    ctx = SwContext(type_m=dict(build_ctx.type_m))
+    ctx.tlm_sync_mode = sync_mode
+    ctx.tlm_lt_quantum_ps = lt_quantum_ps
+
+    pipeline = [
+        ElaborateSwPass(),
+        ChannelPortLowerPass(),
+        AsyncLowerPass(),
+        WaitPointAnalysisPass(),
+        DevirtualizePass(),
+        FrameEliminatePass(),
+        BulkSyncSchedulerPass(lt_quantum_ps=lt_quantum_ps),
+        CEmitPass(),
+    ]
+    for p in pipeline:
+        ctx = p.run(ctx)
+
+    written: List[Path] = []
+    for filename, content in ctx.output_files:
+        dest = output_dir / filename
+        dest.write_text(content)
+        written.append(dest)
+
+    # Copy TLM runtime headers alongside generated files
+    _share_include = Path(__file__).parent / "share" / "include"
+    for _hdr in _share_include.glob("zsp*.h"):
         dest = output_dir / _hdr.name
         _shutil.copy(_hdr, dest)
         if dest not in written:

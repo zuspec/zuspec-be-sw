@@ -56,6 +56,11 @@ class DmAsyncMethodGenerator:
         if self._is_trivial_wait_only(func):
             return self._generate_trivial_wait_only(func)
 
+        # Check for infinite-loop-with-await pattern (while True: x = await port.get(); ...)
+        pre_loop, while_stmt = self._extract_infinite_loop(func.body)
+        if while_stmt is not None and self._body_has_await(while_stmt.body):
+            return self._generate_infinite_loop_coroutine(func, pre_loop, while_stmt)
+
         # Analyze the method to find await points
         blocks = self._split_at_awaits(func.body)
         
@@ -239,7 +244,7 @@ class DmAsyncMethodGenerator:
                     local_vars.append((arg.arg, var_type))
                     seen_vars.add(arg.arg)
         
-        # Walk statements to find assignments
+        # Walk statements recursively to find assignments (including inside loops/if)
         def extract_from_stmt(stmt):
             if isinstance(stmt, ir.StmtAnnAssign):
                 # Typed declaration: ``var: T = ...`` or action result var
@@ -258,11 +263,18 @@ class DmAsyncMethodGenerator:
                     if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
                         if var_name not in seen_vars:
-                            # Determine type - for now assume int32_t
                             var_type = "int32_t"
                             local_vars.append((var_name, var_type))
                             seen_vars.add(var_name)
-        
+            elif isinstance(stmt, (ir.StmtWhile, ir.StmtFor)):
+                for child in getattr(stmt, 'body', []):
+                    extract_from_stmt(child)
+            elif isinstance(stmt, ir.StmtIf):
+                for child in getattr(stmt, 'body', []):
+                    extract_from_stmt(child)
+                for child in getattr(stmt, 'orelse', []):
+                    extract_from_stmt(child)
+
         for stmt in stmts:
             extract_from_stmt(stmt)
         
@@ -856,6 +868,172 @@ class DmAsyncMethodGenerator:
         lines.append(f"    thread->exit_f = (zsp_thread_exit_f)&zsp_timebase_thread_free;")
         lines.append(f"}}")
 
+        return "\n".join(lines)
+
+    # -----------------------------------------------------------------------
+    # Helpers for while-True-with-await pattern
+    # -----------------------------------------------------------------------
+
+    def _extract_infinite_loop(self, stmts: List[ir.Stmt]):
+        """Return (pre_loop_stmts, while_stmt) if body ends with an infinite while loop.
+        An infinite loop is `while True:` or `while 1:`.  Returns (None, None) otherwise."""
+        for i, stmt in enumerate(stmts):
+            if isinstance(stmt, ir.StmtWhile):
+                test = self._gen_expr(stmt.test)
+                if test in ("1", "true"):
+                    return stmts[:i], stmt
+        return None, None
+
+    def _body_has_await(self, stmts: List[ir.Stmt]) -> bool:
+        """Return True if any statement in *stmts* (or nested bodies) contains an await."""
+        for stmt in stmts:
+            if self._find_await(stmt) is not None:
+                return True
+            for child_list in (getattr(stmt, 'body', []), getattr(stmt, 'orelse', [])):
+                if self._body_has_await(child_list):
+                    return True
+        return False
+
+    def _split_body_at_first_await(self, stmts: List[ir.Stmt]):
+        """Split *stmts* at the first direct await statement.
+        Returns (pre, await_expr, await_stmt, post)."""
+        for i, stmt in enumerate(stmts):
+            aw = self._find_await(stmt)
+            if aw is not None:
+                return stmts[:i], aw, stmt, stmts[i+1:]
+        return stmts, None, None, []
+
+    def _generate_infinite_loop_coroutine(self, func: ir.Function, pre_loop: List[ir.Stmt], while_stmt: ir.StmtWhile) -> str:
+        """Generate a coroutine for the pattern:
+            <pre_loop stmts>
+            while True:
+                <pre_await body>
+                x = await port.get()  (or await port.put(...))
+                <post_await body>
+
+        Produces two switch cases:
+          Case 0: alloc, pre_loop, halt-check, pre_await_body, issue first await (idx=1)
+          Case 1: get rval, post_await_body, halt-check, pre_await_body, re-issue await (idx=1)
+          Case 2: unreachable return (closes the switch cleanly)
+        """
+        func_name = f"{self.component_name}_{self.method_name}"
+        params = [arg for arg in (func.args.args if func.args else []) if arg.arg != 'self']
+
+        # Split while body at first await
+        pre_await_body, await_expr, await_stmt, post_await_body = \
+            self._split_body_at_first_await(while_stmt.body)
+
+        if await_expr is None:
+            raise ValueError(
+                f"while True loop in '{self.method_name}' was detected as having an await "
+                f"but none could be found at the top level of the loop body."
+            )
+
+        # Collect local vars (recursive - already fixed)
+        local_vars = self._extract_local_vars(func.body, func.args)
+
+        await_code = self._gen_await_code(await_expr, await_stmt)
+
+        lines = []
+        # Function signature
+        lines.append(f"static zsp_frame_t *{func_name}_task(")
+        lines.append(f"        zsp_timebase_t *tb,")
+        lines.append(f"        zsp_thread_t *thread,")
+        lines.append(f"        int idx,")
+        lines.append(f"        va_list *args) {{")
+        lines.append(f"    zsp_frame_t *ret = thread->leaf;")
+        lines.append(f"    (void)tb;")
+        lines.append(f"")
+        lines.append(f"    typedef struct {{")
+        lines.append(f"        {self.component_name} *self;")
+        for var_name, var_type in local_vars:
+            lines.append(f"        {var_type} {var_name};")
+        lines.append(f"    }} locals_t;")
+        lines.append(f"")
+        lines.append(f"    switch (idx) {{")
+
+        # ---- Case 0: init + first await ----
+        lines.append(f"        case 0: {{")
+        lines.append(f"            ret = zsp_timebase_alloc_frame(thread, sizeof(locals_t), &{func_name}_task);")
+        lines.append(f"            locals_t *locals = zsp_frame_locals(ret, locals_t);")
+        lines.append(f"            if (args) {{")
+        lines.append(f"                locals->self = ({self.component_name} *)va_arg(*args, void *);")
+        for param in params:
+            c_type = self._get_param_c_type(param)
+            va_type = self._get_va_arg_type(c_type)
+            lines.append(f"                locals->{param.arg} = ({c_type})va_arg(*args, {va_type});")
+        lines.append(f"            }}")
+        # pre-loop stmts
+        for stmt in pre_loop:
+            code = self._gen_stmt(stmt)
+            if code:
+                for line in code.split('\n'):
+                    if line.strip():
+                        lines.append(f"            {line}")
+        # halt check + pre-await body
+        lines.append(f"            if (locals->self->_halt_requested) {{ longjmp(locals->self->_halt_jmp, 1); }}")
+        for stmt in pre_await_body:
+            code = self._gen_stmt(stmt)
+            if code:
+                for line in code.split('\n'):
+                    if line.strip():
+                        lines.append(f"            {line}")
+        lines.append(f"            ret->idx = 1;")
+        lines.append(f"            {await_code}")
+        lines.append(f"            break;")
+        lines.append(f"        }}")
+
+        # ---- Case 1: resume + post body + loop back ----
+        lines.append(f"        case 1: {{")
+        lines.append(f"            locals_t *locals = zsp_frame_locals(ret, locals_t);")
+        # get rval if assigned
+        if isinstance(await_stmt, ir.StmtAssign):
+            target = self._gen_expr(await_stmt.targets[0])
+            lines.append(f"            {target} = (int)thread->rval;  /* result from await */")
+        # post-await body
+        for stmt in post_await_body:
+            code = self._gen_stmt(stmt)
+            if code:
+                for line in code.split('\n'):
+                    if line.strip():
+                        lines.append(f"            {line}")
+        # loop back: halt check + pre-await body + re-issue await
+        lines.append(f"            if (locals->self->_halt_requested) {{ longjmp(locals->self->_halt_jmp, 1); }}")
+        for stmt in pre_await_body:
+            code = self._gen_stmt(stmt)
+            if code:
+                for line in code.split('\n'):
+                    if line.strip():
+                        lines.append(f"            {line}")
+        lines.append(f"            ret->idx = 1;  /* loop */")
+        lines.append(f"            {await_code}")
+        lines.append(f"            break;")
+        lines.append(f"        }}")
+
+        # ---- Case 2: unreachable (infinite loop) ----
+        lines.append(f"        case 2: {{")
+        lines.append(f"            ret = zsp_timebase_return(thread, 0);")
+        lines.append(f"            break;")
+        lines.append(f"        }}")
+        lines.append(f"    }}")
+        lines.append(f"    return ret;")
+        lines.append(f"}}")
+        lines.append(f"")
+
+        # Wrapper function
+        wrapper_params = [f"{self.component_name} *self"]
+        for param in params:
+            c_type = self._get_param_c_type(param)
+            wrapper_params.append(f"{c_type} {param.arg}")
+        wrapper_params.append("zsp_timebase_t *tb")
+        lines.append(f"void {func_name}({', '.join(wrapper_params)}) {{")
+        call_args = ["self"]
+        for param in params:
+            call_args.append(param.arg)
+        lines.append(f"    zsp_thread_t *thread = zsp_timebase_thread_create(")
+        lines.append(f"        tb, &{func_name}_task, ZSP_THREAD_FLAGS_NONE, {', '.join(call_args)});")
+        lines.append(f"    thread->exit_f = (zsp_thread_exit_f)&zsp_timebase_thread_free;")
+        lines.append(f"}}")
         return "\n".join(lines)
 
     def _gen_time_expr(self, expr: ir.Expr) -> str:

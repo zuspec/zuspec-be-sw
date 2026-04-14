@@ -99,7 +99,11 @@ class ChannelPortLowerPass(SwPass):
                 for method in dtype.methods
             ]
             name = dtype.name or field.name
-            return SwFuncPtrStruct(struct_name=f"{name}_t", slots=slots)
+            return SwFuncPtrStruct(
+                struct_name=f"{name}_t",
+                slots=slots,
+                protocol_type=dtype,
+            )
 
         if isinstance(dtype, ir.DataTypeRef):
             resolved = ctxt.type_m.get(dtype.ref_name)

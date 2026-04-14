@@ -228,10 +228,16 @@ def test_emit_func_ptr_struct():
     )
     comp = _simple_comp("MemComp")
     files = _run(comp, [fps])
-    src = files["MemComp.c"]
-    assert "MemIface_t" in src
-    assert "read" in src
-    assert "write" in src
+    # SwFuncPtrStruct typedefs are now emitted in a shared protocol header
+    # (MemIface.h) so that multiple component headers can include it without
+    # redefining the type.  The component header should include it.
+    hdr = files["MemComp.h"]
+    assert '#include "MemIface.h"' in hdr
+    # The struct definition lives in the protocol header
+    proto_hdr = files["MemIface.h"]
+    assert "MemIface_t" in proto_hdr
+    assert "read" in proto_hdr
+    assert "write" in proto_hdr
 
 
 # ---------------------------------------------------------------------------

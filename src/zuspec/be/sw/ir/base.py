@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from typing import Dict, List, Optional, Set, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, Any, Tuple, TYPE_CHECKING
 
 from zuspec.dataclasses.ir.domain_node import DomainNode
 from zuspec.dataclasses.ir.connection import Connection
@@ -26,6 +26,56 @@ class SwNode(DomainNode):
         return []
 
 
+@dc.dataclass(kw_only=True)
+class SwConnection:
+    """A resolved port-to-export binding derived from a ``__bind__`` declaration.
+
+    Attributes
+    ----------
+    initiator_component:
+        Type name of the component owning the initiating (port) side.
+    initiator_port:
+        Field name of the port on the initiator component.
+    initiator_inst_path:
+        Dot-separated instance path of the initiator component instance.
+    target_component:
+        Type name of the component owning the export side.
+    target_export:
+        Field name of the export on the target component.
+    target_inst_path:
+        Dot-separated instance path of the target component instance.
+    protocol:
+        The ``ir.DataTypeProtocol`` node shared by the port and export.
+    """
+    initiator_component: str = dc.field(default="")
+    initiator_port: str = dc.field(default="")
+    initiator_inst_path: str = dc.field(default="")
+    target_component: str = dc.field(default="")
+    target_export: str = dc.field(default="")
+    target_inst_path: str = dc.field(default="")
+    protocol: Optional[Any] = dc.field(default=None)  # ir.DataTypeProtocol
+
+
+@dc.dataclass
+class MethodLatency:
+    """Static latency bounds for a single component method.
+
+    Attributes
+    ----------
+    min_ps:
+        Minimum accumulated wait time across all execution paths (ps).
+        Zero if no ``wait()`` on the shortest path.
+    max_ps:
+        Maximum accumulated wait time.  ``sys.maxsize`` when unbounded
+        (e.g. the method contains an infinite loop with a wait inside).
+    has_wait:
+        True if the method calls ``wait()`` directly or transitively.
+    """
+    min_ps: int = 0
+    max_ps: int = 0
+    has_wait: bool = False
+
+
 @dc.dataclass
 class SwContext(ir.Context):
     """Extended IR context used by all SW backend passes.
@@ -47,6 +97,12 @@ class SwContext(ir.Context):
     output_files:
         List of paths (``str`` or ``pathlib.Path``) of files written by
         ``CEmitPass``.
+    connections:
+        Resolved port-to-export bindings populated by ``ElaboratePass`` from
+        ``__bind__`` declarations.
+    method_latencies:
+        Static latency bounds populated by ``WaitPointAnalysisPass``.
+        Key is ``(component_name, method_name)``.
     """
 
     root_inst: Optional[Any] = dc.field(default=None)
@@ -62,6 +118,21 @@ class SwContext(ir.Context):
     component class.  Used by ``StmtGenerator`` to resolve Python enum
     references (e.g. ``AluOp.ADD`` → integer value) in generated C.
     """
+
+    # ------------------------------------------------------------------
+    # TLM / method-port annotations
+    # ------------------------------------------------------------------
+    connections: List[SwConnection] = dc.field(default_factory=list)
+    """Resolved port-to-export bindings from ``__bind__`` elaboration."""
+    method_latencies: Dict[Tuple[str, str], MethodLatency] = dc.field(default_factory=dict)
+    """Static latency bounds per (component_name, method_name)."""
+    tlm_sync_mode: str = dc.field(default="")
+    """TLM synchronisation mode: ``"lt"`` (loosely-timed) or ``"precise"`` (or empty for
+    non-TLM generation).  Set by ``generate_tlm()``; controls whether coroutine wait
+    points emit ``ZSP_WAIT_PS`` (TLM) or the legacy ``zsp_timebase_wait`` call."""
+    tlm_lt_quantum_ps: int = dc.field(default=1_000_000)
+    """LT quantum in picoseconds.  Used by ``BulkSyncSchedulerPass`` and ``FrameEliminatePass``
+    to determine which methods can skip the coroutine frame.  Default: 1 µs."""
 
     # ------------------------------------------------------------------
     # RTL-specific annotations (populated by passes/rtl/ pipeline)

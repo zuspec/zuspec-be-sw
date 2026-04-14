@@ -71,9 +71,13 @@ class SwFuncPtrStruct(SwNode):
         C typedef name for this struct (e.g. ``MemIface_t``).
     slots:
         One ``SwFuncSlot`` per protocol method or callable.
+    protocol_type:
+        The ``ir.DataTypeProtocol`` this struct was built from, if any.
+        Used to look up original Python type hints for precise C types.
     """
     struct_name: Optional[str] = dc.field(default=None)
     slots: List[SwFuncSlot] = dc.field(default_factory=list)
+    protocol_type: Optional[Any] = dc.field(default=None)  # ir.DataTypeProtocol
 
 
 @dc.dataclass(kw_only=True)
@@ -96,3 +100,29 @@ class SwExportBind(SwNode):
     slot_name: Optional[str] = dc.field(default=None)
     target_comp_path: Optional[str] = dc.field(default=None)
     target_func_name: Optional[str] = dc.field(default=None)
+
+
+@dc.dataclass(kw_only=True)
+class SwDirectCall(SwNode):
+    """A devirtualized method-port call — direct function call to a known export.
+
+    Produced by ``DevirtualizePass`` when a port call site can be resolved to a
+    single concrete target at compile time (because the binding graph is static).
+
+    Attributes
+    ----------
+    callee_component:
+        Type name of the concrete component that owns the implementation
+        (e.g. ``"DRAMModel"``).
+    callee_method:
+        Coroutine task function name on the callee (e.g. ``"DRAMModel_transport_task"``).
+    callee_impl_expr:
+        C expression that evaluates to the ``impl`` (``void *``) pointer at the
+        call site (e.g. ``"self->bank0"``).
+    args:
+        List of C expressions for additional method arguments.
+    """
+    callee_component: str = dc.field(default="")
+    callee_method: str = dc.field(default="")
+    callee_impl_expr: str = dc.field(default="")
+    args: List[str] = dc.field(default_factory=list)

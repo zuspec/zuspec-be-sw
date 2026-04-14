@@ -175,11 +175,13 @@ def _collect_stub_ptr_names(stmts: list) -> Set[str]:
     These names are used via '->field' pointer dereference (e.g. 'claim->t->execute').
     They need to be declared as '_zsp_stub_t *' rather than plain 'uint32_t'.
     """
+    # Pseudo-variables used only for type-cast notation (e.g. zdc.u64(x)) — not real pointers.
+    _PSEUDO_VARS = frozenset({"zdc"})
     names: Set[str] = set()
 
     def _visit(node: Any) -> None:
         if isinstance(node, ir.ExprAttribute):
-            if isinstance(node.value, ir.ExprRefUnresolved):
+            if isinstance(node.value, ir.ExprRefUnresolved) and node.value.name not in _PSEUDO_VARS:
                 names.add(node.value.name)
         for attr in ("lhs", "rhs", "left", "value", "operand", "func",
                      "base", "test", "target", "targets", "subject"):
@@ -219,6 +221,42 @@ def _collect_action_type_hints(stmts: list) -> Dict[str, "ir.DataType"]:
             children = getattr(stmt, attr, None)
             if isinstance(children, list):
                 hints.update(_collect_action_type_hints(children))
+    return hints
+
+
+def _infer_local_types_from_assigns(stmts: list) -> Dict[str, str]:
+    """Infer C type strings for local variables from their zdc.uN() / zdc.iN() assignment RHS.
+
+    Returns {var_name: c_type_str} for variables assigned via type-cast notation,
+    e.g. ``addr = zdc.uint64_t(0)`` → ``{"addr": "uint64_t"}``.
+    """
+    _zdc_types = {
+        "u8": "uint8_t", "u16": "uint16_t", "u32": "uint32_t", "u64": "uint64_t",
+        "i8": "int8_t", "i16": "int16_t", "i32": "int32_t", "i64": "int64_t",
+        "uint8_t": "uint8_t", "uint16_t": "uint16_t",
+        "uint32_t": "uint32_t", "uint64_t": "uint64_t",
+        "int8_t": "int8_t", "int16_t": "int16_t",
+        "int32_t": "int32_t", "int64_t": "int64_t",
+    }
+    hints: Dict[str, str] = {}
+    for stmt in stmts:
+        if isinstance(stmt, (ir.StmtAssign, ir.StmtAnnAssign)):
+            value = getattr(stmt, "value", None)
+            tgts = getattr(stmt, "targets", None) or [getattr(stmt, "target", None)]
+            target_name = None
+            if tgts and isinstance(tgts[0], (ir.ExprRefLocal, ir.ExprRefUnresolved)):
+                target_name = tgts[0].name
+            if target_name and isinstance(value, ir.ExprCall):
+                func = value.func
+                if (isinstance(func, ir.ExprAttribute)
+                        and isinstance(func.value, ir.ExprRefUnresolved)
+                        and func.value.name == "zdc"
+                        and func.attr in _zdc_types):
+                    hints[target_name] = _zdc_types[func.attr]
+        for attr in ("body", "orelse"):
+            children = getattr(stmt, attr, None)
+            if isinstance(children, list):
+                hints.update(_infer_local_types_from_assigns(children))
     return hints
 
 
@@ -297,6 +335,64 @@ def _c_type_from_annotation(annotation_expr, ctxt: SwContext) -> str:
     return "uint32_t"
 
 
+def _py_annotation_to_c(py_type: Any, ctxt: SwContext) -> str:
+    """Convert a raw Python type annotation to a C type string.
+
+    More powerful than ``_c_type_from_annotation`` because it receives the
+    original Python type object (not an IR ``ExprConstant``) and can handle
+    ``typing.Annotated`` directly.
+    """
+    if py_type is None:
+        return "void"
+    import typing as _t
+    origin = _t.get_origin(py_type)
+    if origin is _t.Annotated:
+        args = _t.get_args(py_type)
+        if len(args) >= 2:
+            meta = args[1]
+            if hasattr(meta, "width"):
+                bits = meta.width
+                if bits <= 8: bits = 8
+                elif bits <= 16: bits = 16
+                elif bits <= 32: bits = 32
+                else: bits = 64
+                signed = getattr(meta, "signed", False)
+                return f"{'int' if signed else 'uint'}{bits}_t"
+    import enum as _enum
+    if isinstance(py_type, type) and issubclass(py_type, _enum.IntEnum):
+        return "uint32_t"
+    if py_type is type(None) or py_type is None:
+        return "void"
+    if hasattr(py_type, "__name__"):
+        name = py_type.__name__
+        if name in ctxt.type_m:
+            return f"{name}_t"
+        if name in ("int", "NoneType"):
+            return "uint32_t" if name == "int" else "void"
+    return "uint32_t"
+
+
+def _get_protocol_method_hints(py_protocol: Any) -> Dict[str, Dict[str, Any]]:
+    """Return per-method type hints for a Python Protocol class.
+
+    Returns a dict ``{method_name: {"param": type, ..., "return": type}}``.
+    Uses ``include_extras=True`` to preserve ``typing.Annotated`` metadata
+    (needed to distinguish ``zdc.uint64_t`` from plain ``int``).
+    """
+    import typing as _t
+    import inspect as _inspect
+    result: Dict[str, Dict[str, Any]] = {}
+    for name, member in _inspect.getmembers(py_protocol, predicate=_inspect.isfunction):
+        if name.startswith("_"):
+            continue
+        try:
+            hints = _t.get_type_hints(member, include_extras=True)
+            result[name] = hints
+        except Exception:
+            result[name] = {}
+    return result
+
+
 def _py_uint_width(annotated_type: Any) -> int:
     """Extract bit width from a zdc Annotated integer type (e.g. u5 -> 5, u32 -> 32)."""
     args = _typing.get_args(annotated_type)
@@ -372,6 +468,26 @@ def _collect_field_meta(
                         # Awaitable[T] → unwrap
                         inner = _typing.get_args(ret_type)
                         m.callable_ret_bits = _py_uint_width(inner[0]) if inner else 32
+            m.accessible = False
+            result[field.name] = m
+            continue
+
+        if field.kind in (ir.FieldKind.ProtocolPort, ir.FieldKind.ProtocolExport):
+            # Resolve protocol type name from Python hint or IR
+            proto_name = None
+            hint = py_hints.get(field.name)
+            if hint is not None and hasattr(hint, "__name__"):
+                proto_name = hint.__name__
+            if proto_name is None and isinstance(field.datatype, ir.DataTypeRef):
+                resolved = ctxt.type_m.get(field.datatype.ref_name)
+                if isinstance(resolved, ir.DataTypeProtocol):
+                    proto_name = resolved.name or field.datatype.ref_name
+                else:
+                    proto_name = field.datatype.ref_name
+            if proto_name is None:
+                proto_name = field.name
+            m.kind = "method_port" if field.kind == ir.FieldKind.ProtocolPort else "method_export"
+            m.comp_type = f"{proto_name}_t"
             m.accessible = False
             result[field.name] = m
             continue
@@ -638,6 +754,50 @@ def _decode_bind_wirings(
     return results
 
 
+# ---------------------------------------------------------------------------
+# Time-unit helpers for LT-mode wait codegen
+# ---------------------------------------------------------------------------
+
+_TIME_UNIT_PS: Dict[str, int] = {
+    "ps": 1,
+    "ns": 1_000,
+    "us": 1_000_000,
+    "ms": 1_000_000_000,
+    "s":  1_000_000_000_000,
+}
+
+
+def _duration_to_ps_str(dur) -> str:
+    """Convert a duration IR ``Expr`` to a C picosecond literal or expression.
+
+    Handles:
+    - ``None``                             → ``"0"``
+    - ``ExprConstant(value=N)``            → ``str(N)``  (treated as raw ps)
+    - ``ExprCall(func=ns|us|ms|s|ps, N)``  → constant-folded picosecond literal
+    """
+    if dur is None:
+        return "0"
+    if isinstance(dur, ir.ExprConstant) and isinstance(dur.value, (int, float)):
+        return str(int(dur.value))
+    if isinstance(dur, ir.ExprCall) and dur.args:
+        fn = dur.func
+        fn_name: Optional[str] = None
+        if isinstance(fn, ir.ExprRefUnresolved):
+            fn_name = fn.name
+        elif isinstance(fn, ir.ExprAttribute):
+            fn_name = fn.attr
+        if fn_name in _TIME_UNIT_PS:
+            arg = dur.args[0]
+            mult = _TIME_UNIT_PS[fn_name]
+            if isinstance(arg, ir.ExprConstant) and isinstance(arg.value, (int, float)):
+                return str(int(arg.value) * mult)
+            return f"(uint64_t)({arg}) * {mult}ULL"
+    # Fallback: emit raw value if available
+    if hasattr(dur, "value"):
+        return str(dur.value)
+    return "0"
+
+
 class _Writer:
     """Small helper for indented C code generation."""
 
@@ -674,10 +834,25 @@ class CEmitPass(SwPass):
     """Emit ``.h`` / ``.c`` files for each component in SwContext."""
 
     def run(self, ctxt: SwContext) -> SwContext:
+        # Collect all unique SwFuncPtrStructs across all components and emit
+        # a shared protocol header (e.g. IMemory.h) for each one so that
+        # multiple component headers can include it without redefining the type.
+        seen_fps: dict = {}  # struct_name -> SwFuncPtrStruct
+        for type_name, nodes in ctxt.sw_nodes.items():
+            for node in nodes:
+                if isinstance(node, SwFuncPtrStruct) and node.struct_name:
+                    # Strip trailing _t for the header filename (IMemory_t -> IMemory)
+                    base = node.struct_name[:-2] if node.struct_name.endswith("_t") else node.struct_name
+                    if base not in seen_fps:
+                        seen_fps[base] = node
+        for base_name, fps_node in seen_fps.items():
+            proto_header = self._emit_protocol_header(base_name, fps_node, ctxt)
+            ctxt.output_files.append((f"{base_name}.h", proto_header))
+
         for type_name, dtype in ctxt.type_m.items():
             if not isinstance(dtype, ir.DataTypeComponent):
                 continue
-            header = self._emit_header(type_name, dtype, ctxt)
+            header = self._emit_header(type_name, dtype, ctxt, protocol_headers=set(seen_fps.keys()))
             source = self._emit_source(type_name, dtype, ctxt)
             abi_sidecar = self._emit_abi_sidecar(type_name, dtype, ctxt)
             ctxt.output_files.append((f"{type_name}.h", header))
@@ -685,12 +860,29 @@ class CEmitPass(SwPass):
             ctxt.output_files.append((f"{type_name}_abi.py", abi_sidecar))
         return ctxt
 
+    def _emit_protocol_header(self, base_name: str, fps: "SwFuncPtrStruct", ctxt: SwContext) -> str:
+        """Emit a standalone ``<base_name>.h`` that defines the protocol struct."""
+        w = _Writer()
+        guard = f"_{base_name.upper()}_H"
+        w.line(f"#ifndef {guard}")
+        w.line(f"#define {guard}")
+        w.blank()
+        w.line("#include <stdint.h>")
+        w.line("#include <stddef.h>")
+        w.line('#include "zsp_timebase.h"')
+        w.blank()
+        self._emit_func_ptr_struct(fps, ctxt, w)
+        w.blank()
+        w.line(f"#endif /* {guard} */")
+        return w.getvalue()
+
     # ------------------------------------------------------------------
     # Header
     # ------------------------------------------------------------------
 
     def _emit_header(
-        self, name: str, dtype: ir.DataTypeComponent, ctxt: SwContext
+        self, name: str, dtype: ir.DataTypeComponent, ctxt: SwContext,
+        protocol_headers: set = None,
     ) -> str:
         w = _Writer()
         guard = f"_{name.upper()}_H"
@@ -761,13 +953,35 @@ class CEmitPass(SwPass):
         # action types referenced by this component.
         self._emit_static_inline_funcs(name, ctxt, w)
 
+        # Include or inline-emit SwFuncPtrStruct typedefs so other
+        # translation units can include and use the port types.
+        nodes = ctxt.sw_nodes.get(name, [])
+        has_fps = any(isinstance(n, SwFuncPtrStruct) for n in nodes)
+        if has_fps:
+            w.line('#include "zsp_timebase.h"')
+            w.blank()
+        emitted_fps: set = set()
+        for node in nodes:
+            if isinstance(node, SwFuncPtrStruct):
+                if node.struct_name in emitted_fps:
+                    continue
+                emitted_fps.add(node.struct_name)
+                # If a shared protocol header was generated for this struct,
+                # include it instead of re-defining it inline.
+                base = node.struct_name[:-2] if node.struct_name.endswith("_t") else node.struct_name
+                if protocol_headers is not None and base in protocol_headers:
+                    w.line(f'#include "{base}.h"')
+                    w.blank()
+                else:
+                    self._emit_func_ptr_struct(node, ctxt, w)
+                    w.blank()
+
         # Forward-declare the struct typedef, then emit the full struct body
         # so that other .h files that include this one can embed the type by value.
         w.line(f"typedef struct {name}_s {name}_t;")
         w.blank()
 
         # Full struct definition (must be in header for sub-component embedding)
-        nodes = ctxt.sw_nodes.get(name, [])
         self._emit_struct_def(name, dtype, nodes, fmeta, ctxt, w)
         w.blank()
 
@@ -827,6 +1041,21 @@ class CEmitPass(SwPass):
                     f"{name}_{field.name}_fn_t fn, void *ud);"
                 )
 
+        # Method port binder declarations
+        for field in dtype.fields:
+            m = fmeta.get(field.name)
+            if m and m.kind == "method_port":
+                w.line(
+                    f"ZUSPEC_API void {name}_bind_{field.name}("
+                    f"{name}_t *self, {m.comp_type} proto, void *impl);"
+                )
+
+        # Method export descriptor declarations (defined in the .c file)
+        for field in dtype.fields:
+            m = fmeta.get(field.name)
+            if m and m.kind == "method_export":
+                w.line(f"extern {m.comp_type} {name}_{field.name};")
+        w.blank()
         # Memory backdoor accessor declarations + callable-port-compatible fetch
         for field in dtype.fields:
             m = fmeta.get(field.name)
@@ -926,6 +1155,75 @@ class CEmitPass(SwPass):
             w.line('#include "zsp_alloc.h"')
             w.line('#include "zsp_init_ctxt.h"')
             w.blank()
+
+        # Emit extern declarations for any devirtualized call targets.
+        # When a port call is statically resolved to a concrete implementation,
+        # the generated code emits a direct call {TargetComp}__{slot}[_task]
+        # instead of the indirect function-pointer.  The compiler must see a
+        # prototype for these functions; they are declared here as extern.
+        _devirt = getattr(ctxt, "devirtualized", {})
+        _devirt_decls = {}  # fn_name → decl_str
+        for (init_comp, init_port), conn in _devirt.items():
+            if init_comp != name:
+                continue
+            proto = conn.protocol
+            if proto is None:
+                continue
+            target = conn.target_component
+            if not target:
+                continue
+            # Get precise Python-level type hints for the protocol (same logic as
+            # _emit_func_ptr_struct) to produce accurate C parameter types.
+            proto_hints: dict = {}
+            if proto.py_type is not None:
+                try:
+                    proto_hints = _get_protocol_method_hints(proto.py_type)
+                except Exception:
+                    pass
+            for method in proto.methods:
+                slot = method.name
+                is_async = getattr(method, "is_async", False)
+                fn_name = f"{target}__{slot}" + ("_task" if is_async else "")
+                if fn_name in _devirt_decls:
+                    continue
+                py_hints = proto_hints.get(slot, {})
+                # Build C parameter list using the same helper as _emit_func_ptr_struct
+                arg_parts = self._func_ptr_arg_types(method, ctxt, py_hints)
+                params = ["void *impl"]
+                if is_async:
+                    params.append("struct zsp_thread_s *thread")
+                    params.extend(arg_parts)
+                    params.append("struct zsp_frame_s **ret_pp")
+                    ret_c = "struct zsp_frame_s *"
+                else:
+                    params.extend(arg_parts)
+                    ret_py = py_hints.get("return")
+                    if ret_py is not None:
+                        ret_c = _py_annotation_to_c(ret_py, ctxt)
+                    else:
+                        ret_c = _c_type(method.returns, ctxt)
+                decl = f"extern {ret_c} {fn_name}({', '.join(params)});"
+                _devirt_decls[fn_name] = decl
+        if _devirt_decls:
+            w.line("/* Forward declarations for devirtualized port implementations */")
+            for decl in _devirt_decls.values():
+                w.line(decl)
+            w.blank()
+
+        # Emit global export descriptor definitions for ProtocolExport fields.
+        # Function pointers are left NULL; the user (or DramModel_bind_exports)
+        # must install them before simulation starts.
+        has_method_export = any(m.kind == "method_export" for m in fmeta.values())
+        if has_method_export:
+            for field in dtype.fields:
+                m = fmeta.get(field.name)
+                if m and m.kind == "method_export":
+                    w.line(
+                        f"/* Export descriptor for {field.name} — "
+                        f"set function pointers before use */"
+                    )
+                    w.line(f"{m.comp_type} {name}_{field.name} = {{0}};")
+            w.blank()
         has_coroutine = any(isinstance(n, SwCoroutineFrame) for n in nodes)
         if has_coroutine:
             w.line('#include "zsp_timebase.h"')
@@ -935,13 +1233,8 @@ class CEmitPass(SwPass):
         w.line("#pragma GCC visibility push(hidden)")
         w.blank()
 
-        # (struct body is in the .h for sub-component embedding compatibility)
-
-        # Func-ptr structs
-        for node in nodes:
-            if isinstance(node, SwFuncPtrStruct):
-                self._emit_func_ptr_struct(node, w)
-                w.blank()
+        # (struct body and SwFuncPtrStruct typedefs are in the .h for sub-component
+        # embedding compatibility and cross-TU port type sharing)
 
         # Coroutine locals typedefs and function bodies must come BEFORE
         # run function references the task functions
@@ -1127,6 +1420,7 @@ class CEmitPass(SwPass):
             ctxt=ctxt,
             py_globals={},
             locals_struct_names=set(),
+            tlm_port_mode=True,
         )
         for stmt in body_stmts:
             code = sg._gen_dm_stmt(stmt)
@@ -1187,6 +1481,8 @@ class CEmitPass(SwPass):
                     f"{ret_t} (*{field.name})(void *ud, {args_str});"
                 )
                 w.line(f"void *{field.name}_ud;")
+            elif m.kind in ("method_port", "method_export"):
+                w.line(f"{m.comp_type} {field.name};  /* method {'port' if m.kind == 'method_port' else 'export'} */")
         # FIFO fields
         for node in nodes:
             if isinstance(node, SwFifo):
@@ -1498,22 +1794,34 @@ class CEmitPass(SwPass):
         ctxt: SwContext,
         w: _Writer,
     ) -> None:
-        """Emit `bind_{port}` functions for each CallablePort field."""
+        """Emit `bind_{port}` functions for each CallablePort and method port field."""
         for field in dtype.fields:
             m = fmeta.get(field.name)
-            if m is None or m.kind != "callable_port":
+            if m is None:
                 continue
-            fn_type = f"{name}_{field.name}_fn_t"
-            w.line(
-                f"ZUSPEC_API void {name}_bind_{field.name}("
-                f"{name}_t *self, {fn_type} fn, void *ud) {{"
-            )
-            w.indent()
-            w.line(f"self->{field.name} = fn;")
-            w.line(f"self->{field.name}_ud = ud;")
-            w.dedent()
-            w.line("}")
-            w.blank()
+            if m.kind == "callable_port":
+                fn_type = f"{name}_{field.name}_fn_t"
+                w.line(
+                    f"ZUSPEC_API void {name}_bind_{field.name}("
+                    f"{name}_t *self, {fn_type} fn, void *ud) {{"
+                )
+                w.indent()
+                w.line(f"self->{field.name} = fn;")
+                w.line(f"self->{field.name}_ud = ud;")
+                w.dedent()
+                w.line("}")
+                w.blank()
+            elif m.kind == "method_port":
+                w.line(
+                    f"ZUSPEC_API void {name}_bind_{field.name}("
+                    f"{name}_t *self, {m.comp_type} proto, void *impl) {{"
+                )
+                w.indent()
+                w.line(f"self->{field.name} = proto;")
+                w.line(f"self->{field.name}.impl = impl;")
+                w.dedent()
+                w.line("}")
+                w.blank()
 
     # ------------------------------------------------------------------
     # ABI sidecar
@@ -1701,7 +2009,7 @@ class CEmitPass(SwPass):
     def _emit_sync_function(
         self, comp_name: str, func: ir.Function, ctxt: SwContext, w: _Writer
     ) -> None:
-        sg = StmtGenerator(py_globals=ctxt.py_globals)
+        sg = StmtGenerator(py_globals=ctxt.py_globals, tlm_port_mode=True)
         # Build parameter list from func.args
         param_names: set = set()
         param_parts = []
@@ -1853,23 +2161,51 @@ class CEmitPass(SwPass):
         locals_struct_names=None,
     ) -> None:
         _lsn = set(locals_struct_names) if locals_struct_names else set()
+
+        # Collect method_port fields on this component that can have their impl
+        # pointer hoisted — port bindings are structurally immutable after init(),
+        # so caching "self->port.impl" in a local variable is always safe and
+        # eliminates one load instruction per port call inside the loop body.
+        hoisted_ports: Set[str] = set()
+        # Map port_field_name → SwConnection for statically-resolved ports.
+        # Used by StmtGenerator to emit direct calls when callee names are known.
+        devirt_map: dict = {}
+        if component is not None:
+            fmeta = _collect_field_meta(component, ctxt)
+            hoisted_ports = {
+                fname for fname, m in fmeta.items()
+                if m.kind == "method_port"
+            }
+            # Query the devirtualization table built by DevirtualizePass
+            _devirt = getattr(ctxt, "devirtualized", {})
+            comp_type_name = component.name or ""
+            for fname in hoisted_ports:
+                conn = _devirt.get((comp_type_name, fname))
+                if conn is not None:
+                    devirt_map[fname] = conn
+
         sg = StmtGenerator(
             component=component,
             ctxt=ctxt,
             py_globals=ctxt.py_globals,
             locals_struct_names=_lsn,
+            tlm_port_mode=True,
+            hoisted_ports=hoisted_ports,
+            devirt_map=devirt_map,
         )
         w.line(f"case {cont.index}: {{")
         w.indent()
 
         # Declare any unresolved local variable names, using the correct type.
         # Typed hints (DataTypeAction, DataTypeTupleReturn) get their C struct type;
+        # names from zdc.uN() casts get the inferred integer type;
         # names used as '->field' pointer bases get _zsp_stub_t *;
         # all other vars fall back to uint32_t.
         #
         # Note: stub_ptr_names may include names excluded from unresolved (pure attr bases
         # like `claim` in `claim->t->execute(...)`) — declare those separately.
         type_hints = _collect_action_type_hints(cont.stmts)
+        prim_hints = _infer_local_types_from_assigns(cont.stmts)
         stub_ptr_names = _collect_stub_ptr_names(cont.stmts)
         unresolved = _collect_unresolved_names(cont.stmts) - _lsn
         all_to_declare = unresolved | (stub_ptr_names - _lsn)
@@ -1877,10 +2213,18 @@ class CEmitPass(SwPass):
             if name in type_hints:
                 c_t = _c_type(type_hints[name], ctxt)
                 w.line(f"{c_t} {name} = {{{{0}}}};")
+            elif name in prim_hints:
+                w.line(f"{prim_hints[name]} {name} = 0;")
             elif name in stub_ptr_names:
                 w.line(f"_zsp_stub_t *{name} = NULL;")
             else:
                 w.line(f"uint32_t {name} = 0;")
+
+        # Hoist port impl pointers: emit one cached local per method_port field.
+        # The CPU must otherwise reload these through the self pointer on every
+        # iteration because GCC cannot prove the indirect call doesn't alias self.
+        for fname in sorted(hoisted_ports):
+            w.line(f"void *_{fname}_impl = self->{fname}.impl;")
 
         for stmt in cont.stmts:
             code = sg._gen_dm_stmt(stmt)
@@ -1888,7 +2232,7 @@ class CEmitPass(SwPass):
                 for line in code.splitlines():
                     w.line(line)
         if cont.suspend is not None:
-            self._emit_suspend_point(cont.suspend, cont.next_index, w)
+            self._emit_suspend_point(cont.suspend, cont.next_index, w, ctxt=ctxt)
         else:
             w.line("/* coroutine complete */")
             w.line("return NULL;")
@@ -1896,14 +2240,23 @@ class CEmitPass(SwPass):
         w.line("}")
 
     def _emit_suspend_point(
-        self, sp: SwSuspendPoint, next_idx: Optional[int], w: _Writer
+        self, sp: SwSuspendPoint, next_idx: Optional[int], w: _Writer,
+        ctxt: Optional[SwContext] = None,
     ) -> None:
         if isinstance(sp, SwSuspendWait):
             dur = sp.duration_expr
-            if dur is not None and hasattr(dur, "value"):
-                w.line(f"zsp_timebase_wait(thread, ZSP_TIME_S({dur.value}));")
+            tlm_mode = getattr(ctxt, "tlm_sync_mode", "") if ctxt is not None else ""
+            if tlm_mode:
+                # TLM / LT mode: use ZSP_WAIT_PS so both precise and LT compilation
+                # work from the same generated C (controlled by -DZSP_LT_MODE).
+                ps_expr = _duration_to_ps_str(dur)
+                w.line(f"ZSP_WAIT_PS(thread, {ps_expr});")
             else:
-                w.line("zsp_timebase_wait(thread, ZSP_TIME_S(1));")
+                # Legacy precise-mode path: use zsp_timebase_wait with ZSP_TIME_S.
+                if dur is not None and hasattr(dur, "value"):
+                    w.line(f"zsp_timebase_wait(thread, ZSP_TIME_S({dur.value}));")
+                else:
+                    w.line("zsp_timebase_wait(thread, ZSP_TIME_S(1));")
         elif isinstance(sp, SwSuspendFifoPop):
             w.line(f"if (!zsp_fifo_nb_pop(&self->{sp.fifo_field}_fifo, &tmp)) {{")
             w.indent()
@@ -1943,13 +2296,67 @@ class CEmitPass(SwPass):
     # Func ptr struct
     # ------------------------------------------------------------------
 
-    def _emit_func_ptr_struct(self, fps: SwFuncPtrStruct, w: _Writer) -> None:
+    def _emit_func_ptr_struct(self, fps: SwFuncPtrStruct, ctxt: SwContext, w: _Writer) -> None:
+        # Build Python type-hint map for the Protocol class (if available)
+        # so we can emit precise C types even when the IR loses annotation detail.
+        proto_hints: Optional[Dict[str, Any]] = None
+        if fps.protocol_type is not None and fps.protocol_type.py_type is not None:
+            try:
+                proto_hints = _get_protocol_method_hints(fps.protocol_type.py_type)
+            except Exception:
+                proto_hints = None
+
         w.line(f"typedef struct {{")
         w.indent()
+        w.line("void *impl;")
         for slot in fps.slots:
-            w.line(f"void (*{slot.slot_name})(void *);")
+            sig = slot.signature  # ir.Function or None
+            py_hints = (proto_hints or {}).get(slot.slot_name)
+            if sig is not None and sig.is_async:
+                # Async method: coroutine task signature
+                arg_parts = self._func_ptr_arg_types(sig, ctxt, py_hints)
+                args_str = ", ".join(arg_parts)
+                sep = ", " if args_str else ""
+                w.line(
+                    f"struct zsp_frame_s *(*{slot.slot_name})"
+                    f"(void *impl, struct zsp_thread_s *thread"
+                    f"{sep}{args_str}, struct zsp_frame_s **ret_pp);"
+                )
+            elif sig is not None and not sig.is_async:
+                # Sync method: plain function pointer
+                ret_py = (py_hints or {}).get("return")
+                if ret_py is not None:
+                    ret_c = _py_annotation_to_c(ret_py, ctxt)
+                else:
+                    ret_c = _c_type_from_annotation(getattr(sig, "returns", None), ctxt)
+                arg_parts = self._func_ptr_arg_types(sig, ctxt, py_hints)
+                args_str = ", ".join(arg_parts)
+                sep = ", " if args_str else ""
+                w.line(f"{ret_c} (*{slot.slot_name})(void *impl{sep}{args_str});")
+            else:
+                # No signature info — emit a generic slot
+                w.line(f"void (*{slot.slot_name})(void *);")
         w.dedent()
         w.line(f"}} {fps.struct_name};")
+
+    def _func_ptr_arg_types(
+        self, sig: Any, ctxt: SwContext, py_hints: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
+        """Return a list of C ``type name`` strings for non-self arguments of *sig*."""
+        if sig is None or sig.args is None:
+            return []
+        parts = []
+        for arg in sig.args.args:
+            if arg.arg == "self":
+                continue
+            # Prefer Python type hint (more accurate for Protocol methods)
+            py_t = (py_hints or {}).get(arg.arg)
+            if py_t is not None:
+                c_type = _py_annotation_to_c(py_t, ctxt)
+            else:
+                c_type = _c_type_from_annotation(arg.annotation, ctxt)
+            parts.append(f"{c_type} {arg.arg}")
+        return parts
 
     # ------------------------------------------------------------------
     # Mutex acquire / release

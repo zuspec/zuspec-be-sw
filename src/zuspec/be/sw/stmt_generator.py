@@ -22,7 +22,8 @@ from typing import List
 class StmtGenerator:
     """Generates C code from datamodel statements."""
 
-    def __init__(self, component=None, ctxt=None, py_globals=None, locals_struct_names=None):
+    def __init__(self, component=None, ctxt=None, py_globals=None, locals_struct_names=None,
+                 tlm_port_mode=False, hoisted_ports=None, devirt_map=None):
         """Initialize statement generator.
         
         Args:
@@ -31,6 +32,18 @@ class StmtGenerator:
             py_globals: Python module globals dict for resolving enum/constant references
             locals_struct_names: Set of variable names that live in the coroutine locals
                 struct and must be accessed as ``locals->name`` rather than a bare name.
+            tlm_port_mode: When True, ProtocolPort fields are embedded by value (use ``.impl``);
+                when False (default), ProtocolPort fields are pointers (use ``->self``).
+            hoisted_ports: Set of method-port field names whose ``impl`` pointer has been
+                hoisted into a local variable ``_{name}_impl`` before the current code block.
+                When a port call is emitted for a field in this set the cached local is used
+                instead of ``self->{name}.impl``.
+            devirt_map: Optional dict mapping port field name → SwConnection for ports whose
+                target is statically known.  When present a direct C call of the form
+                ``{TargetComp}__{slot}(impl, args)`` is emitted in place of the indirect
+                function-pointer call.  Populated by ``DevirtualizePass``; requires that the
+                target component follow the ``{Comp}__{method}`` / ``{Comp}__{method}_task``
+                naming convention for its export implementations.
         """
         self.indent_level = 0
         self.indent_str = "    "
@@ -38,6 +51,9 @@ class StmtGenerator:
         self.ctxt = ctxt
         self.py_globals: dict = py_globals or {}
         self.locals_struct_names: set = set(locals_struct_names) if locals_struct_names else set()
+        self.tlm_port_mode: bool = tlm_port_mode
+        self.hoisted_ports: set = set(hoisted_ports) if hoisted_ports else set()
+        self.devirt_map: dict = dict(devirt_map) if devirt_map else {}
 
     def _indent(self) -> str:
         """Get current indentation string."""
@@ -60,6 +76,11 @@ class StmtGenerator:
             if any(t.__class__.__name__ == 'ExprTuple' for t in stmt.targets):
                 value = self._gen_dm_expr(stmt.value)
                 return f"{self._indent()}/* tuple unpacking not supported: ... = {value} */"
+            # Handle async port call: target = await self.port.method(args)
+            if isinstance(stmt.value, ir.ExprAwait):
+                block = self._maybe_async_port_block(stmt.value.value, targets[0])
+                if block is not None:
+                    return block
             value = self._gen_dm_expr(stmt.value)
             return f"{self._indent()}{targets[0]} = {value};"
         elif isinstance(stmt, ir.StmtAugAssign):
@@ -89,6 +110,10 @@ class StmtGenerator:
             # The variable declaration itself is handled by _collect_unresolved_names.
             if stmt.value is not None:
                 target = self._gen_dm_expr(stmt.target)
+                if isinstance(stmt.value, ir.ExprAwait):
+                    block = self._maybe_async_port_block(stmt.value.value, target)
+                    if block is not None:
+                        return block
                 value = self._gen_dm_expr(stmt.value)
                 return f"{self._indent()}{target} = {value};"
             return ""
@@ -308,6 +333,11 @@ class StmtGenerator:
                     "bit1": "uint8_t", "bit8": "uint8_t",
                     "bit16": "uint16_t", "bit32": "uint32_t",
                     "bit64": "uint64_t",
+                    # Also accept full C type names used by generated cast calls
+                    "uint8_t": "uint8_t", "uint16_t": "uint16_t",
+                    "uint32_t": "uint32_t", "uint64_t": "uint64_t",
+                    "int8_t": "int8_t", "int16_t": "int16_t",
+                    "int32_t": "int32_t", "int64_t": "int64_t",
                 }
                 if attr in _zdc_cast_map:
                     return f"(({_zdc_cast_map[attr]})({args[0]}))"
@@ -331,8 +361,24 @@ class StmtGenerator:
                 base_code = self._gen_dm_expr(func.value)
                 
                 if self._is_port_type(func.value):
-                    # Port call: self->port->method(self->port->self, args)
-                    return f"{base_code}->{func.attr}({base_code}->self, {', '.join(args)})"
+                    field_kind = self._get_field_kind(func.value)
+                    if field_kind == ir.FieldKind.ProtocolPort and self.tlm_port_mode:
+                        # TLM method port: embedded by value, uses '.impl'.
+                        # If the impl pointer was hoisted by the caller use the cached local.
+                        field_name = self._get_field_name(func.value)
+                        impl_expr = (f"_{field_name}_impl"
+                                     if field_name and field_name in self.hoisted_ports
+                                     else f"{base_code}.impl")
+                        # Devirtualized sync call: emit a direct C function call instead of
+                        # the indirect slot pointer, enabling compiler inlining/analysis.
+                        direct = self._devirt_direct_fn(field_name, func.attr, is_async=False)
+                        if direct:
+                            args_str = (", " + ", ".join(args)) if args else ""
+                            return f"{direct}({impl_expr}{args_str})"
+                        return f"{base_code}.{func.attr}({impl_expr}, {', '.join(args)})"
+                    else:
+                        # Old-style Port (pointer field), uses '->self'
+                        return f"{base_code}->{func.attr}({base_code}->self, {', '.join(args)})"
                 elif self._is_memory_type(func.value):
                     # Memory read/write: zsp_memory_read(&self->mem, addr) or zsp_memory_write(&self->mem, addr, data)
                     if func.attr == "read":
@@ -381,6 +427,89 @@ class StmtGenerator:
 
         func_name = self._gen_dm_expr(func)
         return f"{func_name}({', '.join(args)})"
+
+    def _maybe_async_port_block(self, call_expr, target_code: str) -> "Optional[str]":
+        """Generate an LT-mode block for ``target = await port.method(args)``.
+
+        Only applies to ProtocolPort fields (TLM method ports embedded by value).
+        For async method ports the slot signature is:
+            struct zsp_frame_s *(*method)(void *impl, zsp_thread_t *thread, ..., zsp_frame_t **ret_pp)
+        In LT mode the callee accumulates time and returns NULL (no real suspension).
+        The caller picks up the return value from ``thread->rval``.
+
+        Returns the block string, or None if *call_expr* is not an async protocol port call.
+        """
+        from zuspec.dataclasses import ir
+        if not isinstance(call_expr, ir.ExprCall):
+            return None
+        func = call_expr.func
+        if not isinstance(func, ir.ExprAttribute):
+            return None
+        if not isinstance(func.value, ir.ExprRefField):
+            return None
+        if self._get_field_kind(func.value) != ir.FieldKind.ProtocolPort or not self.tlm_port_mode:
+            return None
+        base = self._gen_dm_expr(func.value)
+        field_name = self._get_field_name(func.value)
+        impl_expr = (f"_{field_name}_impl"
+                     if field_name and field_name in self.hoisted_ports
+                     else f"{base}.impl")
+        args = [self._gen_dm_expr(a) for a in call_expr.args]
+        args_str = (", " + ", ".join(args)) if args else ""
+        ind = self._indent()
+        # Devirtualized async call: emit a direct C function call when the target is
+        # statically known, eliminating the indirect slot pointer dereference.
+        direct = self._devirt_direct_fn(field_name, func.attr, is_async=True)
+        if direct:
+            call_stmt = f"{direct}({impl_expr}, thread{args_str}, &_pr);"
+        else:
+            call_stmt = f"{base}.{func.attr}({impl_expr}, thread{args_str}, &_pr);"
+        lines = [
+            f"{ind}{{",
+            f"{ind}    struct zsp_frame_s *_pr = NULL;",
+            f"{ind}    {call_stmt}",
+            f"{ind}    {target_code} = (uint64_t)thread->rval;",
+            f"{ind}}}",
+        ]
+        return "\n".join(lines)
+
+    def _get_field_kind(self, expr) -> "Optional[ir.FieldKind]":
+        """Return the FieldKind for an ExprRefField pointing to a direct component field, or None."""
+        from zuspec.dataclasses import ir
+        if isinstance(expr, ir.ExprRefField) and isinstance(expr.base, ir.TypeExprRefSelf):
+            if self.component and expr.index < len(self.component.fields):
+                return self.component.fields[expr.index].kind
+        return None
+
+    def _get_field_name(self, expr) -> "Optional[str]":
+        """Return the field name for an ExprRefField pointing to a direct component field, or None."""
+        from zuspec.dataclasses import ir
+        if isinstance(expr, ir.ExprRefField) and isinstance(expr.base, ir.TypeExprRefSelf):
+            if self.component and expr.index < len(self.component.fields):
+                return self.component.fields[expr.index].name
+        return None
+
+    def _devirt_direct_fn(self, field_name: "Optional[str]", slot: str, is_async: bool) -> "Optional[str]":
+        """Return the direct C function name for a devirtualized port call, or None.
+
+        When the target implementation is statically known (``devirt_map`` contains
+        an entry for *field_name*), we can call the concrete function directly instead
+        of going through the function-pointer slot.  The naming convention is:
+
+        * Sync slot: ``{TargetComp}__{slot}``  e.g. ``DramModel__read``
+        * Async slot: ``{TargetComp}__{slot}_task``  e.g. ``DramModel__fetch_task``
+
+        Returns None when devirtualization is not possible (no entry, or field_name
+        is None).  Callers fall back to the indirect slot call in that case.
+        """
+        if not field_name or field_name not in self.devirt_map:
+            return None
+        conn = self.devirt_map[field_name]
+        target = conn.target_component
+        if not target:
+            return None
+        suffix = f"_task" if is_async else ""
+        return f"{target}__{slot}{suffix}"
 
     def _is_port_type(self, expr) -> bool:
         """Check if an expression refers to a port field."""

@@ -233,6 +233,7 @@ class CGenerator:
             "#include <stdio.h>",
             "#include <stdint.h>",
             "#include <string.h>",
+            "#include <setjmp.h>",
             '#include "zsp_component.h"',
             '#include "zsp_init_ctxt.h"',
         ]
@@ -254,6 +255,12 @@ class CGenerator:
         for comp_name in sorted(component_includes):
             lines.append(f'#include "{comp_name}.h"')
         
+        # Determine if any process has an infinite loop (needs halt/longjmp support)
+        has_infinite_loop_process = any(
+            isinstance(f, ir.Process) and self._process_has_infinite_loop(f)
+            for f in comp.functions
+        )
+
         lines.extend([
             "",
             f"/* Forward declaration */",
@@ -264,6 +271,10 @@ class CGenerator:
             f"    zsp_component_t base;",
             f"    zsp_timebase_t *timebase;  /* Timebase for this component */",
         ])
+
+        if has_infinite_loop_process:
+            lines.append(f"    jmp_buf _halt_jmp;")
+            lines.append(f"    volatile uint8_t _halt_requested;  /* async halt flag */")
         
         # Add fields - handle ports, exports, and sub-components specially
         for field in comp.fields:
@@ -1066,6 +1077,16 @@ class CGenerator:
         lines.append("}")
         
         return lines
+
+    def _process_has_infinite_loop(self, func: ir.Process) -> bool:
+        """Return True if the process body contains a `while True` (or `while 1`) loop."""
+        body = func.body if isinstance(func.body, list) else (func.body.stmts if func.body else [])
+        for stmt in body:
+            if isinstance(stmt, ir.StmtWhile):
+                # A simple constant-true test
+                if isinstance(stmt.test, ir.ExprConstant) and stmt.test.value in (1, True, "1", "true"):
+                    return True
+        return False
 
     def _generate_process_task(self, comp: ir.DataTypeComponent, func: ir.Process, name: str, ctxt: ir.Context) -> List[str]:
         """Generate a task wrapper for a Process function.

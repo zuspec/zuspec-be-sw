@@ -2,7 +2,7 @@
 import pytest
 import zuspec.dataclasses as zdc
 from zuspec.dataclasses import DataModelFactory
-from zuspec.dataclasses.ir import DataTypeComponent
+from zuspec.ir.core import DataTypeComponent
 
 from zuspec.be.sw.ir.protocol import EvalProtocol
 from zuspec.be.sw.ir.base import SwContext

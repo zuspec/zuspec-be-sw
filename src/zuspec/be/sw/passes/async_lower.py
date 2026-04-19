@@ -31,9 +31,11 @@ from zuspec.be.sw.ir.coroutine import (
     SwContinuation,
     SwLocalVar,
     SwSuspendCall,
+    SwSuspendCompletion,
     SwSuspendFifoPop,
     SwSuspendFifoPush,
     SwSuspendMutex,
+    SwSuspendSpawn,
     SwSuspendWait,
     SwSuspendPoint,
 )
@@ -238,6 +240,23 @@ def _classify_await(await_expr: ir.ExprAwait) -> SwSuspendPoint:
     """Map an ``ExprAwait`` to the appropriate ``SwSuspendPoint`` subclass."""
     inner = await_expr.value
 
+    # zdc.Completion await → SwSuspendCompletion
+    if hasattr(ir, "CompletionAwaitExpr") and isinstance(inner, ir.CompletionAwaitExpr):
+        # completion_expr is the expression that yields the Completion object.
+        # Try to extract a simple field name for the C runtime macro.
+        completion_field = _attr_base_name(inner.completion_expr) or "completion"
+        return SwSuspendCompletion(
+            completion_field=completion_field,
+            elem_type=getattr(inner, "result_type", None),
+        )
+
+    # zdc.Queue.get() → SwSuspendFifoPop (queue variant)
+    if hasattr(ir, "QueueGetExpr") and isinstance(inner, ir.QueueGetExpr):
+        fifo_field = _attr_base_name(inner.queue_expr) or "queue"
+        return SwSuspendFifoPop(
+            fifo_field=fifo_field,
+        )
+
     # wait(duration) / delay(duration)
     if isinstance(inner, ir.ExprCall):
         fn = inner.func
@@ -369,7 +388,8 @@ class AsyncLowerPass(SwPass):
         for type_name, dtype in ctxt.type_m.items():
             if not isinstance(dtype, (ir.DataTypeComponent, ir.DataTypeClass)):
                 continue
-            for func in getattr(dtype, "functions", []):
+            all_funcs = list(getattr(dtype, "functions", [])) + list(getattr(dtype, "proc_processes", []))
+            for func in all_funcs:
                 is_process = type(func).__name__ == "Process"
                 is_promoted_process = (not is_process
                                        and getattr(func, "is_async", False)

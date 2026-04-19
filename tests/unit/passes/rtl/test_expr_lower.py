@@ -2,9 +2,9 @@
 import pytest
 import zuspec.dataclasses as zdc
 from zuspec.dataclasses import DataModelFactory
-from zuspec.dataclasses.ir.data_type import DataTypeInt
-from zuspec.dataclasses.ir.fields import Field, FieldKind
-from zuspec.dataclasses.ir.expr import (
+from zuspec.ir.core.data_type import DataTypeInt
+from zuspec.ir.core.fields import Field, FieldKind
+from zuspec.ir.core.expr import (
     ExprBin, BinOp, ExprConstant, ExprRefField, TypeExprRefSelf,
 )
 

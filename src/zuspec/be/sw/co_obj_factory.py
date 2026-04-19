@@ -598,7 +598,7 @@ class CObjFactory:
         # inspect.isfunction won't recognise)
         process_names = {
             func.name
-            for func in getattr(dtype, "functions", [])
+            for func in list(getattr(dtype, "functions", [])) + list(getattr(dtype, "proc_processes", []))
             if type(func).__name__ == "Process"
         }
         has_process = bool(process_names)

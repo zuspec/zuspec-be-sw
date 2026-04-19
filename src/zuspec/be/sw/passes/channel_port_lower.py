@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from zuspec.dataclasses import ir
-from zuspec.dataclasses.ir.fields import FieldKind
+from zuspec.ir.core.fields import FieldKind
 from zuspec.be.sw.ir.base import SwContext
 from zuspec.be.sw.ir.channel import (
     SwFifo,
@@ -61,6 +61,16 @@ class ChannelPortLowerPass(SwPass):
             ctxt.sw_nodes.setdefault(type_name, []).append(fifo)
             return
 
+        # Queue fields (zdc.Queue[T]) — treated as deep FIFOs
+        if hasattr(ir, "QueueType") and isinstance(dtype, ir.QueueType):
+            fifo = SwFifo(
+                field_name=field.name,
+                element_type=getattr(dtype, "element_type", None),
+                depth=getattr(dtype, "depth", 16),
+            )
+            ctxt.sw_nodes.setdefault(type_name, []).append(fifo)
+            return
+
         if isinstance(dtype, (ir.DataTypeGetIF, ir.DataTypePutIF)):
             fifo = SwFifo(
                 field_name=field.name,
@@ -84,6 +94,16 @@ class ChannelPortLowerPass(SwPass):
                 slots=[SwFuncSlot(slot_name=field.name)],
             )
             ctxt.sw_nodes.setdefault(type_name, []).append(struct)
+            return
+
+        # Queue fields identified by FieldKind.QueueField
+        if hasattr(FieldKind, "QueueField") and field.kind == FieldKind.QueueField:
+            fifo = SwFifo(
+                field_name=field.name,
+                element_type=getattr(dtype, "element_type", None),
+                depth=getattr(dtype, "depth", 16),
+            )
+            ctxt.sw_nodes.setdefault(type_name, []).append(fifo)
             return
 
     def _lower_protocol_port(

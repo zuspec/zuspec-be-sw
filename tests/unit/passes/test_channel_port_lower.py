@@ -3,7 +3,7 @@ import sys
 
 import zuspec.dataclasses as zdc
 from zuspec.dataclasses import ir
-from zuspec.dataclasses.ir.fields import FieldKind
+from zuspec.ir.core.fields import FieldKind
 
 from zuspec.be.sw.ir.base import SwContext
 from zuspec.be.sw.ir.channel import SwFifo, SwFuncPtrStruct, SwFuncSlot

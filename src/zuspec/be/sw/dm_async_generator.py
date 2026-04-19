@@ -266,7 +266,15 @@ class DmAsyncMethodGenerator:
                             var_type = "int32_t"
                             local_vars.append((var_name, var_type))
                             seen_vars.add(var_name)
-            elif isinstance(stmt, (ir.StmtWhile, ir.StmtFor)):
+            elif isinstance(stmt, ir.StmtFor):
+                # Extract the loop variable itself
+                tgt = getattr(stmt, 'target', None)
+                if isinstance(tgt, ir.ExprRefLocal) and tgt.name not in seen_vars:
+                    local_vars.append((tgt.name, "int32_t"))
+                    seen_vars.add(tgt.name)
+                for child in getattr(stmt, 'body', []):
+                    extract_from_stmt(child)
+            elif isinstance(stmt, ir.StmtWhile):
                 for child in getattr(stmt, 'body', []):
                     extract_from_stmt(child)
             elif isinstance(stmt, ir.StmtIf):
@@ -480,8 +488,12 @@ class DmAsyncMethodGenerator:
         elif isinstance(expr, ir.ExprBin):
             return self._gen_binop(expr)
         elif isinstance(expr, ir.ExprAwait):
-            # Await should be handled at statement level, not here
-            return f"/* await {self._gen_expr(expr.value)} */"
+            # Await should be handled at statement level via _gen_await_code; 
+            # fall back to a safe placeholder to avoid nested block comments
+            try:
+                return self._gen_await_code(expr)
+            except Exception:
+                return "/* unsupported await */"
         else:
             return f"/* unsupported expr: {type(expr).__name__} */"
 

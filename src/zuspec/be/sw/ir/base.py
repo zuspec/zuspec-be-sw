@@ -4,8 +4,8 @@ from __future__ import annotations
 import dataclasses as dc
 from typing import Dict, List, Optional, Set, Any, Tuple, TYPE_CHECKING
 
-from zuspec.dataclasses.ir.domain_node import DomainNode
-from zuspec.dataclasses.ir.connection import Connection
+from zuspec.ir.core.domain_node import DomainNode
+from zuspec.ir.core.connection import Connection
 from zuspec.dataclasses import ir
 from zuspec.be.sw.ir.protocol import EvalProtocol
 

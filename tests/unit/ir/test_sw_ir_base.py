@@ -1,6 +1,6 @@
 """Tests for SW IR base nodes (SwNode, SwContext)."""
 import dataclasses as dc
-from zuspec.dataclasses.ir.domain_node import DomainNode
+from zuspec.ir.core.domain_node import DomainNode
 from zuspec.dataclasses import ir
 
 from zuspec.be.sw.ir.base import SwNode, SwContext

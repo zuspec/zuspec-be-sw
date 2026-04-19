@@ -60,10 +60,12 @@ from zuspec.be.sw.ir.coroutine import (
     SwCoroutineFrame,
     SwLocalVar,
     SwSuspendCall,
+    SwSuspendCompletion,
     SwSuspendFifoPop,
     SwSuspendFifoPush,
     SwSuspendMutex,
     SwSuspendPoint,
+    SwSuspendSpawn,
     SwSuspendWait,
 )
 from zuspec.be.sw.ir.memory import SwMemRead, SwMemWrite, SwRegRead, SwRegWrite
@@ -667,7 +669,7 @@ def _decode_bind_wirings(
     """
     results: List[Tuple[str, str, str, str, str, str]] = []
 
-    from zuspec.dataclasses.ir.expr import TypeExprRefSelf, ExprRefField as _ExprRefField
+    from zuspec.ir.core.expr import TypeExprRefSelf, ExprRefField as _ExprRefField
 
     for bind in getattr(dtype, "bind_map", []):
         lhs = bind.lhs
@@ -948,6 +950,10 @@ class CEmitPass(SwPass):
 
         # Emit action struct typedefs used by coroutine locals of this component
         self._emit_action_typedefs(name, ctxt, w)
+
+        # Emit static inline contract check functions (check_requires /
+        # check_ensures) for any action types that carry role constraints.
+        self._emit_action_contract_funcs(name, ctxt, w)
 
         # Emit static inline C functions collected from @staticmethod members of
         # action types referenced by this component.
@@ -1346,6 +1352,72 @@ class CEmitPass(SwPass):
             w.line(f"    {c_type} {field.name};")
         w.line(f"}} {aname}_t;")
         w.blank()
+
+    def _emit_action_contract_funcs(self, comp_name: str, ctxt: SwContext, w) -> None:
+        """Emit ``static inline`` contract-check functions for action types.
+
+        For each action type that was typedef'd for *comp_name* and whose
+        Python class has ``@constraint.requires`` or ``@constraint.ensures``
+        methods, two functions are emitted:
+
+        * ``static inline void {ActionName}_check_requires({ActionName}_t *self)``
+        * ``static inline void {ActionName}_check_ensures({ActionName}_t *self)``
+
+        Both functions are emitted only when the corresponding role has at
+        least one constraint.  The Python class is resolved via
+        ``ctxt.py_globals`` using the action type name.
+        """
+        try:
+            from zuspec.be.sw.contract_emitter import ActionContractEmitter
+        except ImportError:
+            return  # contract_emitter not available — skip silently
+
+        emitter = ActionContractEmitter(field_prefix="self->")
+        emitted_actions: set = set()
+
+        def _try_emit(action_type: "ir.DataTypeAction") -> None:
+            aname = action_type.name
+            if aname in emitted_actions:
+                return
+            py_cls = ctxt.py_globals.get(aname)
+            if py_cls is None:
+                return  # Python class not accessible in this compilation unit
+            req_lines = emitter.emit_requires(py_cls)
+            ens_lines = emitter.emit_ensures(py_cls)
+            if not req_lines and not ens_lines:
+                return
+            emitted_actions.add(aname)
+            if req_lines:
+                w.line(f"static inline void {aname}_check_requires({aname}_t *self) {{")
+                w.line("    (void)self;")
+                for line in req_lines:
+                    w.line(f"    {line}")
+                w.line("}")
+                w.blank()
+            if ens_lines:
+                w.line(f"static inline void {aname}_check_ensures({aname}_t *self) {{")
+                w.line("    (void)self;")
+                for line in ens_lines:
+                    w.line(f"    {line}")
+                w.line("}")
+                w.blank()
+
+        for node in ctxt.sw_nodes.get(comp_name, []):
+            if hasattr(node, 'locals_struct'):
+                for local_var in node.locals_struct:
+                    vt = getattr(local_var, 'var_type', None)
+                    if isinstance(vt, ir.DataTypeAction):
+                        _try_emit(vt)
+            if hasattr(node, 'continuations'):
+                for cont in node.continuations:
+                    for vt in _collect_action_type_hints(cont.stmts).values():
+                        if isinstance(vt, ir.DataTypeAction):
+                            _try_emit(vt)
+
+        # Also scan all action types in type_m
+        for tname, dtype in ctxt.type_m.items():
+            if isinstance(dtype, ir.DataTypeAction):
+                _try_emit(dtype)
 
     def _emit_static_inline_funcs(self, comp_name: str, ctxt: SwContext, w) -> None:
         """Emit ``static inline`` C functions for each ``@staticmethod`` collected
@@ -2271,6 +2343,35 @@ class CEmitPass(SwPass):
             w.line("break;")
             w.dedent()
             w.line("}")
+        elif isinstance(sp, SwSuspendCompletion):
+            # ZDC_COMPLETION_AWAIT(c, out, size, frame, label)
+            field = sp.completion_field or "completion"
+            out_var = sp.out_var or "result"
+            elem_type = _c_type(sp.elem_type, ctxt) if sp.elem_type and ctxt else "uint32_t"
+            size_expr = f"sizeof({elem_type})"
+            w.line(
+                f"ZDC_COMPLETION_AWAIT(&self->{field}, &{out_var}, {size_expr}, "
+                f"frame, _label_{next_idx if next_idx is not None else 'end'});"
+            )
+        elif isinstance(sp, SwSuspendSpawn):
+            # zdc_spawn() is non-blocking; just emit the call then fall through.
+            fn_name = sp.spawned_func or "unknown_fn"
+            arg_expr = sp.arg_expr
+            handle = sp.handle_var or "_spawn_handle"
+            arg_str = "NULL"
+            if arg_expr is not None:
+                from zuspec.be.sw.stmt_generator import StmtGenerator
+                try:
+                    sg = StmtGenerator(ctxt)
+                    arg_str = sg.emit_expr(arg_expr)
+                except Exception:
+                    arg_str = "NULL"
+            w.line(
+                f"zdc_spawn(&{handle}, {fn_name}, {arg_str}, "
+                f"_spawn_stack_{handle}, sizeof(_spawn_stack_{handle}));"
+            )
+            # Not a real suspension; fall through without break
+            return
         elif isinstance(sp, SwSuspendCall):
             # Synchronous callable port — the call is already emitted as an assignment
             # statement above.  Do NOT break: fall through to the next case so that

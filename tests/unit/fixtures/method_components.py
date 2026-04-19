@@ -37,7 +37,7 @@ class ComponentWithProcess(zdc.Component):
     counter: zdc.bit32 = zdc.output()
     enable: zdc.bit1 = zdc.input()
     
-    @zdc.process
+    @zdc.proc
     async def run_process(self):
         """Simple process that increments counter."""
         while True:
@@ -51,7 +51,7 @@ class ComponentWithWait(zdc.Component):
     """Component with wait() calls in process."""
     done: zdc.bit1 = zdc.output()
     
-    @zdc.process
+    @zdc.proc
     async def delayed_process(self):
         """Process with explicit delays."""
         await self.wait(1000)  # Wait 1000 time units

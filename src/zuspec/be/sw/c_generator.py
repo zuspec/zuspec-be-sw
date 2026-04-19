@@ -256,9 +256,10 @@ class CGenerator:
             lines.append(f'#include "{comp_name}.h"')
         
         # Determine if any process has an infinite loop (needs halt/longjmp support)
+        all_procs = list(comp.functions) + list(getattr(comp, 'proc_processes', []))
         has_infinite_loop_process = any(
             isinstance(f, ir.Process) and self._process_has_infinite_loop(f)
-            for f in comp.functions
+            for f in all_procs
         )
 
         lines.extend([
@@ -504,7 +505,7 @@ class CGenerator:
         
         # Generate process task wrappers and collect process list
         processes = []
-        for func in comp.functions:
+        for func in list(comp.functions) + list(getattr(comp, 'proc_processes', [])):
             if isinstance(func, ir.Process):
                 processes.append(func)
                 # Generate the process task wrapper

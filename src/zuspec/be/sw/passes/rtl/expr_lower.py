@@ -25,15 +25,15 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Set
 
 from zuspec.dataclasses import ir
-from zuspec.dataclasses.ir.expr import (
+from zuspec.ir.core.expr import (
     Expr, ExprBin, BinOp, ExprConstant, ExprRefField, TypeExprRefSelf,
     ExprRefParam, ExprRefLocal, ExprRefUnresolved, UnaryOp, ExprAttribute,
 )
-from zuspec.dataclasses.ir.stmt import (
+from zuspec.ir.core.stmt import (
     Stmt, StmtAssign, StmtAugAssign, StmtIf, StmtFor, StmtWhile,
     StmtExpr, StmtReturn, StmtPass,
 )
-from zuspec.dataclasses.ir.data_type import DataTypeComponent, DataTypeArray
+from zuspec.ir.core.data_type import DataTypeComponent, DataTypeArray
 
 from zuspec.be.sw.ir.base import SwContext
 
@@ -62,8 +62,8 @@ _BINOP_MAP = {
 
 # AugAssign op → C operator
 try:
-    from zuspec.dataclasses.ir.stmt import AugOp as StmtAugOp
-    from zuspec.dataclasses.ir.expr import AugOp
+    from zuspec.ir.core.stmt import AugOp as StmtAugOp
+    from zuspec.ir.core.expr import AugOp
     _AUGOP_MAP = {
         AugOp.Add:      "+=",
         AugOp.Sub:      "-=",
@@ -175,7 +175,7 @@ class ExprLower:
 
         # ExprSubscript: array element access or bit-slice extraction
         try:
-            from zuspec.dataclasses.ir.expr import ExprSubscript
+            from zuspec.ir.core.expr import ExprSubscript
             if isinstance(expr, ExprSubscript):
                 return self._lower_subscript(expr, write_ctx)
         except ImportError:
@@ -191,7 +191,7 @@ class ExprLower:
 
         # ExprCall: any(), zdc.sext(), zdc.zext(), setattr()
         try:
-            from zuspec.dataclasses.ir.expr import ExprCall
+            from zuspec.ir.core.expr import ExprCall
             if isinstance(expr, ExprCall):
                 return self._lower_call(expr, write_ctx)
         except ImportError:
@@ -199,7 +199,7 @@ class ExprLower:
 
         # ExprCompare (multiple comparators)
         try:
-            from zuspec.dataclasses.ir.expr import ExprCompare, CmpOp
+            from zuspec.ir.core.expr import ExprCompare, CmpOp
             if isinstance(expr, ExprCompare):
                 return self._lower_compare(expr)
         except ImportError:
@@ -207,7 +207,7 @@ class ExprLower:
 
         # ExprBool
         try:
-            from zuspec.dataclasses.ir.expr import ExprBool, BoolOp
+            from zuspec.ir.core.expr import ExprBool, BoolOp
             if isinstance(expr, ExprBool):
                 op = "&&" if expr.op == BoolOp.And else "||"
                 parts = [f"({self.lower_expr(v)})" for v in expr.values]
@@ -217,7 +217,7 @@ class ExprLower:
 
         # ExprUnary
         try:
-            from zuspec.dataclasses.ir.expr import ExprUnary
+            from zuspec.ir.core.expr import ExprUnary
             if isinstance(expr, ExprUnary):
                 _UNOP = {
                     UnaryOp.Not:    "!",
@@ -319,7 +319,7 @@ class ExprLower:
         return str(val)
 
     def _lower_compare(self, expr) -> str:
-        from zuspec.dataclasses.ir.expr import CmpOp
+        from zuspec.ir.core.expr import CmpOp
         _CMPOP = {
             CmpOp.Eq:    "==",
             CmpOp.NotEq: "!=",
@@ -347,7 +347,7 @@ class ExprLower:
         * Bit-slice: field[hi:lo]            → ``((self->field >> lo) & mask)``
         * Single bit: field[n]               → ``((self->field >> n) & 1u)``
         """
-        from zuspec.dataclasses.ir.expr import ExprSlice
+        from zuspec.ir.core.expr import ExprSlice
 
         value = expr.value
         slc = expr.slice
@@ -496,7 +496,7 @@ class ExprLower:
 
             # ExprSubscript on an array field: write directly (no _nxt for arrays)
             try:
-                from zuspec.dataclasses.ir.expr import ExprSubscript
+                from zuspec.ir.core.expr import ExprSubscript
                 if isinstance(tgt, ExprSubscript):
                     base_str = self.lower_expr(tgt.value, write_ctx=False)
                     idx_str = self.lower_expr(tgt.slice, write_ctx=False)
@@ -538,7 +538,7 @@ class ExprLower:
         return lines
 
     def _lower_for(self, stmt: StmtFor, write_ctx: bool, pad: str) -> List[str]:
-        from zuspec.dataclasses.ir.expr import ExprCall
+        from zuspec.ir.core.expr import ExprCall
 
         tgt = self.lower_expr(stmt.target)
 

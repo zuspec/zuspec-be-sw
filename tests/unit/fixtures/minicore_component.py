@@ -41,7 +41,7 @@ class MiniCore(zdc.Component):
     pc: zdc.u32 = zdc.field(default=0)
     halted: bool = zdc.field(default=False)
 
-    @zdc.process
+    @zdc.proc
     async def fetch_and_exec(self):
         """Fetch one instruction from icache and execute it (addi or ecall)."""
         instr: zdc.u32 = await self.icache(self.pc)

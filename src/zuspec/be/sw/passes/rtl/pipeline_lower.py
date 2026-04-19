@@ -15,7 +15,7 @@ from __future__ import annotations
 import ast
 from typing import Dict, List, Set
 
-from zuspec.dataclasses.ir.data_type import DataTypeInt
+from zuspec.ir.core.data_type import DataTypeInt
 
 from zuspec.be.sw.ir.base import SwContext
 from .type_mapper import RtlTypeMapper
@@ -31,7 +31,7 @@ def _get_c_type(stage_output_annotation) -> str:
             width_obj = args[0] if not isinstance(args[0], type) else None
             if width_obj is not None and hasattr(width_obj, 'width'):
                 tm = RtlTypeMapper()
-                from zuspec.dataclasses.ir.data_type import DataTypeInt as DTI
+                from zuspec.ir.core.data_type import DataTypeInt as DTI
                 dt = DTI(bits=width_obj.width, signed=getattr(width_obj, 'signed', False))
                 return tm.map_rtl_int_type(dt)
     except Exception:

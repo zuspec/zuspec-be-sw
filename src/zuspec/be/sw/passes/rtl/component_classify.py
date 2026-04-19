@@ -11,8 +11,8 @@ Classification rules (design §14):
 from __future__ import annotations
 
 from zuspec.dataclasses import ir
-from zuspec.dataclasses.ir.expr import ExprAwait
-from zuspec.dataclasses.ir.stmt import (
+from zuspec.ir.core.expr import ExprAwait
+from zuspec.ir.core.stmt import (
     Stmt, StmtIf, StmtFor, StmtWhile, StmtExpr, StmtAssign,
     StmtAugAssign, StmtReturn, StmtAnnAssign,
 )

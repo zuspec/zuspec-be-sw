@@ -62,6 +62,26 @@ class SwSuspendMutex(SwSuspendPoint):
 
 
 @dc.dataclass(kw_only=True)
+class SwSuspendCompletion(SwSuspendPoint):
+    """Suspend until a zdc_completion_t is set (``await completion``)."""
+    completion_field: Optional[str] = dc.field(default=None)
+    out_var: Optional[str] = dc.field(default=None)
+    elem_type: Optional[ir.DataType] = dc.field(default=None)
+
+
+@dc.dataclass(kw_only=True)
+class SwSuspendSpawn(SwSuspendPoint):
+    """Non-blocking spawn of a new coroutine (does NOT suspend the caller).
+
+    This is emitted as a plain statement (call to ``zdc_spawn``), not a real
+    suspension; ``next_index`` is None.
+    """
+    spawned_func: Optional[str] = dc.field(default=None)
+    arg_expr: Optional[ir.Expr] = dc.field(default=None)
+    handle_var: Optional[str] = dc.field(default=None)
+
+
+@dc.dataclass(kw_only=True)
 class SwContinuation(SwNode):
     """A single continuation within a coroutine (code between two suspend points).
 

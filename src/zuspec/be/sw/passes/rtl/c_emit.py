@@ -16,11 +16,11 @@ import os
 import textwrap
 from typing import List
 
-from zuspec.dataclasses.ir.expr import (ExprAwait, ExprCall, ExprAttribute, ExprRefField, ExprRefUnresolved,
+from zuspec.ir.core.expr import (ExprAwait, ExprCall, ExprAttribute, ExprRefField, ExprRefUnresolved,
                                          ExprConstant, AugOp)
-from zuspec.dataclasses.ir.stmt import StmtWhile, StmtExpr, StmtAugAssign, StmtAssign, StmtIf
-from zuspec.dataclasses.ir.data_type import DataTypeInt, DataTypeComponent, DataTypeRef, DataTypeStruct, DataTypeArray
-from zuspec.dataclasses.ir.fields import SignalDirection, FieldKind
+from zuspec.ir.core.stmt import StmtWhile, StmtExpr, StmtAugAssign, StmtAssign, StmtIf
+from zuspec.ir.core.data_type import DataTypeInt, DataTypeComponent, DataTypeRef, DataTypeStruct, DataTypeArray
+from zuspec.ir.core.fields import SignalDirection, FieldKind
 
 from zuspec.be.sw.ir.protocol import EvalProtocol
 from zuspec.be.sw.ir.base import SwContext
@@ -844,7 +844,7 @@ class RtlCEmitPass:
         tm = RtlTypeMapper()
 
         def _field_kind(f) -> str:
-            from zuspec.dataclasses.ir.fields import SignalDirection, FieldKind
+            from zuspec.ir.core.fields import SignalDirection, FieldKind
             if f.direction == SignalDirection.INPUT:
                 return "input"
             if f.direction == SignalDirection.OUTPUT:

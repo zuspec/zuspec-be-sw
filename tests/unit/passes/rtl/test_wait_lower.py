@@ -7,10 +7,10 @@ lowered to C ps-delta expressions for different clock periods.
 import pytest
 from unittest.mock import MagicMock
 
-from zuspec.dataclasses.ir.expr import (
+from zuspec.ir.core.expr import (
     ExprCall, ExprAttribute, ExprRefUnresolved, ExprConstant, ExprRefField,
 )
-from zuspec.dataclasses.ir.base import Base
+from zuspec.ir.core.base import Base
 import dataclasses as dc
 
 from zuspec.be.sw.passes.rtl.wait_lower import WaitLowerPass, LoweredSuspend

@@ -73,7 +73,7 @@ class TestProcessSupport:
     """Test process support (requires event loop integration)."""
     
     def test_component_with_process_compiles(self):
-        """Test that a component with @process can be compiled."""
+        """Test that a component with @proc can be compiled."""
         from fixtures.method_components import ComponentWithProcess
         
         with tempfile.TemporaryDirectory() as tmpdir:

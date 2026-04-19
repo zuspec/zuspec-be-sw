@@ -103,7 +103,7 @@ class Consumer(zdc.Component):
     """Consumer component with a GetIF port."""
     c : zdc.GetIF[int] = zdc.port()
 
-    @zdc.process
+    @zdc.proc
     async def _recv(self):
         while True:
             i = await self.c.get()

@@ -1,6 +1,6 @@
 """Unit tests for RTL RtlTypeMapper (mask-aware integer mapping)."""
 import pytest
-from zuspec.dataclasses.ir.data_type import DataTypeInt
+from zuspec.ir.core.data_type import DataTypeInt
 from zuspec.be.sw.passes.rtl.type_mapper import RtlTypeMapper
 
 

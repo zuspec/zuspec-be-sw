@@ -38,7 +38,7 @@ class SimpleCore(zdc.Component):
     pc: zdc.u32 = zdc.field(default=0)
     last_insn: zdc.u32 = zdc.field(default=0)
 
-    @zdc.process
+    @zdc.proc
     async def run(self):
         fn: zdc.u32 = await Decode(pc_in=self.pc)(comp=self)
         self.last_insn = fn.insn32

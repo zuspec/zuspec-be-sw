@@ -1,5 +1,5 @@
 """Tests for SW IR coroutine nodes."""
-from zuspec.dataclasses.ir.domain_node import DomainNode
+from zuspec.ir.core.domain_node import DomainNode
 from zuspec.be.sw.ir.base import SwNode
 from zuspec.be.sw.ir.coroutine import (
     SwLocalVar,

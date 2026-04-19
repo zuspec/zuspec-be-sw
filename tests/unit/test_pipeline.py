@@ -164,7 +164,7 @@ def test_c_generator_old_path_still_works(tmp_path):
 
 def test_verify_ready_raises_on_unlowered_node():
     """verify_ready must raise when a non-SwNode appears in sw_nodes."""
-    from zuspec.dataclasses.ir.domain_node import DomainNode
+    from zuspec.ir.core.domain_node import DomainNode
 
     class RogueNode(DomainNode):
         def inputs(self):

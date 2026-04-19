@@ -12,8 +12,8 @@ Read references are always to the *current* field; only write targets
 """
 from __future__ import annotations
 
-from zuspec.dataclasses.ir.expr import ExprRefField, TypeExprRefSelf, ExprAttribute
-from zuspec.dataclasses.ir.stmt import (
+from zuspec.ir.core.expr import ExprRefField, TypeExprRefSelf, ExprAttribute
+from zuspec.ir.core.stmt import (
     Stmt, StmtAssign, StmtAugAssign, StmtIf, StmtFor, StmtWhile,
 )
 

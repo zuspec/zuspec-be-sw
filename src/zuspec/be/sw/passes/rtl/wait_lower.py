@@ -21,11 +21,11 @@ import math
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
-from zuspec.dataclasses.ir.expr import (
+from zuspec.ir.core.expr import (
     ExprAwait, ExprCall, ExprAttribute, ExprRefUnresolved,
     ExprConstant, ExprRefField,
 )
-from zuspec.dataclasses.ir.data_type import Process
+from zuspec.ir.core.data_type import Process
 
 from zuspec.be.sw.ir.base import SwContext
 

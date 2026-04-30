@@ -28,6 +28,7 @@ from zuspec.dataclasses import ir
 from zuspec.ir.core.expr import (
     Expr, ExprBin, BinOp, ExprConstant, ExprRefField, TypeExprRefSelf,
     ExprRefParam, ExprRefLocal, ExprRefUnresolved, UnaryOp, ExprAttribute,
+    ExprSext, ExprZext, ExprCbit, ExprSigned,
 )
 from zuspec.ir.core.stmt import (
     Stmt, StmtAssign, StmtAugAssign, StmtIf, StmtFor, StmtWhile,
@@ -188,6 +189,23 @@ class ExprLower:
             body = self.lower_expr(expr.body, write_ctx)
             orelse = self.lower_expr(expr.orelse, write_ctx)
             return f"(({test}) ? ({body}) : ({orelse}))"
+
+        # Typed zdc built-in nodes: ExprSext, ExprZext, ExprCbit, ExprSigned
+        if isinstance(expr, ExprSext):
+            val = self.lower_expr(expr.value, write_ctx)
+            n = expr.bits
+            shift = 32 - n
+            return f"((int32_t)(({val}) << {shift}u) >> {shift}u)"
+        if isinstance(expr, ExprZext):
+            val = self.lower_expr(expr.value, write_ctx)
+            mask = (1 << expr.bits) - 1
+            return f"(({val}) & {mask}u)"
+        if isinstance(expr, ExprCbit):
+            inner = self.lower_expr(expr.value, write_ctx)
+            return f"(!!(({inner})))"
+        if isinstance(expr, ExprSigned):
+            val = self.lower_expr(expr.value, write_ctx)
+            return f"((int32_t)({val}))"
 
         # ExprCall: any(), zdc.sext(), zdc.zext(), setattr()
         try:

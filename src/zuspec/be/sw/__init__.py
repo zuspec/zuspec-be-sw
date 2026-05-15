@@ -54,6 +54,7 @@ def _get_rtl_pipeline():
     global _RTL_PASSES
     if _RTL_PASSES is None:
         from .passes.rtl.component_classify import ComponentClassifyPass
+        from .passes.rtl.counter_recognition import CounterRecognitionPass
         from .passes.rtl.next_state_split import NextStateSplitPass
         from .passes.rtl.comb_order import CombTopoSortPass
         from .passes.rtl.expr_lower import ExprLowerPass
@@ -66,6 +67,7 @@ def _get_rtl_pipeline():
             CombTopoSortPass,
             ExprLowerPass,
             PipelineLowerPass,
+            CounterRecognitionPass,
             WaitLowerPass,
             RtlCEmitPass,
         ]

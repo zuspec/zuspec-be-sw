@@ -161,3 +161,9 @@ class SwContext(ir.Context):
     """When True, emit #line directives, debug info, and GDB script."""
     rtl_warnings: List[str] = dc.field(default_factory=list)
     """Warnings accumulated during the RTL pass pipeline."""
+    counter_fields: Dict[str, Any] = dc.field(default_factory=dict)
+    """Counter sub-component metadata populated by ``CounterRecognitionPass``.
+    Keys are field names; values are ``CounterInfo`` instances."""
+    all_co_waits_are_counter_jumps: bool = dc.field(default=False)
+    """Set ``True`` by ``RtlCEmitPass`` when every behavioral suspension
+    point in the component is a counter-based jump."""

@@ -1,5 +1,6 @@
 """RTL-specific passes for the zuspec-be-sw pipeline."""
 from .component_classify import ComponentClassifyPass
+from .counter_recognition import CounterRecognitionPass, CounterInfo
 from .next_state_split import NextStateSplitPass
 from .comb_order import CombTopoSortPass
 from .expr_lower import ExprLower, ExprLowerPass, collect_local_names
@@ -11,6 +12,8 @@ from .c_emit import RtlCEmitPass
 
 __all__ = [
     "ComponentClassifyPass",
+    "CounterRecognitionPass",
+    "CounterInfo",
     "NextStateSplitPass",
     "CombTopoSortPass",
     "ExprLower",

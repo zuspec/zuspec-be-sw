@@ -94,9 +94,12 @@ class RtlCEmitPass:
 
         # Non-registered fields: comp.fields that do NOT have a _nxt shadow.
         # Emitted in comp.fields declaration order.
+        counter_fields = getattr(ctx, 'counter_fields', {})
         for f in comp.fields:
             if f.name in ctx.rtl_nxt_fields:
                 continue  # registered — emitted in the sorted block below
+            if f.name in counter_fields:
+                continue  # counter sub-components are handled via inline math
             if isinstance(f.datatype, DataTypeInt):
                 c_type = tm.map_rtl_int_type(f.datatype)
                 lines.append(f"    {c_type} {f.name};")
@@ -274,6 +277,8 @@ class RtlCEmitPass:
         lines += self._emit_eval_comb(comp, name, tm, ctx)
         if ctx.rtl_behav_processes:
             lines += [""]
+            self._suspension_total = 0
+            self._suspension_counter_jumps = 0
             lines += self._emit_co_run(comp, name, ctx)
             lines += [""]
             lines += self._emit_sim_run(comp, name, ctx)
@@ -282,9 +287,12 @@ class RtlCEmitPass:
     def _emit_init(self, comp, name: str, tm: RtlTypeMapper, ctx: SwContext) -> List[str]:
         lines = [f"void {name}_init({name} *self) {{"]
         comp_cls = ctx.rtl_component_class
+        counter_fields = getattr(ctx, 'counter_fields', {})
         for f in comp.fields:
             if f.name in ctx.rtl_nxt_fields:
                 continue  # registered fields are initialized via _regs/_nxt below
+            if f.name in counter_fields:
+                continue  # counter sub-components are pure computation — no struct storage
             if isinstance(f.datatype, DataTypeRef):
                 # Zero-initialize the struct by its fields
                 struct_def = ctx.type_m.get(f.datatype.ref_name)
@@ -540,9 +548,12 @@ class RtlCEmitPass:
         ]
 
         # Non-registered fields (those NOT in nxt_fields) — in comp.fields order
+        counter_fields = getattr(ctx, 'counter_fields', {})
         for f in comp.fields:
             if f.name in ctx.rtl_nxt_fields:
                 continue  # emitted via _regs/_nxt sub-struct below
+            if f.name in counter_fields:
+                continue  # counter sub-components — no C struct field
             if isinstance(f.datatype, DataTypeInt):
                 c_type = tm.map_rtl_int_type(f.datatype)
                 ct = _CTYPES_INT_MAP.get(c_type, "ctypes.c_uint32")
@@ -711,8 +722,12 @@ class RtlCEmitPass:
                 call = stmt.expr.value
                 if isinstance(call, ExprCall):
                     susp = WaitLowerPass.lower_await(
-                        call, comp.fields, ctx.rtl_domain_period_ps, ctx.rtl_warnings
+                        call, comp.fields, ctx.rtl_domain_period_ps, ctx.rtl_warnings,
+                        counter_fields=getattr(ctx, 'counter_fields', {}),
                     )
+                    self._suspension_total += 1
+                    if susp.is_counter_jump:
+                        self._suspension_counter_jumps += 1
                     state_counter[0] += 1
                     resume_state = state_counter[0]
                     lines.extend(self._src_loc_lines(stmt, ctx))
@@ -812,24 +827,55 @@ class RtlCEmitPass:
         The coroutine is primed once (before any clock edges) on first call,
         so that ``wait_cycles(D)`` fires every D clock edges and
         count = floor(n_total_cycles / D) after n_total_cycles.
+
+        When all suspension points are counter-based jumps and the component
+        uses ``EvalProtocol.ALGORITHMIC``, we emit a fast counter-jump loop
+        that skips per-cycle clock_edge/eval_comb calls entirely, jumping
+        directly to the next coroutine wake time.
         """
+        from zuspec.be.sw.ir.base import EvalProtocol
         period = ctx.rtl_domain_period_ps
-        lines = [
-            f"void {name}_sim_run({name} *self, uint64_t n_cycles) {{",
-            f"    /* Prime the coroutine on first call (before any clock edges). */",
-            f"    if (self->_co_pc == 0) {{",
-            f"        {name}_co_run(self, self->_co_tick);",
-            f"    }}",
-            f"    for (uint64_t c = 0; c < n_cycles; c++) {{",
-            f"        {name}_clock_edge(self);",
-            f"        {name}_eval_comb(self);",
-            f"        self->_co_tick += {period}ULL;",
-            f"        if (self->_co_pc >= 0 && self->_co_tick >= self->_co_wake) {{",
-            f"            {name}_co_run(self, self->_co_tick);",
-            f"        }}",
-            f"    }}",
-            "}",
-        ]
+
+        all_counter_jumps = (
+            getattr(self, '_suspension_total', 0) > 0
+            and getattr(self, '_suspension_counter_jumps', 0) == getattr(self, '_suspension_total', 0)
+            and getattr(ctx, 'rtl_protocol', None) == EvalProtocol.ALGORITHMIC
+        )
+
+        if all_counter_jumps:
+            lines = [
+                f"void {name}_sim_run({name} *self, uint64_t n_cycles) {{",
+                f"    /* Counter-jump fast path: all suspensions are counter-based.",
+                f"       Skip per-cycle clock_edge/eval_comb; jump directly to wake. */",
+                f"    uint64_t end_tick = self->_co_tick + n_cycles * {period}ULL;",
+                f"    if (self->_co_pc == 0) {{",
+                f"        {name}_co_run(self, self->_co_tick);",
+                f"    }}",
+                f"    while (self->_co_tick < end_tick) {{",
+                f"        if (self->_co_wake > end_tick) break;",
+                f"        self->_co_tick = self->_co_wake;",
+                f"        {name}_co_run(self, self->_co_tick);",
+                f"    }}",
+                f"    self->_co_tick = end_tick;",
+                "}",
+            ]
+        else:
+            lines = [
+                f"void {name}_sim_run({name} *self, uint64_t n_cycles) {{",
+                f"    /* Prime the coroutine on first call (before any clock edges). */",
+                f"    if (self->_co_pc == 0) {{",
+                f"        {name}_co_run(self, self->_co_tick);",
+                f"    }}",
+                f"    for (uint64_t c = 0; c < n_cycles; c++) {{",
+                f"        {name}_clock_edge(self);",
+                f"        {name}_eval_comb(self);",
+                f"        self->_co_tick += {period}ULL;",
+                f"        if (self->_co_pc >= 0 && self->_co_tick >= self->_co_wake) {{",
+                f"            {name}_co_run(self, self->_co_tick);",
+                f"        }}",
+                f"    }}",
+                "}",
+            ]
         return lines
 
     # ------------------------------------------------------------------

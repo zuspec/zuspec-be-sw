@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from zuspec.ir.core.expr import (
     ExprAwait, ExprCall, ExprAttribute, ExprRefUnresolved,
@@ -44,6 +44,7 @@ class LoweredSuspend:
     """A single lowered suspension point (``await wait_*(...)``)."""
     tick_delta_expr: str           # C expression: ps delta from current tick
     is_yield: bool = False         # True → wait_cycles(0); just reschedule
+    is_counter_jump: bool = False  # True → expression derived from counter wait
     warning: Optional[str] = None  # non-None → rounding warn was emitted
 
 
@@ -70,9 +71,10 @@ class WaitLowerPass:
         fields,
         period_ps: int,
         warnings: List[str],
+        counter_fields: Optional[dict] = None,
     ) -> LoweredSuspend:
-        """Convert a ``wait_cycles`` / ``wait_time`` ExprCall to a
-        ``LoweredSuspend``.
+        """Convert a ``wait_cycles`` / ``wait_time`` / counter wait ExprCall
+        to a ``LoweredSuspend``.
 
         Parameters
         ----------
@@ -84,8 +86,21 @@ class WaitLowerPass:
             Primary clock period in picoseconds.
         warnings:
             Mutable list; any rounding warnings are appended here.
+        counter_fields:
+            Optional mapping of field name → ``CounterInfo`` produced by
+            ``CounterRecognitionPass``.  When provided and the call is a
+            recognised counter wait, the suspension is lowered to inline
+            counter-jump arithmetic and ``is_counter_jump`` is set.
         """
         func_name = WaitLowerPass._call_name(call)
+
+        # Counter wait patterns: await self.<ctr>.wait_for(N) / wait_next()
+        if func_name in ("wait_for", "wait_next") and counter_fields:
+            result = WaitLowerPass._try_lower_counter_wait(
+                call, func_name, counter_fields, fields
+            )
+            if result is not None:
+                return result
 
         if func_name == "wait_cycles":
             amount = call.args[0]
@@ -131,6 +146,69 @@ class WaitLowerPass:
         if isinstance(func, ExprRefUnresolved):
             return func.name
         return ""
+
+    @staticmethod
+    def _try_lower_counter_wait(
+        call: ExprCall,
+        func_name: str,
+        counter_fields: dict,
+        fields,
+    ) -> Optional[LoweredSuspend]:
+        """Try to lower a counter ``wait_for`` / ``wait_next`` call.
+
+        Matches the pattern::
+
+            await self.<ctr_field>.wait_for(target)
+            await self.<ctr_field>.wait_next()
+
+        where ``<ctr_field>`` is a key in *counter_fields*.
+
+        Returns ``None`` when the pattern does not match.
+
+        The generated C expression uses only *tick* (the co_run parameter)
+        and compile-time constants (modulus, clock period), so no
+        sub-component struct access is required.
+
+        Semantics
+        ---------
+        Both methods always advance to the **next** occurrence of the
+        target value, even if the counter is currently at that value.
+        This differs from the Python ``wait_for`` which returns immediately
+        when already at the target; the C coroutine machine always
+        suspends at an ``await`` point.
+        """
+        func = call.func
+        if not (isinstance(func, ExprAttribute) and isinstance(func.value, ExprAttribute)):
+            return None
+        field_name = func.value.attr
+        info = counter_fields.get(field_name)
+        if info is None:
+            return None
+
+        M = info.modulus
+        P = info.period_ps
+
+        if func_name == "wait_next":
+            # Wait until the next roll-over (counter reaches 0).
+            # delta = (M - cur) cycles, always in [1, M].
+            expr = (
+                f"(uint64_t)({M}ULL - (tick / {P}ULL) % {M}ULL) * {P}ULL"
+            )
+        else:
+            # wait_for(target): wait until the next time value == target.
+            # delta = ((target - cur + M - 1) % M + 1) cycles, always in [1, M].
+            target_c = WaitLowerPass._lower_amount(
+                call.args[0] if call.args else ExprConstant(value=0),
+                fields,
+            )
+            expr = (
+                f"(uint64_t)("
+                f"((uint64_t)({target_c}) - (tick / {P}ULL) % {M}ULL"
+                f" + {M}ULL - 1ULL) % {M}ULL + 1ULL"
+                f") * {P}ULL"
+            )
+
+        return LoweredSuspend(tick_delta_expr=expr, is_counter_jump=True)
 
     @staticmethod
     def _lower_cycles(

@@ -199,20 +199,28 @@ class SyncMethodGenerator:
                 if arg.arg != 'self' and arg.arg not in seen_vars:
                     seen_vars.add(arg.arg)
         
-        # Walk statements to find assignments
+        # Walk statements (incl. nested blocks) to find local declarations.
         def extract_from_stmt(stmt):
-            if isinstance(stmt, ir.StmtAssign):
+            if isinstance(stmt, ir.StmtAnnAssign):
+                tgt = getattr(stmt, "target", None)
+                if isinstance(tgt, ir.ExprRefLocal) and tgt.name not in seen_vars:
+                    local_vars.append((tgt.name, "int32_t"))
+                    seen_vars.add(tgt.name)
+            elif isinstance(stmt, ir.StmtAssign):
                 for target in stmt.targets:
                     if isinstance(target, ir.ExprRefLocal):
                         var_name = target.name
                         if var_name not in seen_vars:
-                            var_type = "int32_t"
-                            local_vars.append((var_name, var_type))
+                            local_vars.append((var_name, "int32_t"))
                             seen_vars.add(var_name)
-        
+            for attr in ("body", "orelse"):
+                for child in getattr(stmt, attr, None) or []:
+                    if isinstance(child, ir.Stmt):
+                        extract_from_stmt(child)
+
         for stmt in stmts:
             extract_from_stmt(stmt)
-        
+
         return local_vars
     
     def _has_return(self, stmts: List[ir.Stmt]) -> bool:
@@ -236,7 +244,16 @@ class SyncMethodGenerator:
             if targets:
                 return f"{targets[0]} = {value};"
             return ""
-        
+
+        elif isinstance(stmt, ir.StmtAnnAssign):
+            # Typed local declaration ``name: T = value`` — the declaration is
+            # hoisted by _extract_local_vars; emit the initializing assignment.
+            if stmt.value is not None:
+                target = self._gen_expr(stmt.target)
+                value = self._gen_expr(stmt.value)
+                return f"{target} = {value};"
+            return ""
+
         elif isinstance(stmt, ir.StmtReturn):
             if stmt.value:
                 value = self._gen_expr(stmt.value)

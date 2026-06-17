@@ -578,9 +578,15 @@ class DmAsyncMethodGenerator:
         """Generate C fprintf call from print arguments."""
         if not args:
             return 'fprintf(stdout, "\\n")'
-        
+
         arg = args[0]
-        
+
+        # Multi-argument form: print(fmt, v1, v2, ...) -> fprintf(stdout, "fmt\n", v1, v2, ...)
+        if len(args) >= 2 and isinstance(arg, ir.ExprConstant) and isinstance(arg.value, str):
+            fmt_str = arg.value.replace('\\', '\\\\').replace('"', '\\"')
+            values = ", ".join(self._gen_expr(a) for a in args[1:])
+            return f'fprintf(stdout, "{fmt_str}\\n", {values})'
+
         # Check for format string: print("format %s" % value)
         if isinstance(arg, ir.ExprBin) and arg.op == ir.BinOp.Mod:
             return self._gen_print_format(arg)

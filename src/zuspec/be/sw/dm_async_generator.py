@@ -677,6 +677,14 @@ class DmAsyncMethodGenerator:
             ir.BinOp.BitOr: "|",
             ir.BinOp.BitXor: "^",
             ir.BinOp.BitAnd: "&",
+            ir.BinOp.Eq: "==",
+            ir.BinOp.NotEq: "!=",
+            ir.BinOp.Lt: "<",
+            ir.BinOp.LtE: "<=",
+            ir.BinOp.Gt: ">",
+            ir.BinOp.GtE: ">=",
+            ir.BinOp.And: "&&",
+            ir.BinOp.Or: "||",
         }
         return op_map.get(op, "?")
 

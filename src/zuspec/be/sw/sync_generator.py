@@ -323,11 +323,17 @@ class SyncMethodGenerator:
             return f"({op}{operand})"
         
         elif isinstance(expr, ir.ExprCall):
+            # print() builtin -> fprintf, mirroring DmAsyncMethodGenerator so the
+            # sync variant matches the coroutine variant.
+            func = expr.func
+            if (isinstance(func, ir.ExprRefUnresolved) and func.name == "print") or \
+               (isinstance(func, ir.ExprConstant) and func.value == "print"):
+                return self._gen_print(expr.args)
             # Direct function call (no await in sync version)
             func_code = self._gen_expr(expr.func)
             args = [self._gen_expr(arg) for arg in expr.args]
             return f"{func_code}({', '.join(args)})"
-        
+
         elif isinstance(expr, ir.ExprCompare):
             left = self._gen_expr(expr.left)
             # Handle simple comparison with one operator
@@ -343,7 +349,25 @@ class SyncMethodGenerator:
             return f"{value}[{slice_expr}]"
         
         return "0"  # Default fallback
-    
+
+    def _gen_print(self, args) -> str:
+        """Render print() as fprintf (mirrors StmtGenerator._gen_dm_print)."""
+        if not args:
+            return 'fprintf(stdout, "\\n")'
+        arg = args[0]
+        # print(fmt % value) -> fprintf(stdout, "fmt\n", value)
+        if isinstance(arg, ir.ExprBin) and arg.op == ir.BinOp.Mod:
+            fmt, value = arg.lhs, arg.rhs
+            if isinstance(fmt, ir.ExprConstant) and isinstance(fmt.value, str):
+                fmt_str = fmt.value.replace('\\', '\\\\').replace('"', '\\"')
+                return f'fprintf(stdout, "{fmt_str}\\n", {self._gen_expr(value)})'
+        # print("string")
+        if isinstance(arg, ir.ExprConstant) and isinstance(arg.value, str):
+            escaped = arg.value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+            return f'fprintf(stdout, "{escaped}\\n")'
+        # print(expr)
+        return f'fprintf(stdout, "%s\\n", {self._gen_expr(arg)})'
+
     def _map_binop(self, op) -> str:
         """Map binary operator to C operator."""
         op_map = {
@@ -352,13 +376,23 @@ class SyncMethodGenerator:
             'Mult': '*',
             'Div': '/',
             'Mod': '%',
+            'FloorDiv': '/',
             'BitOr': '|',
             'BitAnd': '&',
             'BitXor': '^',
             'LShift': '<<',
             'RShift': '>>',
+            'Eq': '==',
+            'NotEq': '!=',
+            'Lt': '<',
+            'LtE': '<=',
+            'Gt': '>',
+            'GtE': '>=',
+            'And': '&&',
+            'Or': '||',
         }
-        op_name = op.__class__.__name__ if hasattr(op, '__class__') else str(op)
+        # `op` is a BinOp enum member: use its member name (not the enum class name).
+        op_name = getattr(op, 'name', None) or str(op)
         return op_map.get(op_name, '+')
     
     def _map_unaryop(self, op) -> str:
@@ -369,7 +403,7 @@ class SyncMethodGenerator:
             'USub': '-',
             'Invert': '~',
         }
-        op_name = op.__class__.__name__ if hasattr(op, '__class__') else str(op)
+        op_name = getattr(op, 'name', None) or str(op)
         return op_map.get(op_name, '-')
     
     def _map_cmpop(self, op) -> str:

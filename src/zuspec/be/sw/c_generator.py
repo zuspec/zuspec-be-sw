@@ -1196,13 +1196,26 @@ class CGenerator:
             '#include "zsp_alloc.h"',
             '#include "zsp_init_ctxt.h"',
         ]
-        
-        # Include headers for all components
-        for orig_name, dtype in ctxt.type_m.items():
+
+        # Collect unique components. ``type_m`` may hold alias keys that point at
+        # the same component (e.g. a simple name and a package-qualified name), so
+        # dedup by the component's actual name — which is also what the generated
+        # file is named after (sanitize_c_name(comp.name)). Using the dict key here
+        # would emit includes/instances that don't match the generated files.
+        seen = set()
+        components = []
+        for dtype in ctxt.type_m.values():
             if isinstance(dtype, ir.DataTypeComponent):
-                name = sanitize_c_name(orig_name)
-                lines.append(f'#include "{name.lower()}.h"')
-        
+                name = sanitize_c_name(dtype.name)
+                if name in seen:
+                    continue
+                seen.add(name)
+                components.append(dtype)
+
+        # Include each component header once.
+        for dtype in components:
+            lines.append(f'#include "{sanitize_c_name(dtype.name).lower()}.h"')
+
         lines.extend([
             "",
             "int main(int argc, char **argv) {",
@@ -1213,22 +1226,21 @@ class CGenerator:
             "    ctxt.alloc = &alloc;",
             "",
         ])
-        
+
         # Instantiate and call hello on each component
-        for orig_name, dtype in ctxt.type_m.items():
-            if isinstance(dtype, ir.DataTypeComponent):
-                name = sanitize_c_name(orig_name)
-                var_name = name.lower()
-                lines.extend([
-                    f"    {name} {var_name};",
-                    f'    {name}_init(&ctxt, &{var_name}, "{var_name}", NULL);',
-                ])
-                
-                # Call hello if it exists
-                for func in dtype.functions:
-                    if func.name == "hello":
-                        lines.append(f"    {name}_hello(&{var_name});")
-                        break
+        for dtype in components:
+            name = sanitize_c_name(dtype.name)
+            var_name = name.lower()
+            lines.extend([
+                f"    {name} {var_name};",
+                f'    {name}_init(&ctxt, &{var_name}, "{var_name}", NULL);',
+            ])
+
+            # Call hello if it exists
+            for func in dtype.functions:
+                if func.name == "hello":
+                    lines.append(f"    {name}_hello(&{var_name});")
+                    break
         
         lines.extend([
             "",

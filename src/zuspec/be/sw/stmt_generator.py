@@ -547,9 +547,15 @@ class StmtGenerator:
         
         if not args:
             return 'fprintf(stdout, "\\n")'
-        
+
         arg = args[0]
-        
+
+        # Multi-argument form: print(fmt, v1, v2, ...) -> fprintf(stdout, "fmt\n", v1, v2, ...)
+        if len(args) >= 2 and isinstance(arg, ir.ExprConstant) and isinstance(arg.value, str):
+            format_str = arg.value.replace('\\', '\\\\').replace('"', '\\"')
+            values = ", ".join(self._gen_dm_expr(a) for a in args[1:])
+            return f'fprintf(stdout, "{format_str}\\n", {values})'
+
         # Check for format string
         if isinstance(arg, ir.ExprBin) and arg.op == ir.BinOp.Mod:
             format_expr = arg.lhs
@@ -582,6 +588,14 @@ class StmtGenerator:
             ir.BinOp.BitOr: "|",
             ir.BinOp.BitXor: "^",
             ir.BinOp.BitAnd: "&",
+            ir.BinOp.Eq: "==",
+            ir.BinOp.NotEq: "!=",
+            ir.BinOp.Lt: "<",
+            ir.BinOp.LtE: "<=",
+            ir.BinOp.Gt: ">",
+            ir.BinOp.GtE: ">=",
+            ir.BinOp.And: "&&",
+            ir.BinOp.Or: "||",
         }
         return op_map.get(op, "?")
 

@@ -12,6 +12,18 @@ The Zuspec Software (SW) Backend transforms Zuspec hardware component models int
 - **Compilation**: Built-in GCC compiler interface
 - **Test Execution**: Automated test runner
 - **Type Specialization**: Optional monomorphization (experimental)
+- **PSS → C** *(scenario path)*: compile PSS actions/activities/constraints to a
+  self-contained C program via the shared Scenario Runtime IR — runtime
+  constraint solving (dv-solve), sequential/`repeat` activities, and
+  `parallel`/timed concurrency on the `zsp_timebase` scheduler. See
+  [`docs/pss-to-c.md`](docs/pss-to-c.md) and `examples/pss/`. Independent of the
+  datamodel-driven `CGenerator` below:
+
+  ```python
+  from zuspec.be.sw.scenario import generate_c_files, build_executable
+  srcs = generate_c_files(["examples/pss/02_constrained_regs.pss"], "out/", root="pss_top")
+  build_executable(srcs, "out/case", "out/")   # → ./out/case <seed> <iters>
+  ```
 
 ## Installation
 

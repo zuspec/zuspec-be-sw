@@ -79,9 +79,18 @@ class CCompiler:
         """Get list of runtime source files."""
         return [self.rt_dir / src for src in self.RT_SOURCES if (self.rt_dir / src).exists()]
 
-    def compile(self, sources: List[Path], output: Path, 
-                extra_includes: Optional[List[Path]] = None) -> CompileResult:
-        """Compile C sources to executable."""
+    def compile(self, sources: List[Path], output: Path,
+                extra_includes: Optional[List[Path]] = None,
+                lib_dirs: Optional[List[Path]] = None,
+                libs: Optional[List[str]] = None,
+                rpaths: Optional[List[Path]] = None) -> CompileResult:
+        """Compile C sources to executable.
+
+        ``lib_dirs`` / ``libs`` / ``rpaths`` are optional and additive — used by
+        the PSS scenario flow to link the dv-solve shared library
+        (``-L<dir> -ldv_solve -Wl,-rpath,<dir>``).  Existing callers are
+        unaffected.
+        """
         # Find compiler
         cc = self._find_compiler()
         if cc is None:
@@ -93,17 +102,25 @@ class CCompiler:
             f"-I{self.include_dir}",
             "-o", str(output),
         ]
-        
+
         # Add extra includes
         if extra_includes:
             for inc in extra_includes:
                 cmd.append(f"-I{inc}")
-        
+
         # Add generated sources
         cmd.extend(str(s) for s in sources)
-        
+
         # Add runtime sources
         cmd.extend(str(s) for s in self.get_runtime_sources())
+
+        # Optional library linkage (e.g. dv-solve)
+        for d in (lib_dirs or []):
+            cmd.append(f"-L{d}")
+        for d in (rpaths or []):
+            cmd.append(f"-Wl,-rpath,{d}")
+        for lib in (libs or []):
+            cmd.append(f"-l{lib}")
 
         # Run compiler
         result = subprocess.run(

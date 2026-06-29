@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.type_mapper import TypeMapper as SwTypeMapper
 
 

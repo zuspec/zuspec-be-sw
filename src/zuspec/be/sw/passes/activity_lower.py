@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.ir.core.activity import (
     ActivitySequenceBlock,
     ActivityParallel,

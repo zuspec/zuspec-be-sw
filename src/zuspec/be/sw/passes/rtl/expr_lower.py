@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Set
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.ir.core.expr import (
     Expr, ExprBin, BinOp, ExprConstant, ExprRefField, TypeExprRefSelf,
     ExprRefParam, ExprRefLocal, ExprRefUnresolved, UnaryOp, ExprAttribute,

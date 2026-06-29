@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.ir.core.fields import FieldKind
 from zuspec.be.sw.ir.base import SwContext
 from zuspec.be.sw.ir.channel import (

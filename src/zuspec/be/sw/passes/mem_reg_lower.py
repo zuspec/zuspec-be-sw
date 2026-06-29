@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Set
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext
 from zuspec.be.sw.ir.memory import SwMemRead, SwMemWrite, SwRegRead, SwRegWrite
 from zuspec.be.sw.pipeline import SwPass

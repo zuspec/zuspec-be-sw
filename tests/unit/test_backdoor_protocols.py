@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import zuspec.dataclasses as zdc
 from zuspec.dataclasses import BackdoorRegFile, BackdoorMemory, MemoryRT
-from zuspec.dataclasses.rt.indexed_regfile_rt import IndexedRegFileRT
+from zuspec.be.py.rt.indexed_regfile_rt import IndexedRegFileRT
 
 
 # ---------------------------------------------------------------------------

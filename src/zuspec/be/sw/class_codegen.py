@@ -40,7 +40,7 @@ from __future__ import annotations
 import dataclasses as dc
 from typing import Dict, List, Optional, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 # --------------------------------------------------------------------------

@@ -4,7 +4,7 @@ from __future__ import annotations
 import dataclasses as dc
 from typing import List, Optional, Any, Dict
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwNode, SwContext, SwConnection
 from zuspec.be.sw.pipeline import SwPass
 

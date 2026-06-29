@@ -13,7 +13,7 @@ from __future__ import annotations
 import sys
 from typing import Dict, Optional, Set, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext, MethodLatency
 from zuspec.be.sw.pipeline import SwPass
 

@@ -25,7 +25,9 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional, Type
 
-from zuspec.dataclasses.data_model_factory import DataModelFactory
+# DataModelFactory (@zdc-component → IR) is a dataclasses frontend concern;
+# imported lazily at its sole use site so importing this module (and hence
+# ``zuspec.be.sw``) stays free of ``zuspec.dataclasses``.
 from zuspec.be.sw.compiler import CCompiler
 from zuspec.be.sw.passes.c_emit import _collect_field_meta, _FieldMeta
 from zuspec.be.sw.pipeline import SwPassManager
@@ -299,7 +301,7 @@ class ComponentProxy:
         ptr_fn = getattr(lib, f"{name}_ptr_{field_name}")
         sub_ptr = ptr_fn(ptr)
         type_m = object.__getattribute__(self, "_c_type_m")
-        from zuspec.dataclasses import ir as _ir
+        import zuspec.ir.core as _ir
         sub_dtype = type_m.get(m.comp_type)
         sub_fmeta: Dict[str, _FieldMeta] = {}
         if sub_dtype is not None and isinstance(sub_dtype, _ir.DataTypeComponent):
@@ -506,6 +508,7 @@ class CObjFactory:
     ) -> tuple:
         """Run pipeline, write files, compile, load .so, return (lib, fmeta)."""
         # Build IR
+        from zuspec.dataclasses.data_model_factory import DataModelFactory
         ir_ctx = DataModelFactory().build(cls)
 
         # Run SW passes, passing module globals for Python name resolution
@@ -556,7 +559,7 @@ class CObjFactory:
         fmeta: Dict[str, _FieldMeta] = {}
         methods: Dict[str, Any] = {}
         if dtype is not None:
-            from zuspec.dataclasses import ir
+            import zuspec.ir.core as ir
             if isinstance(dtype, ir.DataTypeComponent):
                 fmeta = _collect_field_meta(dtype, sw_ctx)
                 methods = self._build_method_shims(cls, dtype, fmeta, lib)

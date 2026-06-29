@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import List, Set
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.ir.core.expr import ExprRefField, TypeExprRefSelf
 from zuspec.ir.core.stmt import (
     Stmt, StmtAssign, StmtAugAssign, StmtIf, StmtFor, StmtWhile, StmtExpr,

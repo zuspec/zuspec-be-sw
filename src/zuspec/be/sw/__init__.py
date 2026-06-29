@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import zuspec.dataclasses as zdc
-from zuspec.dataclasses import DataModelFactory
+# NOTE: ``DataModelFactory`` (the @zdc-component → IR builder) is a dataclasses
+# *frontend* concern; it is imported lazily inside the @zdc-authored build paths
+# below so that ``import zuspec.be.sw`` does not eagerly pull in
+# ``zuspec.dataclasses``.  The IR-driven (pssc) path never reaches it.
 
 from .c_generator import CGenerator
 from .validator import CValidator, ValidationError
@@ -82,6 +84,7 @@ def _build_rtl_context(
     debug: bool = False,
 ) -> SwContext:
     """Build a SwContext populated with RTL-specific fields."""
+    from zuspec.dataclasses.data_model_factory import DataModelFactory  # lazy:  frontend
     dmf = DataModelFactory()
     build_ctx = dmf.build(component_class)
     name = component_class.__qualname__
@@ -212,6 +215,8 @@ def generate_tlm(
     from .passes.frame_eliminate import FrameEliminatePass
     from .passes.bulk_sync import BulkSyncSchedulerPass
     from .passes.c_emit import CEmitPass
+
+    from zuspec.dataclasses.data_model_factory import DataModelFactory  # lazy:  frontend
 
     dmf = DataModelFactory()
     build_ctx = dmf.build(component_class)

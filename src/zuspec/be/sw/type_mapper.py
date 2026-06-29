@@ -20,7 +20,7 @@ Supports type specialization for direct C code generation (Phase 1-3 of optimiza
 import re
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 def sanitize_protocol_name(name: str) -> str:

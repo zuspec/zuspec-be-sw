@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext
 from zuspec.be.sw.pipeline import SwPass
 

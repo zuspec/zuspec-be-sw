@@ -17,7 +17,7 @@
 Validator for checking that datamodel representation can be mapped to C.
 """
 from typing import List, Optional
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class ValidationError:

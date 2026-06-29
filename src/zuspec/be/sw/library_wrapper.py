@@ -7,7 +7,7 @@ Creates create/destroy and accessor functions for existing C components.
 
 from pathlib import Path
 from typing import List
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class LibraryWrapperGenerator:

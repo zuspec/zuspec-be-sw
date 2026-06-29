@@ -20,7 +20,7 @@ This module converts async method bodies represented in the datamodel into C cor
 functions using the switch/case pattern used by the zsp_timebase runtime.
 """
 from typing import List, Tuple, Optional
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class DmAsyncMethodGenerator:

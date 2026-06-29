@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Type, Any
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 from .type_mapper import TypeMapper
 from .stmt_generator import StmtGenerator

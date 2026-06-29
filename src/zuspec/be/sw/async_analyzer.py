@@ -23,7 +23,7 @@ expressions, async calls, or time delays can be converted to improve performance
 External tasks (import/export) must always remain async.
 """
 from typing import Set, Dict, Optional
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class AsyncAnalyzer:

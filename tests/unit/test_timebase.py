@@ -3,7 +3,7 @@ import asyncio
 import io
 import sys
 import zuspec.dataclasses as zdc
-from zuspec.dataclasses.rt.timebase import Timebase
+from zuspec.be.py.rt.timebase import Timebase
 
 
 def test_smoke(tmpdir):

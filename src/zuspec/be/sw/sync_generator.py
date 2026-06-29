@@ -21,7 +21,7 @@ that don't actually need async machinery. These functions bypass the state
 machine overhead and provide direct call semantics.
 """
 from typing import List, Tuple, Optional
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class SyncMethodGenerator:

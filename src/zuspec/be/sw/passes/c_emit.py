@@ -30,11 +30,11 @@ import io
 import typing as _typing
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 try:
-    from zuspec.dataclasses.types import IndexedRegFile as _IndexedRegFile
-    from zuspec.dataclasses.types import IndexedPool as _IndexedPool
-    from zuspec.dataclasses.types import ClaimPool as _ClaimPool
+    from zuspec.be.py.model.types import IndexedRegFile as _IndexedRegFile
+    from zuspec.be.py.model.types import IndexedPool as _IndexedPool
+    from zuspec.be.py.model.types import ClaimPool as _ClaimPool
 except ImportError:
     _IndexedRegFile = None  # type: ignore
     _IndexedPool = None  # type: ignore

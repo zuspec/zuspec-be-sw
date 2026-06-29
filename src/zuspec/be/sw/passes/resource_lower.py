@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext, SwNode
 from zuspec.be.sw.ir.resource import SwMutexAcquire, SwMutexRelease, SwIndexedSelect
 from zuspec.be.sw.ir.activity import SwSeqBlock

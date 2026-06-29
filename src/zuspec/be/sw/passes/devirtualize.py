@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext, SwConnection
 from zuspec.be.sw.ir.channel import SwDirectCall
 from zuspec.be.sw.pipeline import SwPass

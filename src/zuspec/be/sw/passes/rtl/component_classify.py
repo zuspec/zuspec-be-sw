@@ -10,7 +10,7 @@ Classification rules (design §14):
 """
 from __future__ import annotations
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.ir.core.expr import ExprAwait
 from zuspec.ir.core.stmt import (
     Stmt, StmtIf, StmtFor, StmtWhile, StmtExpr, StmtAssign,

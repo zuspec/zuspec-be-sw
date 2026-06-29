@@ -4,7 +4,7 @@ from __future__ import annotations
 import dataclasses as dc
 from typing import Optional
 
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from .base import SwNode
 
 

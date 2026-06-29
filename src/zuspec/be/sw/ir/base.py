@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Set, Any, Tuple, TYPE_CHECKING
 
 from zuspec.ir.core.domain_node import DomainNode
 from zuspec.ir.core.connection import Connection
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.protocol import EvalProtocol
 
 

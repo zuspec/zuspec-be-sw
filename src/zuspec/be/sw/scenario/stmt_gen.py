@@ -15,7 +15,7 @@ from zuspec.be.sw.stmt_generator import StmtGenerator
 
 # ``zuspec.dataclasses.ir`` re-exports the same classes as ``zuspec.ir.core``;
 # the base generator's isinstance checks use that module, so we match it.
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 
 
 class _Unsupported(Exception):

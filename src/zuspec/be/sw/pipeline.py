@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import List, Optional, Type, Any
-from zuspec.dataclasses import ir
+import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext
 
 

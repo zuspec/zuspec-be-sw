@@ -62,7 +62,7 @@ class StmtGenerator:
     # Methods for generating from datamodel statements
     def _gen_dm_stmt(self, stmt) -> str:
         """Generate C code from a datamodel statement."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         if isinstance(stmt, ir.StmtExpr):
             # Skip docstring literals (standalone string expressions)
@@ -124,7 +124,7 @@ class StmtGenerator:
 
     def _gen_dm_expr(self, expr) -> str:
         """Generate C code from a datamodel expression."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         if isinstance(expr, ir.ExprConstant):
             return self._gen_dm_constant(expr)
@@ -201,7 +201,7 @@ class StmtGenerator:
 
     def _gen_dm_field_ref(self, expr) -> str:
         """Generate C code for a field reference (ExprRefField)."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         base = self._gen_dm_expr(expr.base)
         index = expr.index
@@ -218,7 +218,7 @@ class StmtGenerator:
 
     def _get_field_name_by_index(self, base_expr, index: int) -> str:
         """Get field name from index, resolving through the type chain."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         if isinstance(base_expr, ir.TypeExprRefSelf):
             # Direct field of current component
@@ -241,7 +241,7 @@ class StmtGenerator:
 
     def _get_field_type(self, expr):
         """Get the datatype of a field expression."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
 
         if isinstance(expr, ir.ExprRefField):
             base_type = self._get_field_type(expr.base) if not isinstance(expr.base, ir.TypeExprRefSelf) else None
@@ -285,7 +285,7 @@ class StmtGenerator:
 
     def _gen_dm_call(self, expr) -> str:
         """Generate C code for a datamodel function call."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         func = expr.func
         args = [self._gen_dm_expr(arg) for arg in expr.args]
@@ -439,7 +439,7 @@ class StmtGenerator:
 
         Returns the block string, or None if *call_expr* is not an async protocol port call.
         """
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         if not isinstance(call_expr, ir.ExprCall):
             return None
         func = call_expr.func
@@ -475,7 +475,7 @@ class StmtGenerator:
 
     def _get_field_kind(self, expr) -> "Optional[ir.FieldKind]":
         """Return the FieldKind for an ExprRefField pointing to a direct component field, or None."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         if isinstance(expr, ir.ExprRefField) and isinstance(expr.base, ir.TypeExprRefSelf):
             if self.component and expr.index < len(self.component.fields):
                 return self.component.fields[expr.index].kind
@@ -483,7 +483,7 @@ class StmtGenerator:
 
     def _get_field_name(self, expr) -> "Optional[str]":
         """Return the field name for an ExprRefField pointing to a direct component field, or None."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         if isinstance(expr, ir.ExprRefField) and isinstance(expr.base, ir.TypeExprRefSelf):
             if self.component and expr.index < len(self.component.fields):
                 return self.component.fields[expr.index].name
@@ -513,7 +513,7 @@ class StmtGenerator:
 
     def _is_port_type(self, expr) -> bool:
         """Check if an expression refers to a port field."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         _port_kinds = (ir.FieldKind.Port, ir.FieldKind.ProtocolPort, ir.FieldKind.CallablePort)
         if isinstance(expr, ir.ExprRefField):
             if isinstance(expr.base, ir.TypeExprRefSelf):
@@ -524,7 +524,7 @@ class StmtGenerator:
 
     def _is_callable_port(self, attr: str) -> bool:
         """Return True if *attr* is the name of a CallablePort field on the component."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         if self.component is None:
             return False
         for field in self.component.fields:
@@ -534,7 +534,7 @@ class StmtGenerator:
 
     def _is_memory_type(self, expr) -> bool:
         """Check if an expression refers to a memory field."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         if isinstance(expr, ir.ExprRefField):
             field_type = self._get_field_type(expr)
@@ -543,7 +543,7 @@ class StmtGenerator:
 
     def _gen_dm_print(self, args) -> str:
         """Generate fprintf for print()."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         
         if not args:
             return 'fprintf(stdout, "\\n")'
@@ -575,7 +575,7 @@ class StmtGenerator:
 
     def _get_dm_binop(self, op) -> str:
         """Get C operator string for datamodel binary operation."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         op_map = {
             ir.BinOp.Add: "+",
             ir.BinOp.Sub: "-",
@@ -601,7 +601,7 @@ class StmtGenerator:
 
     def _get_dm_augop(self, op) -> str:
         """Get C augmented-assignment operator (without '=') for datamodel AugOp."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         # AugOp enum values mirror BinOp
         op_map = {
             ir.AugOp.Add: "+",
@@ -619,7 +619,7 @@ class StmtGenerator:
 
     def _get_dm_cmpop(self, op) -> str:
         """Get C comparison operator for datamodel CmpOp."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         op_map = {
             ir.CmpOp.Eq: "==",
             ir.CmpOp.NotEq: "!=",
@@ -632,7 +632,7 @@ class StmtGenerator:
 
     def _get_dm_unaryop(self, op) -> str:
         """Get C unary operator for datamodel UnaryOp."""
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         op_map = {
             ir.UnaryOp.Not: "!",
             ir.UnaryOp.Invert: "~",
@@ -648,7 +648,7 @@ class StmtGenerator:
         
         # Check for range iteration
         iter_expr = stmt.iter
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
         if isinstance(iter_expr, ir.ExprCall):
             func_name = None
             if isinstance(iter_expr.func, ir.ExprConstant) and iter_expr.func.value == "range":
@@ -737,7 +737,7 @@ class StmtGenerator:
         ``match subject: case v: body`` becomes:
         ``if (subject == v) { body } else if ... else { }``
         """
-        from zuspec.dataclasses import ir
+        import zuspec.ir.core as ir
 
         lines = []
         subject = self._gen_dm_expr(stmt.subject)

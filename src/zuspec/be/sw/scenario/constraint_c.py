@@ -15,6 +15,10 @@ from zuspec.ir.core.expr import (
     ExprConstant, ExprAttribute, ExprBin, ExprUnary, ExprCompare, ExprBool,
     ExprSubscript, ExprSlice, ExprIn, ExprRange, ExprRangeList, TypeExprRefSelf,
 )
+from zuspec.ir.core.constraint import (
+    Constraint, ConstraintExpr, ConstraintImplies, ConstraintIfElse,
+    ConstraintUnique, ConstraintSolveBefore,
+)
 from zuspec.ir.core.xf import UnsupportedConstructError
 
 
@@ -58,9 +62,98 @@ class ConstraintCEmitter:
         signed = 1 if value < 0 else 0
         return self._emit("expr_const(%s, %dLL, %d)" % (self.sp, value, signed))
 
-    def emit_constraint(self, e) -> None:
-        ref = self.emit_expr(e)
+    def emit_constraint(self, c) -> None:
+        """Render one ``Constraint`` item to ``problem_add_constraint`` call(s).
+
+        ``ScSolveProblem.constraints`` holds structured constraint IR. The
+        dv-solve model is a flat conjunction of boolean expressions, so the
+        *hard* (solution-set-affecting) forms are composed from the existing
+        ``expr_*`` primitives:
+
+          * ``ConstraintExpr``    -> the boolean expression
+          * ``ConstraintImplies`` -> ``!ant || body``
+          * ``ConstraintIfElse``  -> ``(cond -> then) && (!cond -> else)``
+          * ``ConstraintUnique``  -> pairwise ``!=`` conjunction
+
+        ``ConstraintSolveBefore`` is a no-op here (it affects solve *ordering*,
+        i.e. distribution, never the solution set). Distribution / array forms
+        (``ConstraintSoft`` / ``ConstraintDist`` / ``ConstraintForeach``) need
+        solver features the flat scalar model can't honor, so they raise rather
+        than silently change semantics.
+        """
+        if isinstance(c, ConstraintSolveBefore):
+            return  # ordering hint only; no effect on the feasible set
+        if isinstance(c, (ConstraintExpr, ConstraintImplies, ConstraintIfElse,
+                          ConstraintUnique)):
+            ref = self._as_expr(c)
+            if ref is not None:
+                self._add(ref)
+            return
+        if isinstance(c, Constraint):
+            raise UnsupportedConstructError(
+                "constraint form %s is not supported by the dv-solve C emitter "
+                "(hard forms: expr / implies / if-else / unique)"
+                % type(c).__name__,
+                loc=getattr(c, "loc", None))
+        # Bare Expr (legacy direct callers).
+        self._add(self.emit_expr(c))
+
+    # -- constraint-item composition -----------------------------------
+    def _add(self, ref: str) -> None:
         self.lines.append("problem_add_constraint(%s, %s);" % (self.sp, ref))
+
+    def _bin(self, op: str, l: str, r: str) -> str:
+        return self._emit("expr_binary(%s, %s, %s, %s)" % (self.sp, op, l, r))
+
+    def _not(self, ref: str) -> str:
+        return self._emit("expr_unary(%s, UN_NOT, %s)" % (self.sp, ref))
+
+    def _conj(self, refs: List[str]) -> str:
+        acc = refs[0]
+        for r in refs[1:]:
+            acc = self._bin("BIN_AND", acc, r)
+        return acc
+
+    def _body_expr(self, body: List[Constraint]):
+        """Reduce a hard-constraint body to a single boolean ref, or ``None``
+        when the body is empty (a vacuous conjunction)."""
+        refs = [self._as_expr(c) for c in body]
+        refs = [r for r in refs if r is not None]
+        return self._conj(refs) if refs else None
+
+    def _as_expr(self, c) -> str:
+        """Reduce a hard ``Constraint`` (or bare ``Expr``) to one boolean ref."""
+        if isinstance(c, ConstraintExpr):
+            return self.emit_expr(c.expr)
+        if isinstance(c, ConstraintImplies):
+            ant = self.emit_expr(c.antecedent)
+            body = self._body_expr(c.body)
+            # ant -> body  ==  !ant || body ; empty body is a tautology.
+            return self._bin("BIN_OR", self._not(ant), body) if body is not None \
+                else self._bin("BIN_OR", self._not(ant), ant)
+        if isinstance(c, ConstraintIfElse):
+            cond = self.emit_expr(c.cond)
+            parts: List[str] = []
+            then = self._body_expr(c.then_body)
+            if then is not None:
+                parts.append(self._bin("BIN_OR", self._not(cond), then))  # cond -> then
+            els = self._body_expr(c.else_body)
+            if els is not None:
+                parts.append(self._bin("BIN_OR", cond, els))              # !cond -> else
+            return self._conj(parts) if parts \
+                else self._bin("BIN_OR", self._not(cond), cond)
+        if isinstance(c, ConstraintUnique):
+            if len(c.items) < 2:
+                return None  # nothing to distinguish; emit no exprs
+            refs = [self.emit_expr(x) for x in c.items]
+            terms = [self._bin("BIN_NEQ", refs[i], refs[j])
+                     for i in range(len(refs)) for j in range(i + 1, len(refs))]
+            return self._conj(terms)
+        raise UnsupportedConstructError(
+            "constraint form %s is not supported inside a dv-solve constraint "
+            "body (hard forms: expr / implies / if-else / unique)"
+            % type(c).__name__,
+            loc=getattr(c, "loc", None))
 
     # ------------------------------------------------------------------
     def emit_expr(self, e) -> str:

@@ -212,3 +212,76 @@ def test_unrelated_method_not_lowered():
         not isinstance(n, (SwRegRead, SwRegWrite, SwMemRead, SwMemWrite))
         for n in nodes
     )
+
+
+# ---------------------------------------------------------------------------
+# Masked write (PSS 3.1 §21.14.1)
+# ---------------------------------------------------------------------------
+
+def test_masked_write_is_one_node_not_a_read_and_a_write():
+    """`write_val_masked` is a single operation that happens to do both.
+
+    Encoding it as SwRegRead + SwRegWrite was the obvious choice and loses what
+    matters: `sw_nodes` is a flat per-type list with no ordering against the
+    statements it came from, so nothing downstream could tell that a particular
+    read and a particular write are the same operation on the same register --
+    nor that the read may not be dropped. On a register whose read clears its
+    status bits, dropping it changes device behaviour.
+    """
+    from zuspec.be.sw.ir.memory import SwRegRmw
+
+    func = _func_with("run", _reg_call(
+        "write_val_masked",
+        args=[ir.ExprConstant(value=0xF0), ir.ExprConstant(value=0x50)]))
+    comp = _make_comp("RegRmw", [func])
+    nodes = _run(comp).sw_nodes.get("RegRmw", [])
+
+    rmw = [n for n in nodes if isinstance(n, SwRegRmw)]
+    assert len(rmw) == 1
+    assert rmw[0].mask_expr.value == 0xF0
+    assert rmw[0].value_expr.value == 0x50
+    assert rmw[0].mode == "iss"
+
+    # And emphatically NOT as the pair.
+    assert not [n for n in nodes if isinstance(n, (SwRegRead, SwRegWrite))]
+
+
+def test_masked_write_bfm_mode():
+    from zuspec.be.sw.ir.memory import SwRegRmw
+
+    func = _func_with("run", _reg_call(
+        "write_val_masked",
+        args=[ir.ExprConstant(value=1), ir.ExprConstant(value=1)]))
+    comp = _make_comp("RegRmwBfm", [func])
+    nodes = _run(comp, mode="bfm").sw_nodes.get("RegRmwBfm", [])
+    assert [n.mode for n in nodes if isinstance(n, SwRegRmw)] == ["bfm"]
+
+
+@pytest.mark.parametrize("method", ["write_field", "write_fields", "write_masked"])
+def test_an_unreduced_field_name_form_is_refused(method):
+    """This pass consumes post-reduction IR.
+
+    The compiler resolves the field name and folds the mask, so these forms
+    never arrive. One that does means the bits were never computed -- and this
+    pass has no packed-struct layout to compute them from, so guessing would
+    mean writing the wrong register bits silently.
+    """
+    func = _func_with("run", _reg_call(
+        method, args=[ir.ExprConstant(value="en"), ir.ExprConstant(value=1)]))
+    comp = _make_comp(f"RegUnreduced_{method}", [func])
+    with pytest.raises(ValueError) as e:
+        _run(comp)
+    assert method in str(e.value)
+    assert "write_val_masked" in str(e.value)
+
+
+def test_plain_read_and_write_are_unchanged():
+    """The regression that matters: adding a third shape did not reclassify the
+    two that were already there."""
+    func = _func_with("run",
+                      _reg_call("read"),
+                      _reg_call("write", args=[ir.ExprConstant(value=1)]))
+    comp = _make_comp("RegPlain", [func])
+    nodes = _run(comp).sw_nodes.get("RegPlain", [])
+    assert len([n for n in nodes if isinstance(n, SwRegRead)]) == 1
+    assert len([n for n in nodes if isinstance(n, SwRegWrite)]) == 1

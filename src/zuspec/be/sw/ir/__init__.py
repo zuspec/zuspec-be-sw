@@ -28,7 +28,7 @@ from .coroutine import (
     SwContinuation,
     SwCoroutineFrame,
 )
-from .memory import SwRegRead, SwRegWrite, SwMemRead, SwMemWrite
+from .memory import SwRegRead, SwRegWrite, SwRegRmw, SwMemRead, SwMemWrite
 
 __all__ = [
     "SwNode",
@@ -59,6 +59,7 @@ __all__ = [
     "SwCoroutineFrame",
     "SwRegRead",
     "SwRegWrite",
+    "SwRegRmw",
     "SwMemRead",
     "SwMemWrite",
 ]

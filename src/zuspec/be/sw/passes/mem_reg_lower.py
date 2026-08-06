@@ -12,6 +12,14 @@ Pattern matching
   ``SwRegRead``
 * Calls to ``DataTypeRegister`` instance methods ``write()`` / ``write_val()`` →
   ``SwRegWrite``
+* Calls to ``write_val_masked()`` → ``SwRegRmw`` -- one node, because it is one
+  operation that both reads and writes (PSS 3.1 §21.14.1)
+
+**This pass consumes post-reduction IR.** The field-name spellings of the masked
+write (``write_field``, ``write_fields``, ``write_masked``) are resolved and
+folded to ``write_val_masked`` by the compiler, so they never arrive here; one
+that does is refused rather than guessed at, since computing the register bits
+needs the packed-struct layout this pass does not have.
 * Calls to ``DataTypeAddressSpace`` read/write helpers → ``SwMemRead`` /
   ``SwMemWrite`` (width inferred from the call's keyword / positional args if
   present).
@@ -27,7 +35,8 @@ from typing import Dict, List, Optional, Set
 
 import zuspec.ir.core as ir
 from zuspec.be.sw.ir.base import SwContext
-from zuspec.be.sw.ir.memory import SwMemRead, SwMemWrite, SwRegRead, SwRegWrite
+from zuspec.be.sw.ir.memory import (
+    SwMemRead, SwMemWrite, SwRegRead, SwRegRmw, SwRegWrite)
 from zuspec.be.sw.pipeline import SwPass
 
 
@@ -37,6 +46,18 @@ from zuspec.be.sw.pipeline import SwPass
 
 _REG_READ_METHODS: Set[str] = {"read", "read_val"}
 _REG_WRITE_METHODS: Set[str] = {"write", "write_val"}
+
+#: The masked write (PSS 3.1 §21.14.1). It is BOTH a read and a write, so it
+#: joins neither set above -- see SwRegRmw for why it is one node rather than
+#: two.
+_REG_RMW_METHODS: Set[str] = {"write_val_masked"}
+
+#: The field-name spellings. The compiler reduces every one of them to
+#: ``write_val_masked`` before handing over IR, so seeing one here means this
+#: pass is running on un-reduced IR -- in which case the register bits are not
+#: yet computed and nothing sensible can be lowered. Refused rather than
+#: guessed; see _lower_reg_call.
+_REG_FIELD_METHODS: Set[str] = {"write_field", "write_fields", "write_masked"}
 _MEM_READ_METHODS: Set[str] = {"read8", "read16", "read32", "read64", "read"}
 _MEM_WRITE_METHODS: Set[str] = {"write8", "write16", "write32", "write64", "write"}
 
@@ -163,7 +184,8 @@ class MemRegAccessLowerPass(SwPass):
             elif method in _REG_READ_METHODS:
                 # Type not resolved — record on method-name match
                 self._lower_reg_call(call, method, recv, comp_name, ctxt)
-            elif method in _REG_WRITE_METHODS:
+            elif method in _REG_WRITE_METHODS or method in _REG_RMW_METHODS \
+                    or method in _REG_FIELD_METHODS:
                 self._lower_reg_call(call, method, recv, comp_name, ctxt)
             elif method in (_MEM_READ_METHODS | _MEM_WRITE_METHODS) and method not in (
                 _REG_READ_METHODS | _REG_WRITE_METHODS
@@ -178,7 +200,23 @@ class MemRegAccessLowerPass(SwPass):
         comp_name: str,
         ctxt: SwContext,
     ) -> None:
-        if method in _REG_READ_METHODS:
+        if method in _REG_FIELD_METHODS:
+            raise ValueError(
+                f"register method '{method}' reached the SW backend unreduced. "
+                "The field-name forms of the masked write are resolved and "
+                "folded to write_val_masked by the compiler (PSS 3.1 "
+                "\u00a721.14.1); this pass consumes post-reduction IR, and "
+                "cannot compute the register bits itself.")
+
+        if method in _REG_RMW_METHODS:
+            node = SwRegRmw(
+                reg_expr=recv,
+                field_name=_attr_name(recv),
+                mask_expr=call.args[0] if len(call.args) > 0 else None,
+                value_expr=call.args[1] if len(call.args) > 1 else None,
+                mode=self.mode,
+            )
+        elif method in _REG_READ_METHODS:
             node = SwRegRead(
                 reg_expr=recv,
                 field_name=_attr_name(recv),

@@ -284,7 +284,20 @@ class TypeMapper:
             
         Returns:
             Maximum number of elements the channel can hold
+
+        A stated ``depth`` is honoured exactly. It is not a hint: a PSS
+        ``channel_c<T, 1>`` means the model expects ``try_put`` to fail while an
+        item is pending, so rounding the buffer up would change behaviour
+        silently.
+
+        ``capacity`` is checked first for front ends that set it; note that
+        ``hasattr`` on a dataclass instance without the attribute is False, so
+        this falls through to ``depth``.
         """
-        if hasattr(ch_dtype, 'capacity'):
-            return ch_dtype.capacity
+        cap = getattr(ch_dtype, 'capacity', None)
+        if cap is not None:
+            return cap
+        depth = getattr(ch_dtype, 'depth', None)
+        if depth is not None:
+            return depth
         return 16  # Default capacity

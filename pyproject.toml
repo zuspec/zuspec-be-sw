@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zuspec-be-sw"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Zuspec unified compiled-C backend (software, TLM, and RTL)"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -37,8 +37,15 @@ Homepage = "https://github.com/zuspec/zuspec-be-sw-simplify"
 Repository = "https://github.com/zuspec/zuspec-be-sw-simplify"
 
 [tool.setuptools]
-packages = ["zuspec.be.sw"]
 package-dir = {"" = "src"}
+
+# Auto-discovery rather than an explicit list; see the same change in
+# zuspec-be-py. ["zuspec.be.sw"] shipped 18 of 71 modules -- the subpackages
+# were missing from every wheel. namespaces = true because zuspec/ and
+# zuspec/be/ are PEP 420 namespace dirs.
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
 
 [tool.setuptools.package-data]
 "zuspec.be.sw" = ["share/**/*"]
@@ -70,3 +77,4 @@ python_version = "3.7"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+

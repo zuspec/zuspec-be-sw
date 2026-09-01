@@ -4,6 +4,11 @@ package:
 
   setup-deps: []
 
+  # `default-dev` is already first in the file, so it is what ivpm would pick
+  # anyway -- stated explicitly so that adding a dep-set above it later cannot
+  # silently change what CI installs.
+  default-dep-set: default-dev
+
   dep-sets:
   - name: default-dev
     deps:
@@ -14,6 +19,11 @@ package:
     - name: pytest-dfm
       url: https://github.com/dv-flow/pytest-dfm.git
     - name: pytest
+      src: pypi
+    # ci.yml sets build_docs: true and docs/ uses the built-in `alabaster`
+    # theme, so Sphinx itself is the only docs dependency -- but it was absent
+    # entirely, and the docs job failed with `sphinx-build: not found`.
+    - name: Sphinx
       src: pypi
 
 

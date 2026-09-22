@@ -101,6 +101,7 @@ def test_returns_none_when_nothing_is_available(monkeypatch):
     but unpopulated directory instead turns that into ``cannot find
     -ldv_solve`` at the end of a long build."""
     monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.setattr(sp, "_dv_solve_resolver", lambda: None)
     monkeypatch.setattr(sp, "_from_package", lambda: None)
     monkeypatch.setattr(sp, "_find_dv_solve_root", lambda: None)
     assert sp.find_solver_paths() is None
@@ -113,8 +114,141 @@ def test_unbuilt_package_is_not_reported_as_found(monkeypatch, tmp_path):
     empty = tmp_path / "empty"
     empty.mkdir()
     monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.setattr(sp, "_dv_solve_resolver", lambda: None)  # older API
     monkeypatch.setattr(dv, "get_libdirs", lambda: [str(empty)])
     assert sp._from_package() is None
+
+
+# ----------------------------------- linkability and installation selection --
+#
+# Each case runs twice: delegated to dv-solve's installation API, and through
+# this module's standalone rules (dv-solve absent or older). The two must
+# agree -- that is what "one contract" means.
+
+
+@pytest.fixture(params=["delegated", "standalone"])
+def mode(request, monkeypatch):
+    monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    if request.param == "delegated":
+        if sp._dv_solve_resolver() is None:
+            pytest.skip("dv-solve with the installation API is not importable "
+                        "(an older dv_solve is shadowing it?)")
+    else:
+        monkeypatch.setattr(sp, "_dv_solve_resolver", lambda: None)
+        monkeypatch.setattr(sp, "_from_package", lambda: None)
+    return request.param
+
+
+def _prefix(tmp_path, lib=None):
+    """A prefix with headers and, optionally, one library entry built by *lib*."""
+    prefix = tmp_path / "prefix"
+    (prefix / "lib").mkdir(parents=True)
+    (prefix / "include").mkdir()
+    (prefix / "include" / "zsp_problem.h").write_text("")
+    if lib is not None:
+        lib(prefix / "lib")
+    return prefix
+
+
+def test_versioned_only_override_is_not_usable(tmp_path, monkeypatch, mode):
+    """``-ldv_solve`` cannot resolve ``libdv_solve.so.1``. Reported as the
+    override's problem -- not replaced by the package or a checkout."""
+    prefix = _prefix(tmp_path,
+                     lambda d: (d / "libdv_solve.so.1").write_bytes(b""))
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(prefix))
+    with pytest.raises(sp.SolverDiscoveryError) as ei:
+        sp.find_solver_paths()
+    assert "ZSP_SOLVER_PATH=%s" % prefix in str(ei.value)
+    assert "libdv_solve.so.1" in str(ei.value)
+
+
+def test_directory_named_like_the_library_is_not_usable(
+        tmp_path, monkeypatch, mode):
+    prefix = _prefix(tmp_path, lambda d: (d / "libdv_solve.so").mkdir())
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(prefix))
+    with pytest.raises(sp.SolverDiscoveryError, match="ZSP_SOLVER_PATH"):
+        sp.find_solver_paths()
+
+
+def test_dangling_symlink_is_not_usable(tmp_path, monkeypatch, mode):
+    prefix = _prefix(tmp_path, lambda d: os.symlink(
+        str(d / "gone.so.1"), str(d / "libdv_solve.so")))
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(prefix))
+    with pytest.raises(sp.SolverDiscoveryError, match="ZSP_SOLVER_PATH"):
+        sp.find_solver_paths()
+
+
+def test_valid_unversioned_symlink_is_usable(tmp_path, monkeypatch, mode):
+    """The ordinary shape of an installed library: linker name -> soname."""
+    def lib(d):
+        (d / "libdv_solve.so.1").write_bytes(b"")
+        os.symlink("libdv_solve.so.1", str(d / "libdv_solve.so"))
+    prefix = _prefix(tmp_path, lib)
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(prefix))
+    found = sp.find_solver_paths()
+    assert found.lib_dir == prefix / "lib"
+
+
+def test_override_without_headers_is_not_completed_elsewhere(
+        tmp_path, monkeypatch, mode):
+    lib_only = tmp_path / "lib_only"
+    lib_only.mkdir()
+    (lib_only / "libdv_solve.so").write_bytes(b"")
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(lib_only))
+    with pytest.raises(sp.SolverDiscoveryError, match="headers"):
+        sp.find_solver_paths()
+
+
+def test_checkout_build_selected_by_its_versioned_library(tmp_path, monkeypatch):
+    """Standalone checkout rules match dv-solve's: ``build/`` holds only the
+    soname, so it is selected and reported unlinkable -- ``_build/`` is not
+    quietly linked instead."""
+    monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.setattr(sp, "_dv_solve_resolver", lambda: None)
+    monkeypatch.setattr(sp, "_from_package", lambda: None)
+    root = tmp_path / "dv-solve"
+    (root / "src" / "c").mkdir(parents=True)
+    (root / "src" / "c" / "zsp_problem.h").write_text("")
+    (root / "build" / "lib").mkdir(parents=True)
+    (root / "build" / "lib" / "libdv_solve.so.1").write_bytes(b"")
+    (root / "_build" / "lib").mkdir(parents=True)
+    (root / "_build" / "lib" / "libdv_solve.so").write_bytes(b"")
+    monkeypatch.setattr(sp, "_find_dv_solve_root", lambda: root)
+    with pytest.raises(sp.SolverDiscoveryError, match="checkout build"):
+        sp.find_solver_paths()
+
+
+def test_delegated_failure_does_not_fall_back_to_a_checkout(
+        tmp_path, monkeypatch):
+    """dv-solve selects its package (versioned-only library). be-sw's own
+    sibling-checkout search must not paper over that."""
+    resolver = sp._dv_solve_resolver()
+    if resolver is None:
+        pytest.skip("dv-solve with the installation API is not importable")
+    monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    pkg = tmp_path / "site" / "dv_solve"
+    pkg.mkdir(parents=True)
+    (pkg / "libdv_solve.so.1").write_bytes(b"")
+    monkeypatch.setattr(resolver, "_pkg_dir", lambda: str(pkg))
+    monkeypatch.setattr(resolver, "_src_root", lambda: str(tmp_path / "none"))
+    with pytest.raises(sp.SolverDiscoveryError, match="package installation"):
+        sp.find_solver_paths()
+
+
+def test_delegated_nothing_installed_is_none_not_a_checkout(
+        tmp_path, monkeypatch):
+    """With dv-solve importable, "nothing installed" is its answer; a sibling
+    checkout would be a different installation from the one Python runs."""
+    resolver = sp._dv_solve_resolver()
+    if resolver is None:
+        pytest.skip("dv-solve with the installation API is not importable")
+    monkeypatch.delenv("ZSP_SOLVER_PATH", raising=False)
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    monkeypatch.setattr(resolver, "_pkg_dir", lambda: str(tmp_path / "pkg"))
+    monkeypatch.setattr(resolver, "_src_root", lambda: str(tmp_path / "none"))
+    assert sp.find_solver_paths() is None
 
 
 def test_diagnostic_names_the_fixes():
@@ -292,6 +426,24 @@ def test_missing_solver_is_an_actionable_failure(scenario, monkeypatch):
     assert "ZSP_SOLVER_PATH" in result.stderr
 
 
+def test_unusable_installation_fails_the_build_naming_it(
+        scenario, tmp_path, monkeypatch):
+    """Both entry points surface the selected installation's problem rather
+    than linking something else or reporting a generic "not found"."""
+    out, sources = scenario
+    bad = tmp_path / "bad"
+    bad.mkdir()
+    (bad / "libdv_solve.so.1").write_bytes(b"")
+    (bad / "zsp_problem.h").write_text("")
+    monkeypatch.setenv("ZSP_SOLVER_PATH", str(bad))
+    result, paths = build_executable(sources, out / "x", out, link_solver=True)
+    assert not result.success and paths is None
+    assert "ZSP_SOLVER_PATH=%s" % bad in result.stderr
+    result, so, paths = build_dpi_library(sources, out, link_solver=True)
+    assert not result.success and paths is None
+    assert "ZSP_SOLVER_PATH=%s" % bad in result.stderr
+
+
 # -------------------------------------------------- build_dpi_library, real --
 
 
@@ -311,6 +463,50 @@ def test_build_dpi_library_keeps_the_include_sets_apart(scenario, solver):
     if shutil.which("ldd"):
         deps = subprocess.run(["ldd", str(so)], capture_output=True, text=True)
         assert "libdv_solve" in deps.stdout
+
+
+@pytest.mark.skipif(shutil.which("nm") is None or not sys.platform.startswith("linux"),
+                    reason="needs nm and ELF dynamic symbols")
+def test_build_dpi_library_loads_and_solves(scenario, solver):
+    """Dependency inspection is not an executed solve: load the library and
+    call it.
+
+    Outside a simulator nothing provides the DPI imports (``svGetScope``,
+    ``svSetScope``) or the SV-side exports the bridge calls back into, so
+    exactly those -- whatever the library imports that neither dv-solve nor
+    libc provides -- are stubbed in a library loaded ``RTLD_GLOBAL`` first.
+    The solve itself is the real one, and the dv-solve library the process
+    maps must be the one discovery named.
+    """
+    import ctypes
+    out, sources = scenario
+    result, so, paths = build_dpi_library(sources, out, so_name="libscn2.so",
+                                          link_solver=True)
+    assert result.success, result.stderr
+
+    core = paths.lib_dir / "libdv_solve.so"
+    defined = set(subprocess.run(["nm", "-D", "--defined-only", str(core)],
+                                 capture_output=True, text=True).stdout.split())
+    undef = [l.split()[-1] for l in subprocess.run(
+        ["nm", "-uD", str(so)], capture_output=True, text=True).stdout.splitlines()
+        if l.split()[0] == "U"]
+    stubs = sorted(u for u in undef if "@" not in u and u not in defined)
+    assert all(n.startswith(("sv", "zsp_")) for n in stubs), stubs
+    stub_c = out / "sim_stubs.c"
+    stub_c.write_text("".join("void *%s(void){return 0;}\n" % n for n in stubs))
+    subprocess.run(["gcc", "-shared", "-fPIC", "-o", str(out / "libsimstub.so"),
+                    str(stub_c)], check=True)
+    ctypes.CDLL(str(out / "libsimstub.so"), mode=ctypes.RTLD_GLOBAL)
+
+    lib = ctypes.CDLL(str(so))
+    lib.scenario_solve_all.restype = None
+    lib.scenario_solve_all()
+    value = ctypes.c_int32.in_dll(lib, "g_x").value
+    assert 200 < value < 210, "solver returned %d, outside the constraint" % value
+
+    with open("/proc/self/maps") as f:
+        mapped = {l.split()[-1] for l in f if "/libdv_solve." in l}
+    assert {os.path.realpath(m) for m in mapped} == {os.path.realpath(str(core))}
 
 
 def test_build_dpi_library_without_a_solver(tmp_path):

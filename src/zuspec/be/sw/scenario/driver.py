@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 from .emitter import CEmitter
-from .solver_paths import find_solver_paths, solver_not_found_message
+from .solver_paths import (find_solver_paths, solver_not_found_message,
+                           SolverDiscoveryError)
 
 PathLike = Union[str, os.PathLike]
 
@@ -149,7 +150,12 @@ def build_dpi_library(sources, output_dir: PathLike,
     paths = None
     solver_objs = []
     if need:
-        paths = find_solver_paths()
+        try:
+            paths = find_solver_paths()
+        except SolverDiscoveryError as e:
+            # A selected installation that cannot be linked: report it, never
+            # quietly build against some other installation instead.
+            return (CompileResult(False, stderr=str(e)), None, None)
         if paths is None:
             return (CompileResult(False, stderr=solver_not_found_message()),
                     None, None)
@@ -242,7 +248,10 @@ def build_executable(sources, output: PathLike, output_dir: PathLike,
     backend_tus, solver_tus = _partition_sources(sources)
     solver_objs = []
     if need:
-        paths = find_solver_paths()
+        try:
+            paths = find_solver_paths()
+        except SolverDiscoveryError as e:
+            return (CompileResult(False, stderr=str(e)), None)
         if paths is None:
             return (CompileResult(False, stderr=solver_not_found_message()),
                     None)

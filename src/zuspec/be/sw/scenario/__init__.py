@@ -9,7 +9,7 @@ from .driver import (
 )
 from .emitter import CEmitter
 from .stmt_gen import ScenarioStmtGenerator
-from .solver_paths import find_solver_paths, SolverPaths
+from .solver_paths import find_solver_paths, SolverPaths, SolverDiscoveryError
 from .sv_shim import generate_sv_shim
 
 __all__ = [
@@ -23,4 +23,5 @@ __all__ = [
     "ScenarioStmtGenerator",
     "find_solver_paths",
     "SolverPaths",
+    "SolverDiscoveryError",
 ]

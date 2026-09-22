@@ -10,9 +10,78 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 from .emitter import CEmitter
-from .solver_paths import find_solver_paths
+from .solver_paths import find_solver_paths, solver_not_found_message
 
 PathLike = Union[str, os.PathLike]
+
+
+def _is_solver_tu(src: PathLike) -> bool:
+    """Does this translation unit compile against the dv-solve headers?
+
+    Detected by content rather than by file name so that renaming what the
+    emitter writes cannot silently put a solver TU back into the backend's
+    include set.
+    """
+    from .emitter import _SOLVER_INCLUDES
+    try:
+        text = Path(src).read_text()
+    except OSError:
+        return False
+    return any('#include "%s"' % h in text for h in _SOLVER_INCLUDES)
+
+
+def _partition_sources(sources):
+    """Split *sources* into ``(backend_tus, solver_tus)``.
+
+    THE REASON THIS EXISTS: dv-solve and zuspec-be-sw both ship a
+    ``zsp_alloc.h``, and they declare ``struct zsp_alloc_s`` incompatibly --
+    be-sw's has ``free(self, ptr)``, dv-solve's has ``release(self, ptr,
+    size)``. Both entry points below used to compile every source in ONE gcc
+    invocation carrying both include sets, which left the choice of
+    ``zsp_alloc.h`` to ``-I`` order.
+
+    That happens to come out right today only because the generated solver TU
+    never includes ``zsp_alloc.h`` directly: when a dv-solve header pulls it
+    in, GCC's quoted-include rule prefers the includer's own directory, so the
+    sibling wins whatever ``-I`` says. Add ``zsp_alloc.h`` to the emitter's
+    ``_SOLVER_INCLUDES`` and both copies reach the TU -- the two use different
+    include guards (``ZSP_ALLOC_H`` vs ``INCLUDED_ZSP_ALLOC_H``), so neither
+    suppresses the other and the compile dies on ``redefinition of struct
+    zsp_alloc_s``. Stage the two header sets into one directory instead and
+    the shadowing becomes silent, which is worse.
+
+    Compiling each TU with only the include set it is entitled to makes the
+    separation structural instead of incidental.
+    """
+    backend, solver = [], []
+    for s in sources:
+        (solver if _is_solver_tu(s) else backend).append(Path(s))
+    return backend, solver
+
+
+def _compile_solver_objects(solver_tus, out: Path, paths, extra_includes=None):
+    """Compile the solver TUs to objects with ONLY dv-solve's include set.
+
+    Returns ``(objects, error_or_None)``. ``extra_includes`` carries the
+    generated-code directory, which holds the emitted scenario header -- that
+    header is deliberately kept free of both runtimes' headers so it can be
+    included from either side.
+    """
+    import subprocess
+
+    objs = []
+    for src in solver_tus:
+        obj = out / (Path(src).stem + ".solver.o")
+        cmd = ["gcc", "-c", "-fPIC", "-g", "-O0", "-w"]
+        cmd += ["-I%s" % d for d in (extra_includes or [])]
+        cmd += ["-I%s" % d for d in paths.include_dirs]
+        cmd += [str(src), "-o", str(obj)]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            return [], "solver translation unit %s failed to compile:\n%s" % (
+                Path(src).name, r.stderr)
+        objs.append(obj)
+    return objs, None
 
 
 def generate_c(module, ctx, output_dir: PathLike,
@@ -75,21 +144,37 @@ def build_dpi_library(sources, output_dir: PathLike,
     if need is None:
         need = any("solve_problem_init(" in Path(s).read_text() for s in sources)
 
-    cmd = ["gcc", "-shared", "-fPIC", "-O0", "-g", "-w",
-           f"-I{cc.include_dir}", f"-I{cbridge}", f"-I{out}"]
-    cmd += [str(s) for s in sources]
-    cmd.append(str(cbridge / "zsp_bridge.c"))
-    cmd += [str(s) for s in cc.get_runtime_sources()]
+    backend_tus, solver_tus = _partition_sources(sources)
 
     paths = None
+    solver_objs = []
     if need:
         paths = find_solver_paths()
         if paths is None:
-            return (CompileResult(
-                False, stderr="dv-solve not found; set ZSP_SOLVER_PATH or build "
-                "packages/dv-solve"), None, None)
-        cmd += [f"-I{paths.include_dir}", f"-L{paths.lib_dir}",
-                f"-l{paths.lib_name}", f"-Wl,-rpath,{paths.lib_dir}"]
+            return (CompileResult(False, stderr=solver_not_found_message()),
+                    None, None)
+        # Solver TUs are compiled first, alone, against dv-solve's headers
+        # only -- see _partition_sources for why they must not see be-sw's.
+        solver_objs, err = _compile_solver_objects(
+            solver_tus, out, paths, extra_includes=[out])
+        if err:
+            return (CompileResult(False, stderr=err), None, None)
+    else:
+        # No solver: nothing should have been classified as a solver TU, but
+        # if it was, it still has to be compiled, and the backend set is the
+        # only one available.
+        backend_tus += solver_tus
+
+    cmd = ["gcc", "-shared", "-fPIC", "-O0", "-g", "-w",
+           f"-I{cc.include_dir}", f"-I{cbridge}", f"-I{out}"]
+    cmd += [str(s) for s in backend_tus]
+    cmd.append(str(cbridge / "zsp_bridge.c"))
+    cmd += [str(s) for s in cc.get_runtime_sources()]
+    cmd += [str(o) for o in solver_objs]
+
+    if need:
+        cmd += [f"-L{paths.lib_dir}", f"-l{paths.lib_name}",
+                f"-Wl,-rpath,{paths.lib_dir}"]
 
     so = out / so_name
     cmd += ["-o", str(so)]
@@ -148,20 +233,35 @@ def build_executable(sources, output: PathLike, output_dir: PathLike,
 
     need = _needs_solver(sources) if link_solver is None else link_solver
     cc = CCompiler(output_dir=output_dir)
-    extra_includes = [Path(output_dir)]
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    extra_includes = [out]
     lib_dirs = libs = rpaths = None
     paths = None
+
+    backend_tus, solver_tus = _partition_sources(sources)
+    solver_objs = []
     if need:
         paths = find_solver_paths()
         if paths is None:
-            return (CompileResult(
-                False, stderr="dv-solve library not found; set ZSP_SOLVER_PATH "
-                "or build packages/dv-solve (cmake -> build/)"), None)
-        extra_includes.append(paths.include_dir)
+            return (CompileResult(False, stderr=solver_not_found_message()),
+                    None)
+        # Compiled separately, against dv-solve's headers only. Passing the
+        # solver include dirs to cc.compile() instead would not be equivalent:
+        # CCompiler puts its own -I first and unconditionally, so the solver TU
+        # would always see be-sw's headers ahead of dv-solve's. See
+        # _partition_sources.
+        solver_objs, err = _compile_solver_objects(
+            solver_tus, out, paths, extra_includes=[out])
+        if err:
+            return (CompileResult(False, stderr=err), None)
         lib_dirs = [paths.lib_dir]
         rpaths = [paths.lib_dir]
         libs = [paths.lib_name]
-    result = cc.compile([Path(s) for s in sources], Path(output),
+    else:
+        backend_tus += solver_tus
+
+    result = cc.compile(backend_tus + solver_objs, Path(output),
                         extra_includes=extra_includes,
                         lib_dirs=lib_dirs, libs=libs, rpaths=rpaths)
     return (result, paths)

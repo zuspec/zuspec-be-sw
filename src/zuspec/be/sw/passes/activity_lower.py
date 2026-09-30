@@ -23,6 +23,7 @@ from zuspec.ir.core.activity import (
     ActivityConstraint,
     ActivityBind,
     ActivityStmt,
+    JoinKind,
     SelectBranch,
 )
 from zuspec.be.sw.ir.base import SwContext
@@ -115,7 +116,10 @@ class ActivityLowerPass(SwPass):
         if isinstance(stmt, (ActivityParallel, ActivitySchedule)):
             join = "all"
             if stmt.join_spec:
-                join = stmt.join_spec.kind or "all"
+                kind = stmt.join_spec.kind
+                # SwParBlock.join is a string; the IR's kind is a JoinKind.
+                join = (kind.name.lower() if isinstance(kind, JoinKind)
+                        else kind) or "all"
             children = self._lower_stmts_list(stmt.stmts, [])
             return SwParBlock(children=children, join=join)
 

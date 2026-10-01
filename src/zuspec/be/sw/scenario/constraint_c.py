@@ -26,7 +26,10 @@ _BIN = {
     BinOp.Add: "BIN_ADD", BinOp.Sub: "BIN_SUB", BinOp.Mult: "BIN_MUL",
     BinOp.Div: "BIN_DIV", BinOp.Mod: "BIN_MOD",
     BinOp.BitAnd: "BIN_BAND", BinOp.BitOr: "BIN_BOR", BinOp.BitXor: "BIN_BXOR",
-    BinOp.LShift: "BIN_LSHIFT", BinOp.RShift: "BIN_RSHIFT",
+    # Python `>>` floors a negative value, i.e. it is SV `>>>`. BIN_ASHR is
+    # arithmetic in a signed context and the same as BIN_RSHIFT in an
+    # unsigned one; BIN_RSHIFT is a logical shift (SV `>>`) in both.
+    BinOp.LShift: "BIN_LSHIFT", BinOp.RShift: "BIN_ASHR",
     BinOp.Eq: "BIN_EQ", BinOp.NotEq: "BIN_NEQ",
     BinOp.Lt: "BIN_LT", BinOp.LtE: "BIN_LTE",
     BinOp.Gt: "BIN_GT", BinOp.GtE: "BIN_GTE",

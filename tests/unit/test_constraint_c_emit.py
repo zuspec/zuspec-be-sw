@@ -139,3 +139,12 @@ def test_nested_implies_in_ifelse():
     t = _text([item])
     assert t.count("problem_add_constraint(sp,") == 1
     assert "expr_unary(sp, UN_NOT," in t   # both the if-cond and the inner implies
+
+
+def test_rshift_is_arithmetic():
+    # Python `>>` floors a negative value: SV `>>>`, which dv-solve calls
+    # BIN_ASHR (arithmetic when signed, logical when unsigned).
+    t = _text([ir.ConstraintExpr(expr=_bin(
+        _bin(_self("a"), ir.BinOp.RShift, _c(1)), ir.BinOp.Eq, _c(-4)))])
+    assert "expr_binary(sp, BIN_ASHR," in t
+    assert "BIN_RSHIFT" not in t

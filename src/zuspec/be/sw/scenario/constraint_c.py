@@ -1,10 +1,11 @@
 """Translate a Layer-0 constraint ``Expr`` DAG to dv-solve C builder calls.
 
 Mirrors `zuspec-solver/ir_translator.py`'s op mapping (`_BINOP_MAP` /
-`_CMPOP_MAP` / `_UNARYOP_MAP`) but emits C: each sub-expression becomes an
-``ExprRef e<N> = expr_*(sp, ...);`` line, and the constraint root is handed to
-``problem_add_constraint``.  The op codes are emitted as the dv-solve C enum
-identifiers (`BIN_ADD`, …) for readable generated code.
+`_CMPOP_MAP` / `_UNARYOP_MAP`) but emits C against dv-solve's public API
+(``dv_solve.h``): each sub-expression becomes a
+``dvs_expr_t e<N> = dvs_builder_expr_*(b, ...);`` line, and the constraint root
+is handed to ``dvs_builder_add_constraint``.  The op codes are emitted as the
+dv-solve C enum identifiers (`DVS_BIN_ADD`, …) for readable generated code.
 """
 from __future__ import annotations
 
@@ -23,24 +24,24 @@ from zuspec.ir.core.xf import UnsupportedConstructError
 
 
 _BIN = {
-    BinOp.Add: "BIN_ADD", BinOp.Sub: "BIN_SUB", BinOp.Mult: "BIN_MUL",
-    BinOp.Div: "BIN_DIV", BinOp.Mod: "BIN_MOD",
-    BinOp.BitAnd: "BIN_BAND", BinOp.BitOr: "BIN_BOR", BinOp.BitXor: "BIN_BXOR",
-    # Python `>>` floors a negative value, i.e. it is SV `>>>`. BIN_ASHR is
-    # arithmetic in a signed context and the same as BIN_RSHIFT in an
-    # unsigned one; BIN_RSHIFT is a logical shift (SV `>>`) in both.
-    BinOp.LShift: "BIN_LSHIFT", BinOp.RShift: "BIN_ASHR",
-    BinOp.Eq: "BIN_EQ", BinOp.NotEq: "BIN_NEQ",
-    BinOp.Lt: "BIN_LT", BinOp.LtE: "BIN_LTE",
-    BinOp.Gt: "BIN_GT", BinOp.GtE: "BIN_GTE",
-    BinOp.And: "BIN_AND", BinOp.Or: "BIN_OR",
+    BinOp.Add: "DVS_BIN_ADD", BinOp.Sub: "DVS_BIN_SUB", BinOp.Mult: "DVS_BIN_MUL",
+    BinOp.Div: "DVS_BIN_DIV", BinOp.Mod: "DVS_BIN_MOD",
+    BinOp.BitAnd: "DVS_BIN_BAND", BinOp.BitOr: "DVS_BIN_BOR", BinOp.BitXor: "DVS_BIN_BXOR",
+    # Python `>>` floors a negative value, i.e. it is SV `>>>`. DVS_BIN_ASHR is
+    # arithmetic in a signed context and the same as DVS_BIN_RSHIFT in an
+    # unsigned one; DVS_BIN_RSHIFT is a logical shift (SV `>>`) in both.
+    BinOp.LShift: "DVS_BIN_LSHIFT", BinOp.RShift: "DVS_BIN_ASHR",
+    BinOp.Eq: "DVS_BIN_EQ", BinOp.NotEq: "DVS_BIN_NEQ",
+    BinOp.Lt: "DVS_BIN_LT", BinOp.LtE: "DVS_BIN_LTE",
+    BinOp.Gt: "DVS_BIN_GT", BinOp.GtE: "DVS_BIN_GTE",
+    BinOp.And: "DVS_BIN_AND", BinOp.Or: "DVS_BIN_OR",
 }
 _CMP = {
-    CmpOp.Eq: "BIN_EQ", CmpOp.NotEq: "BIN_NEQ",
-    CmpOp.Lt: "BIN_LT", CmpOp.LtE: "BIN_LTE",
-    CmpOp.Gt: "BIN_GT", CmpOp.GtE: "BIN_GTE",
+    CmpOp.Eq: "DVS_BIN_EQ", CmpOp.NotEq: "DVS_BIN_NEQ",
+    CmpOp.Lt: "DVS_BIN_LT", CmpOp.LtE: "DVS_BIN_LTE",
+    CmpOp.Gt: "DVS_BIN_GT", CmpOp.GtE: "DVS_BIN_GTE",
 }
-_UN = {UnaryOp.USub: "UN_NEG", UnaryOp.Not: "UN_NOT", UnaryOp.Invert: "UN_INVERT"}
+_UN = {UnaryOp.USub: "DVS_UN_NEG", UnaryOp.Not: "DVS_UN_NOT", UnaryOp.Invert: "DVS_UN_INVERT"}
 
 
 class ConstraintCEmitter:
@@ -58,20 +59,20 @@ class ConstraintCEmitter:
 
     def _emit(self, call: str) -> str:
         t = self._tmp()
-        self.lines.append("ExprRef %s = %s;" % (t, call))
+        self.lines.append("dvs_expr_t %s = %s;" % (t, call))
         return t
 
     def _const(self, value: int) -> str:
         signed = 1 if value < 0 else 0
-        return self._emit("expr_const(%s, %dLL, %d)" % (self.sp, value, signed))
+        return self._emit("dvs_builder_expr_const(%s, %dLL, %d)" % (self.sp, value, signed))
 
     def emit_constraint(self, c) -> None:
-        """Render one ``Constraint`` item to ``problem_add_constraint`` call(s).
+        """Render one ``Constraint`` item to ``dvs_builder_add_constraint`` call(s).
 
         ``ScSolveProblem.constraints`` holds structured constraint IR. The
         dv-solve model is a flat conjunction of boolean expressions, so the
         *hard* (solution-set-affecting) forms are composed from the existing
-        ``expr_*`` primitives:
+        ``dvs_builder_expr_*`` primitives:
 
           * ``ConstraintExpr``    -> the boolean expression
           * ``ConstraintImplies`` -> ``!ant || body``
@@ -103,18 +104,18 @@ class ConstraintCEmitter:
 
     # -- constraint-item composition -----------------------------------
     def _add(self, ref: str) -> None:
-        self.lines.append("problem_add_constraint(%s, %s);" % (self.sp, ref))
+        self.lines.append("dvs_builder_add_constraint(%s, %s);" % (self.sp, ref))
 
     def _bin(self, op: str, l: str, r: str) -> str:
-        return self._emit("expr_binary(%s, %s, %s, %s)" % (self.sp, op, l, r))
+        return self._emit("dvs_builder_expr_binary(%s, %s, %s, %s)" % (self.sp, op, l, r))
 
     def _not(self, ref: str) -> str:
-        return self._emit("expr_unary(%s, UN_NOT, %s)" % (self.sp, ref))
+        return self._emit("dvs_builder_expr_unary(%s, DVS_UN_NOT, %s)" % (self.sp, ref))
 
     def _conj(self, refs: List[str]) -> str:
         acc = refs[0]
         for r in refs[1:]:
-            acc = self._bin("BIN_AND", acc, r)
+            acc = self._bin("DVS_BIN_AND", acc, r)
         return acc
 
     def _body_expr(self, body: List[Constraint]):
@@ -132,24 +133,24 @@ class ConstraintCEmitter:
             ant = self.emit_expr(c.antecedent)
             body = self._body_expr(c.body)
             # ant -> body  ==  !ant || body ; empty body is a tautology.
-            return self._bin("BIN_OR", self._not(ant), body) if body is not None \
-                else self._bin("BIN_OR", self._not(ant), ant)
+            return self._bin("DVS_BIN_OR", self._not(ant), body) if body is not None \
+                else self._bin("DVS_BIN_OR", self._not(ant), ant)
         if isinstance(c, ConstraintIfElse):
             cond = self.emit_expr(c.cond)
             parts: List[str] = []
             then = self._body_expr(c.then_body)
             if then is not None:
-                parts.append(self._bin("BIN_OR", self._not(cond), then))  # cond -> then
+                parts.append(self._bin("DVS_BIN_OR", self._not(cond), then))  # cond -> then
             els = self._body_expr(c.else_body)
             if els is not None:
-                parts.append(self._bin("BIN_OR", cond, els))              # !cond -> else
+                parts.append(self._bin("DVS_BIN_OR", cond, els))              # !cond -> else
             return self._conj(parts) if parts \
-                else self._bin("BIN_OR", self._not(cond), cond)
+                else self._bin("DVS_BIN_OR", self._not(cond), cond)
         if isinstance(c, ConstraintUnique):
             if len(c.items) < 2:
                 return None  # nothing to distinguish; emit no exprs
             refs = [self.emit_expr(x) for x in c.items]
-            terms = [self._bin("BIN_NEQ", refs[i], refs[j])
+            terms = [self._bin("DVS_BIN_NEQ", refs[i], refs[j])
                      for i in range(len(refs)) for j in range(i + 1, len(refs))]
             return self._conj(terms)
         raise UnsupportedConstructError(
@@ -172,7 +173,7 @@ class ConstraintCEmitter:
                 raise UnsupportedConstructError(
                     "constraint references non-rand field %r" % e.attr,
                     loc=getattr(e, "loc", None))
-            return self._emit("expr_var(%s, %d)" % (self.sp, self.var_id_map[e.attr]))
+            return self._emit("dvs_builder_expr_var(%s, %d)" % (self.sp, self.var_id_map[e.attr]))
 
         if isinstance(e, ExprBin):
             if e.op not in _BIN:
@@ -188,7 +189,7 @@ class ConstraintCEmitter:
                     return masked
             l = self.emit_expr(e.lhs)
             r = self.emit_expr(e.rhs)
-            return self._emit("expr_binary(%s, %s, %s, %s)"
+            return self._emit("dvs_builder_expr_binary(%s, %s, %s, %s)"
                               % (self.sp, _BIN[e.op], l, r))
 
         if isinstance(e, ExprUnary):
@@ -199,17 +200,17 @@ class ConstraintCEmitter:
                     "unsupported unary op %s in constraint" % e.op,
                     loc=getattr(e, "loc", None))
             o = self.emit_expr(e.operand)
-            return self._emit("expr_unary(%s, %s, %s)" % (self.sp, _UN[e.op], o))
+            return self._emit("dvs_builder_expr_unary(%s, %s, %s)" % (self.sp, _UN[e.op], o))
 
         if isinstance(e, ExprCompare):
             return self._emit_compare(e)
 
         if isinstance(e, ExprBool):
-            op = "BIN_AND" if e.op == BoolOp.And else "BIN_OR"
+            op = "DVS_BIN_AND" if e.op == BoolOp.And else "DVS_BIN_OR"
             refs = [self.emit_expr(v) for v in e.values]
             acc = refs[0]
             for r in refs[1:]:
-                acc = self._emit("expr_binary(%s, %s, %s, %s)"
+                acc = self._emit("dvs_builder_expr_binary(%s, %s, %s, %s)"
                                  % (self.sp, op, acc, r))
             return acc
 
@@ -235,11 +236,11 @@ class ConstraintCEmitter:
                     loc=getattr(e, "loc", None))
             l = self.emit_expr(operands[i])
             r = self.emit_expr(operands[i + 1])
-            terms.append(self._emit("expr_binary(%s, %s, %s, %s)"
+            terms.append(self._emit("dvs_builder_expr_binary(%s, %s, %s, %s)"
                                     % (self.sp, _CMP[op], l, r)))
         acc = terms[0]
         for t in terms[1:]:
-            acc = self._emit("expr_binary(%s, BIN_AND, %s, %s)" % (self.sp, acc, t))
+            acc = self._emit("dvs_builder_expr_binary(%s, DVS_BIN_AND, %s, %s)" % (self.sp, acc, t))
         return acc
 
     @staticmethod
@@ -272,10 +273,10 @@ class ConstraintCEmitter:
             mask = ((1 << width) - 1) << lo
             cval = (int(const_side.value) & ((1 << width) - 1)) << lo
             x = self.emit_expr(value_expr)
-            mref = self._emit("expr_const(%s, %dLL, 0)" % (self.sp, mask))
-            band = self._emit("expr_binary(%s, BIN_BAND, %s, %s)" % (self.sp, x, mref))
-            cref = self._emit("expr_const(%s, %dLL, 0)" % (self.sp, cval))
-            return self._emit("expr_binary(%s, %s, %s, %s)"
+            mref = self._emit("dvs_builder_expr_const(%s, %dLL, 0)" % (self.sp, mask))
+            band = self._emit("dvs_builder_expr_binary(%s, DVS_BIN_BAND, %s, %s)" % (self.sp, x, mref))
+            cref = self._emit("dvs_builder_expr_const(%s, %dLL, 0)" % (self.sp, cval))
+            return self._emit("dvs_builder_expr_binary(%s, %s, %s, %s)"
                               % (self.sp, _BIN[e.op], band, cref))
         return None
 
@@ -294,10 +295,10 @@ class ConstraintCEmitter:
         # dv-solve (shift), in which case __randomize fails loudly.
         x = self.emit_expr(value_expr)
         if lo:
-            x = self._emit("expr_binary(%s, BIN_RSHIFT, %s, %s)"
+            x = self._emit("dvs_builder_expr_binary(%s, DVS_BIN_RSHIFT, %s, %s)"
                            % (self.sp, x, self._const(lo)))
         mref = self._const(mask)
-        return self._emit("expr_binary(%s, BIN_BAND, %s, %s)" % (self.sp, x, mref))
+        return self._emit("dvs_builder_expr_binary(%s, DVS_BIN_BAND, %s, %s)" % (self.sp, x, mref))
 
     def _emit_in(self, e: ExprIn) -> str:
         container = e.container
@@ -315,14 +316,14 @@ class ConstraintCEmitter:
             if rng.upper is None:
                 # single value → value == lo
                 lo = self.emit_expr(rng.lower)
-                terms.append(self._emit("expr_binary(%s, BIN_EQ, %s, %s)"
+                terms.append(self._emit("dvs_builder_expr_binary(%s, DVS_BIN_EQ, %s, %s)"
                                         % (self.sp, value, lo)))
             else:
                 lo = self.emit_expr(rng.lower)
                 hi = self.emit_expr(rng.upper)
-                terms.append(self._emit("expr_in_range(%s, %s, %s, %s)"
+                terms.append(self._emit("dvs_builder_expr_in_range(%s, %s, %s, %s)"
                                         % (self.sp, value, lo, hi)))
         acc = terms[0]
         for t in terms[1:]:
-            acc = self._emit("expr_binary(%s, BIN_OR, %s, %s)" % (self.sp, acc, t))
+            acc = self._emit("dvs_builder_expr_binary(%s, DVS_BIN_OR, %s, %s)" % (self.sp, acc, t))
         return acc

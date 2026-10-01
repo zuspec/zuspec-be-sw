@@ -120,8 +120,8 @@ class TimebaseEmitter:
         solve = []
         if uses_solver:
             solve = ['#include "%s.h"' % em.header]
-            for inc in ("zsp_problem.h", "zsp_block_alloc.h", "zsp_ctx.h",
-                        "zsp_search.h"):
+            from .emitter import _SOLVER_INCLUDES
+            for inc in _SOLVER_INCLUDES:
                 solve.append('#include "%s"' % inc)
             solve.append("")
             for c in coros:

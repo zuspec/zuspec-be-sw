@@ -34,22 +34,13 @@ def _is_solver_tu(src: PathLike) -> bool:
 def _partition_sources(sources):
     """Split *sources* into ``(backend_tus, solver_tus)``.
 
-    THE REASON THIS EXISTS: dv-solve and zuspec-be-sw both ship a
-    ``zsp_alloc.h``, and they declare ``struct zsp_alloc_s`` incompatibly --
-    be-sw's has ``free(self, ptr)``, dv-solve's has ``release(self, ptr,
-    size)``. Both entry points below used to compile every source in ONE gcc
-    invocation carrying both include sets, which left the choice of
-    ``zsp_alloc.h`` to ``-I`` order.
-
-    That happens to come out right today only because the generated solver TU
-    never includes ``zsp_alloc.h`` directly: when a dv-solve header pulls it
-    in, GCC's quoted-include rule prefers the includer's own directory, so the
-    sibling wins whatever ``-I`` says. Add ``zsp_alloc.h`` to the emitter's
-    ``_SOLVER_INCLUDES`` and both copies reach the TU -- the two use different
-    include guards (``ZSP_ALLOC_H`` vs ``INCLUDED_ZSP_ALLOC_H``), so neither
-    suppresses the other and the compile dies on ``redefinition of struct
-    zsp_alloc_s``. Stage the two header sets into one directory instead and
-    the shadowing becomes silent, which is worse.
+    THE REASON THIS EXISTS: dv-solve's headers and be-sw's runtime headers
+    used to collide -- both shipped a ``zsp_alloc.h`` declaring an incompatible
+    ``struct zsp_alloc_s`` -- and compiling every source in ONE gcc invocation
+    carrying both include sets left the choice to ``-I`` order. dv-solve now
+    prefixes its names ``dvs_`` and exposes one public header, ``dv_solve.h``,
+    which removes that clash, but a single shared include set would still let
+    either project's internal headers shadow the other's.
 
     Compiling each TU with only the include set it is entitled to makes the
     separation structural instead of incidental.
@@ -143,7 +134,7 @@ def build_dpi_library(sources, output_dir: PathLike,
 
     need = link_solver
     if need is None:
-        need = any("solve_problem_init(" in Path(s).read_text() for s in sources)
+        need = any("dvs_builder_create(" in Path(s).read_text() for s in sources)
 
     backend_tus, solver_tus = _partition_sources(sources)
 
@@ -219,7 +210,7 @@ def generate_c_files(paths: List[PathLike], output_dir: PathLike,
 def _needs_solver(sources) -> bool:
     for s in sources:
         try:
-            if "solve_problem_init(" in Path(s).read_text():
+            if "dvs_builder_create(" in Path(s).read_text():
                 return True
         except OSError:
             pass

@@ -44,10 +44,10 @@ def test_expr():
     # a == 0  ->  var(0), const(0), binary(EQ), add
     lines = _emit([ir.ConstraintExpr(expr=_bin(_self("a"), ir.BinOp.Eq, _c(0)))])
     assert lines == [
-        "ExprRef e1 = expr_var(sp, 0);",
-        "ExprRef e2 = expr_const(sp, 0LL, 0);",
-        "ExprRef e3 = expr_binary(sp, BIN_EQ, e1, e2);",
-        "problem_add_constraint(sp, e3);",
+        "dvs_expr_t e1 = dvs_builder_expr_var(sp, 0);",
+        "dvs_expr_t e2 = dvs_builder_expr_const(sp, 0LL, 0);",
+        "dvs_expr_t e3 = dvs_builder_expr_binary(sp, DVS_BIN_EQ, e1, e2);",
+        "dvs_builder_add_constraint(sp, e3);",
     ]
 
 
@@ -60,11 +60,11 @@ def test_implies_expr_body():
             ir.ConstraintExpr(expr=_bin(_self("addr"), ir.BinOp.Lt, _c(16))),
         ])
     t = _text([item])
-    assert "expr_unary(sp, UN_NOT," in t          # negated antecedent
-    assert "BIN_AND" in t                          # body conjunction
-    assert "expr_binary(sp, BIN_OR," in t          # implication
+    assert "dvs_builder_expr_unary(sp, DVS_UN_NOT," in t          # negated antecedent
+    assert "DVS_BIN_AND" in t                          # body conjunction
+    assert "dvs_builder_expr_binary(sp, DVS_BIN_OR," in t          # implication
     # exactly one constraint added
-    assert t.count("problem_add_constraint(sp,") == 1
+    assert t.count("dvs_builder_add_constraint(sp,") == 1
 
 
 def test_if_else():
@@ -75,9 +75,9 @@ def test_if_else():
         else_body=[ir.ConstraintExpr(expr=_bin(_self("size"), ir.BinOp.Eq, _c(8)))])
     t = _text([item])
     # cond -> then  and  !cond -> else  => two OR terms joined by one AND
-    assert t.count("expr_binary(sp, BIN_OR,") == 2
-    assert t.count("expr_binary(sp, BIN_AND,") == 1
-    assert t.count("problem_add_constraint(sp,") == 1
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_OR,") == 2
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_AND,") == 1
+    assert t.count("dvs_builder_add_constraint(sp,") == 1
 
 
 def test_if_only_no_else():
@@ -86,18 +86,18 @@ def test_if_only_no_else():
         then_body=[ir.ConstraintExpr(expr=_bin(_self("size"), ir.BinOp.Eq, _c(4)))],
         else_body=[])
     t = _text([item])
-    assert t.count("expr_binary(sp, BIN_OR,") == 1   # only cond -> then
-    assert t.count("expr_binary(sp, BIN_AND,") == 0
-    assert t.count("problem_add_constraint(sp,") == 1
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_OR,") == 1   # only cond -> then
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_AND,") == 0
+    assert t.count("dvs_builder_add_constraint(sp,") == 1
 
 
 def test_unique():
     # unique {a, b, c}  ->  pairwise !=  (3 NEQ terms AND'd), one add
     item = ir.ConstraintUnique(items=[_self("a"), _self("b"), _self("c")])
     t = _text([item])
-    assert t.count("expr_binary(sp, BIN_NEQ,") == 3   # ab, ac, bc
-    assert t.count("expr_binary(sp, BIN_AND,") == 2   # fold 3 terms
-    assert t.count("problem_add_constraint(sp,") == 1
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_NEQ,") == 3   # ab, ac, bc
+    assert t.count("dvs_builder_expr_binary(sp, DVS_BIN_AND,") == 2   # fold 3 terms
+    assert t.count("dvs_builder_add_constraint(sp,") == 1
 
 
 def test_unique_single_item_is_noop():
@@ -137,14 +137,14 @@ def test_nested_implies_in_ifelse():
         cond=_bin(_self("mode"), ir.BinOp.Eq, _c(1)),
         then_body=[inner], else_body=[])
     t = _text([item])
-    assert t.count("problem_add_constraint(sp,") == 1
-    assert "expr_unary(sp, UN_NOT," in t   # both the if-cond and the inner implies
+    assert t.count("dvs_builder_add_constraint(sp,") == 1
+    assert "dvs_builder_expr_unary(sp, DVS_UN_NOT," in t   # both the if-cond and the inner implies
 
 
 def test_rshift_is_arithmetic():
     # Python `>>` floors a negative value: SV `>>>`, which dv-solve calls
-    # BIN_ASHR (arithmetic when signed, logical when unsigned).
+    # DVS_BIN_ASHR (arithmetic when signed, logical when unsigned).
     t = _text([ir.ConstraintExpr(expr=_bin(
         _bin(_self("a"), ir.BinOp.RShift, _c(1)), ir.BinOp.Eq, _c(-4)))])
-    assert "expr_binary(sp, BIN_ASHR," in t
-    assert "BIN_RSHIFT" not in t
+    assert "dvs_builder_expr_binary(sp, DVS_BIN_ASHR," in t
+    assert "DVS_BIN_RSHIFT" not in t

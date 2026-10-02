@@ -41,7 +41,7 @@ def _verilator() -> str | None:
 def _dv_solve_root() -> Path | None:
     for p in Path(__file__).resolve().parents:
         for c in (p / "dv-solve", p / "packages" / "dv-solve"):
-            if (c / "src" / "c" / "zsp_problem.h").exists():
+            if (c / "src" / "c" / "dv_solve.h").exists():
                 return c
     return None
 

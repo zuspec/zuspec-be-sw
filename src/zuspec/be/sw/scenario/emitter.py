@@ -25,13 +25,11 @@ from .stmt_gen import ScenarioStmtGenerator, _Unsupported
 from .constraint_c import ConstraintCEmitter
 
 # Static buffer sizes for the per-call solve (iteration 1: generous & fixed).
-_PROB_BUF = 1 << 16   # 64 KiB problem pool
 _CTX_BUF = 1 << 20    # 1 MiB solver static segment
 _BLOCK_SZ = 1 << 20   # 1 MiB block-allocator block
 
-_SOLVER_INCLUDES = [
-    "zsp_problem.h", "zsp_block_alloc.h", "zsp_ctx.h", "zsp_search.h",
-]
+# dv-solve's public C API is this one header.
+_SOLVER_INCLUDES = ["dv_solve.h"]
 
 
 def _type_map(ctx: Any) -> Dict[str, Any]:
@@ -265,40 +263,54 @@ class CEmitter:
         fields = {f.name: f for f in dt.fields}
         sn = self._struct_name(coro.name)
         L = ["int %s__randomize(%s *self, uint64_t seed) {" % (coro.name, sn)]
-        L.append("    static uint8_t __prob_buf[%d];" % _PROB_BUF)
         L.append("    static uint8_t __ctx_buf[%d];" % _CTX_BUF)
-        L.append("    SolveProblem *sp = solve_problem_init(__prob_buf, sizeof(__prob_buf));")
+        L += [
+            "    int __rc = 1;",
+            "    size_t __psz = 0;",
+            "    dvs_problem_t *__p = NULL;",
+            "    dvs_block_alloc_t *__ba = NULL;",
+            "    dvs_ctx_t *__ctx = NULL;",
+            "    dvs_builder_t *b = dvs_builder_create(0, NULL);",
+            "    if (!b) return 1;",
+        ]
         for v in sp.vars:
             lo, hi = self._var_bounds(v.width, v.signed)
-            L.append("    problem_add_var(sp, %d, %d, %d, %dLL, %dLL);"
+            L.append("    dvs_builder_add_var(b, %d, %d, %d, %dLL, %dLL);"
                      % (v.var_id, v.width, 1 if v.signed else 0, lo, hi))
         # constraints
-        cc = ConstraintCEmitter({v.name: v.var_id for v in sp.vars}, sp="sp")
+        cc = ConstraintCEmitter({v.name: v.var_id for v in sp.vars}, sp="b")
         for c in sp.constraints:
             cc.emit_constraint(c)
         for line in cc.lines:
             L.append("    " + line)
         # solve
         L += [
-            "    zsp_block_alloc_t *__ba = zsp_block_alloc_create(NULL, %d);" % _BLOCK_SZ,
-            "    SolveCtx *__ctx = solver_create(__ctx_buf, sizeof(__ctx_buf), __ba);",
-            "    if (solver_compile(__ctx, sp) != 0) {",
+            "    __p = dvs_builder_finalize(b, &__psz);",
+            "    __ba = dvs_block_alloc_create(NULL, %d);" % _BLOCK_SZ,
+            "    if (!__p || !__ba) goto done;",
+            "    __ctx = dvs_solver_create(__ctx_buf, sizeof(__ctx_buf), __ba);",
+            "    if (!__ctx || dvs_solver_compile(__ctx, __p) != DVS_COMPILE_OK) {",
             '        fprintf(stderr, "%s__randomize: compile failed\\n");' % coro.name,
-            "        solver_destroy(__ctx); zsp_block_alloc_destroy(__ba); return 1;",
+            "        goto done;",
             "    }",
-            "    SolveOpts __opts; memset(&__opts, 0, sizeof(__opts)); __opts.seed = seed;",
-            "    SolveResult __r = solver_solve(__ctx, &__opts);",
-            "    if (__r != SOLVE_OK) {",
+            "    dvs_solve_opts_t __opts; memset(&__opts, 0, sizeof(__opts)); __opts.seed = seed;",
+            "    dvs_result_t __r = dvs_solver_solve(__ctx, &__opts);",
+            "    if (__r != DVS_SOLVE_OK) {",
             '        fprintf(stderr, "%s__randomize: solve failed (%%d)\\n", __r);' % coro.name,
-            "        solver_destroy(__ctx); zsp_block_alloc_destroy(__ba); return 1;",
+            "        goto done;",
             "    }",
         ]
         for name, vid in sp.writeback.items():
             ctype = self.type_mapper.map_type(fields[name].datatype)
-            L.append("    self->%s = (%s)solver_get_value(__ctx, %d);" % (name, ctype, vid))
+            L.append("    self->%s = (%s)dvs_solver_get_value(__ctx, %d);" % (name, ctype, vid))
         L += [
-            "    solver_destroy(__ctx); zsp_block_alloc_destroy(__ba);",
-            "    return 0;",
+            "    __rc = 0;",
+            "done:",
+            "    if (__ctx) dvs_solver_destroy(__ctx);",
+            "    if (__ba) dvs_block_alloc_destroy(__ba);",
+            "    if (__p) dvs_builder_free_problem(b, __p, __psz);",
+            "    dvs_builder_destroy(b);",
+            "    return __rc;",
             "}",
         ]
         return "\n".join(L)
@@ -317,8 +329,8 @@ class CEmitter:
         solve_map = {c.name: self._solve_problem(c) for c in coros}
         uses_solver = any(p is not None for p in solve_map.values())
 
-        # Header stays free of the dv-solve and timebase runtime headers (their
-        # zsp_alloc.h's collide); each is pulled into only the .c that needs it.
+        # Header stays free of the dv-solve and timebase runtime headers; each
+        # is pulled into only the .c that needs it.
         h = ["#ifndef %s" % guard, "#define %s" % guard, "",
              "#include <stdint.h>", "#include <stdio.h>", "#include <string.h>", ""]
         # Shared root LCG (single definition in the source; a top seed

@@ -42,7 +42,7 @@ from typing import List, NamedTuple, Optional, Sequence
 #: include directory from one that merely exists. An unbuilt checkout has a
 #: ``src/c`` full of sources and a wheel with unstaged data files has an empty
 #: ``share/include``; both look fine until a consumer's compile fails.
-_SENTINEL_HEADER = "zsp_problem.h"
+_SENTINEL_HEADER = "dv_solve.h"
 
 #: The linker name ``-ldv_solve`` resolves, and the loadable soname forms.
 _LINK_NAME = "libdv_solve.so"
@@ -62,19 +62,17 @@ class SolverPaths(NamedTuple):
     ``include_dirs`` is a SEQUENCE because the installed layout needs two
     entries: dv-solve stages its headers under ``share/include/dv_solve/``,
     but its own headers and the generated solver code both use unqualified
-    includes (``#include "zsp_ctx.h"``), which resolve only against the nested
-    directory -- while a consumer writing ``dv_solve/zsp_ctx.h`` needs the
-    base. A single directory could not express that.
+    includes (``#include "dv_solve.h"``), which resolve only against the
+    nested directory -- while a consumer writing ``dv_solve/dv_solve.h`` needs
+    the base. A single directory could not express that.
 
     ``include_dir`` is retained as the first entry so existing callers keep
     working; it is the right answer for a source tree, where the headers are
     flat, and the wrong one for a wheel, so new code should use the plural.
 
     WHAT THESE ARE NOT: this is the include set for the SOLVER translation
-    unit only. dv-solve and zuspec-be-sw both ship a ``zsp_alloc.h`` declaring
-    an incompatible ``struct zsp_alloc_s`` (``free`` vs ``release``, with
-    different signatures), so the two sets must never be merged into one
-    ``-I`` list -- see ``driver.py``.
+    unit only, and must never be merged into one ``-I`` list with the
+    backend's -- see ``driver.py``.
     """
     lib_dir: Path
     include_dirs: Sequence[Path]

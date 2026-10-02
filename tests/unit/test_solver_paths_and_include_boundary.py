@@ -9,17 +9,14 @@ Two things are under test here and they are related:
 
   * ``driver.build_executable()`` / ``build_dpi_library()`` must compile the
     solver translation unit against dv-solve's headers and the backend TUs
-    against be-sw's, never both together. The two projects ship a colliding
-    ``zsp_alloc.h`` (``free(self, ptr)`` vs ``release(self, ptr, size)``).
+    against be-sw's, never both together. The two projects used to ship a
+    colliding ``zsp_alloc.h``; dv-solve's names are now ``dvs_``-prefixed
+    behind one public header, ``dv_solve.h``, but each TU should still see
+    only its own project's headers.
 
-The include-boundary tests deliberately make each TU *use* a field that only
-its own ``zsp_alloc.h`` declares, so picking up the wrong header is a compile
-error rather than a silent struct-layout mismatch. That is the only way to
-test this: with the headers as they stand the wrong choice is currently
-invisible, because the generated solver TU never includes ``zsp_alloc.h``
-directly and GCC's quoted-include rule prefers a header's own directory when
-one dv-solve header pulls in another. Both of those are accidents that a
-one-line change elsewhere would remove.
+The include-boundary tests make each TU prove which include set it got: the
+backend TU uses a field only be-sw's ``zsp_alloc.h`` declares, and the solver
+TU checks that ``dv_solve.h`` is reachable and be-sw's ``zsp_alloc.h`` is not.
 """
 import os
 import shutil
@@ -66,9 +63,9 @@ def test_finds_an_installed_package(monkeypatch):
 def test_include_dirs_is_plural_and_usable(solver):
     """``get_incdirs()`` reports two directories for an installed layout; a
     single ``include_dir`` could not express that, and the nested one is the
-    only place unqualified ``#include "zsp_ctx.h"`` resolves."""
+    only place unqualified ``#include "dv_solve.h"`` resolves."""
     assert len(solver.include_dirs) >= 1
-    assert any((Path(d) / "zsp_problem.h").is_file()
+    assert any((Path(d) / "dv_solve.h").is_file()
                for d in solver.include_dirs)
 
 
@@ -85,7 +82,7 @@ def test_env_override_wins(tmp_path, monkeypatch):
     (prefix / "lib").mkdir(parents=True)
     (prefix / "include").mkdir(parents=True)
     (prefix / "lib" / "libdv_solve.so").write_bytes(b"")
-    (prefix / "include" / "zsp_problem.h").write_text("")
+    (prefix / "include" / "dv_solve.h").write_text("")
     monkeypatch.setenv("ZSP_SOLVER_PATH", str(prefix))
     found = sp.find_solver_paths()
     assert found.lib_dir == prefix / "lib"
@@ -145,7 +142,7 @@ def _prefix(tmp_path, lib=None):
     prefix = tmp_path / "prefix"
     (prefix / "lib").mkdir(parents=True)
     (prefix / "include").mkdir()
-    (prefix / "include" / "zsp_problem.h").write_text("")
+    (prefix / "include" / "dv_solve.h").write_text("")
     if lib is not None:
         lib(prefix / "lib")
     return prefix
@@ -209,7 +206,7 @@ def test_checkout_build_selected_by_its_versioned_library(tmp_path, monkeypatch)
     monkeypatch.setattr(sp, "_from_package", lambda: None)
     root = tmp_path / "dv-solve"
     (root / "src" / "c").mkdir(parents=True)
-    (root / "src" / "c" / "zsp_problem.h").write_text("")
+    (root / "src" / "c" / "dv_solve.h").write_text("")
     (root / "build" / "lib").mkdir(parents=True)
     (root / "build" / "lib" / "libdv_solve.so.1").write_bytes(b"")
     (root / "_build" / "lib").mkdir(parents=True)
@@ -292,46 +289,38 @@ int main(void) {
 
 
 def _solver_c(problem_bytes):
-    """The SOLVER TU. Uses ``ZSP_ALLOC``, a macro only dv-solve's
-    ``zsp_alloc.h`` defines, so a leak in the other direction also fails to
-    compile. Solves a real embedded problem and publishes the result."""
+    """The SOLVER TU. Compiles against dv-solve's public header and fails to
+    compile if be-sw's ``zsp_alloc.h`` is on its include path, so a leak in
+    the other direction is caught too. Solves a real embedded problem and
+    publishes the result."""
     data = ",".join(str(b) for b in problem_bytes)
     return """
 #include "scenario_gen.h"
-#include "zsp_problem.h"
-#include "zsp_block_alloc.h"
-#include "zsp_alloc.h"
-#include "zsp_ctx.h"
-#include "zsp_search.h"
+#include "dv_solve.h"
 #include <string.h>
+
+#if defined(__has_include)
+#if __has_include("zsp_alloc.h")
+#error "be-sw's runtime headers leaked into the solver TU's include path"
+#endif
+#endif
 
 static const unsigned char prob[] = {%s};
 
-/* Only dv-solve's zsp_alloc.h has a 'release' member; be-sw's calls it
-   'free' and gives it a different signature. Referencing it is a
-   compile-time assertion that this TU got the right header -- and needs no
-   symbol from the library, so it stays a pure include-path test. */
-static int uses_dv_solve_alloc(void) {
-    zsp_alloc_t a;
-    memset(&a, 0, sizeof(a));
-    return a.release == 0;
-}
-
 /* The driver decides a scenario needs the solver by looking for the text
-   solve_problem_init( in the emitted source. Mentioning it here exercises
+   dvs_builder_create( in the emitted source. Mentioning it here exercises
    that detection without calling it. */
 void scenario_solve_all(void) {
     static unsigned char cbuf[1<<20];
-    if (!uses_dv_solve_alloc()) { g_x = -2; return; }
-    zsp_block_alloc_t *ba = zsp_block_alloc_create(0, 1<<20);
-    SolveCtx *c = solver_create(cbuf, sizeof(cbuf), ba);
-    solver_compile(c, (SolveProblem *)prob);
-    SolveOpts o; memset(&o, 0, sizeof(o));
+    dvs_block_alloc_t *ba = dvs_block_alloc_create(0, 1<<20);
+    dvs_ctx_t *c = dvs_solver_create(cbuf, sizeof(cbuf), ba);
+    dvs_solver_compile(c, (dvs_problem_t *)prob);
+    dvs_solve_opts_t o; memset(&o, 0, sizeof(o));
     o.seed = 12345ull; o.fair_pick = 1;
-    solver_solve(c, &o);
-    g_x = (int32_t)solver_get_value(c, 0);
-    solver_destroy(c);
-    zsp_block_alloc_destroy(ba);
+    if (dvs_solver_solve(c, &o) == DVS_SOLVE_OK)
+        g_x = (int32_t)dvs_solver_get_value(c, 0);
+    dvs_solver_destroy(c);
+    dvs_block_alloc_destroy(ba);
 }
 """ % data
 
@@ -374,7 +363,7 @@ def test_partition_is_by_content_not_by_name(tmp_path):
     """Renaming what the emitter writes must not silently put a solver TU back
     into the backend's include set."""
     odd = tmp_path / "not_obviously_a_solver_file.c"
-    odd.write_text('#include "zsp_problem.h"\n')
+    odd.write_text('#include "dv_solve.h"\n')
     backend_tus, solver_tus = _partition_sources([odd])
     assert solver_tus == [odd] and backend_tus == []
 
@@ -434,7 +423,7 @@ def test_unusable_installation_fails_the_build_naming_it(
     bad = tmp_path / "bad"
     bad.mkdir()
     (bad / "libdv_solve.so.1").write_bytes(b"")
-    (bad / "zsp_problem.h").write_text("")
+    (bad / "dv_solve.h").write_text("")
     monkeypatch.setenv("ZSP_SOLVER_PATH", str(bad))
     result, paths = build_executable(sources, out / "x", out, link_solver=True)
     assert not result.success and paths is None
